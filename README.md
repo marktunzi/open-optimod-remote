@@ -2,6 +2,25 @@
 
 Independent open-source control software for Orban OPTIMOD processors, with fully verified control centered on the 5700i. A native Rust process communicates directly with the processor and the installed macOS app presents the interface in its own native window. No Windows, browser, Wine, CrossOver or Orban runtime is required for normal use.
 
+![Open Optimod Remote controlling an OPTIMOD 5700i: live FM and HD meters above the AGC processing page](docs/images/main-window.png)
+
+**[Download for macOS](https://github.com/marktunzi/open-optimod-remote/releases/latest)**: signed and notarized, Apple Silicon, macOS 13 or later.
+
+## Why this exists
+
+OPTIMOD processors sit at the end of the air chain in radio stations around the world and stay in service for many years. The software to control them from a computer, Orban's PC Remote, runs only on Windows. An engineer on a Mac has to keep a Windows PC around, run a virtual machine, or put Wine or CrossOver between themselves and an on-air processor, just to adjust a setting or watch the meters.
+
+Open Optimod Remote removes that detour. It is a native Mac app that talks to the processor directly over its own network protocol. There is no Windows, no emulation layer and no Orban executable.
+
+Because it controls equipment that is on air, it is deliberately strict:
+
+- it only shows values the processor has confirmed;
+- meters are never simulated;
+- a failed write is never replayed automatically;
+- models that have not been verified on real hardware stay read-only.
+
+It is open source because that knowledge should not live in one person's head or on one workstation. The protocol, the parameter mappings and the verification notes are documented in this repository. Every OPTIMOD model beyond the 5700i needs someone with that exact processor to confirm it before its controls can be unlocked. If you run one of the read-only models, your verification is the most valuable contribution you can make. See [Contributing](#contributing).
+
 **Development build, not a complete Windows PC Remote replacement.** The target remains full feature and interaction parity, including FM/HD, live metering, presets, setup and maintenance. See [compatibility](docs/compatibility.md) and [verified protocol](docs/protocol/5700i.md).
 
 Research for adding the 8200, 8400 and later OPTIMOD families is documented in [multi-model support](docs/research/2026-09-22-multi-model-optimod-support.md), with an executable [adapter plan](docs/plans/2026-09-22-multi-model-adapter-plan.md). The running app now detects and reads processing/setup documents and preset catalogs from 5500i, 5500, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 and 9400 through separate read-only adapters. Their writes and live-meter mappings remain disabled until verified on each exact model and firmware.
@@ -33,7 +52,7 @@ Remaining work includes device gate/overload/lock indicators, some absolute mete
 
 ## Install and run on macOS
 
-Download the latest `OpenOptimodRemote-<version>-arm64.dmg` from [Releases](https://github.com/marktunzi/open-optimod-remote/releases), open it and drag **Open Optimod Remote** to **Applications**. The release is signed with a Developer ID and notarized by Apple, so it opens without Gatekeeper warnings. It requires an Apple Silicon Mac with macOS 13 or later. The app starts the local service itself and loads the complete interface in its own window. Allow local-network access when macOS asks so it can reach the processor.
+Download the latest `OpenOptimodRemote-<version>-arm64.dmg` from [Releases](https://github.com/marktunzi/open-optimod-remote/releases/latest), open it and drag **Open Optimod Remote** to **Applications**. The release is signed with a Developer ID and notarized by Apple, so it opens without Gatekeeper warnings. It requires an Apple Silicon Mac with macOS 13 or later. The app starts the local service itself and loads the complete interface in its own window. Allow local-network access when macOS asks so it can reach the processor.
 
 ### Build from source
 
@@ -60,6 +79,8 @@ ASC_KEY_ID=... ASC_ISSUER_ID=... \
 ```
 
 This signs every binary with the hardened runtime and a secure timestamp, notarizes and staples the app, then packages, signs, notarizes and staples `dist/OpenOptimodRemote-<version>-<arch>.dmg`, and finally checks both with `spctl`. The App Store Connect API key is read from `~/.appstoreconnect/private_keys/AuthKey_<ASC_KEY_ID>.p8` unless `ASC_KEY_PATH` is set.
+
+![The native Connections window with one connected OPTIMOD 5700i](docs/images/connections.png)
 
 The native Connections window opens on launch. Add a processor once with its name, address, ports and access code. Metadata is saved in `connections.json`; access codes are kept separately in `credentials.json`, both under `~/Library/Application Support/OpenOptimodRemote/`. The credentials file is restricted to the current macOS user and the UI renders saved codes as bullets. No Keychain access is used. PC Remote uses port 6201 and status verification uses port 23 by default. The internal HTTP service binds exclusively to loopback.
 
