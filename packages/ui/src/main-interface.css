@@ -1,0 +1,436 @@
+/*
+ * Approved 5700i main interface.
+ *
+ * This file is deliberately imported after the application stylesheet.  The
+ * main instrument must follow the supplied 2264 x 2108 artwork as one visual
+ * system; older application and connection-browser rules must not restyle it.
+ */
+
+main:not(.connection-mode) {
+  --skin-bg: #302f2e;
+  --skin-bg-top: #353432;
+  --skin-bg-bottom: #32312f;
+  --skin-panel-top: #20201e;
+  --skin-panel-bottom: #252523;
+  --skin-lcd-top: #0c1721;
+  --skin-lcd-mid: #152536;
+  --skin-lcd-bottom: #0d1a25;
+  --skin-lcd-text: #6fb6e4;
+  --skin-accent-top: #448bd6;
+  --skin-accent-bottom: #245b9d;
+  position: relative;
+  max-width: none;
+  border: 0;
+  background: var(--skin-bg);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+main[data-skin="optimod-5500i"] {
+  --skin-bg: #292f2e; --skin-bg-top: #343b39; --skin-bg-bottom: #29302f;
+  --skin-panel-top: #182321; --skin-panel-bottom: #202b29;
+  --skin-lcd-top: #071b1c; --skin-lcd-mid: #0d3032; --skin-lcd-bottom: #091f21;
+  --skin-lcd-text: #7bd7d3; --skin-accent-top: #24a9a3; --skin-accent-bottom: #126b70;
+}
+
+main[data-skin="optimod-5500"] {
+  --skin-bg: #332f29; --skin-bg-top: #3b3730; --skin-bg-bottom: #302c27;
+  --skin-panel-top: #252018; --skin-panel-bottom: #2c261d;
+  --skin-lcd-top: #201609; --skin-lcd-mid: #3a2910; --skin-lcd-bottom: #24190b;
+  --skin-lcd-text: #e3b765; --skin-accent-top: #c68534; --skin-accent-bottom: #7f4c17;
+}
+
+main[data-skin="optimod-5700-fm"] {
+  --skin-bg: #302d32; --skin-bg-top: #39343b; --skin-bg-bottom: #302c32;
+  --skin-panel-top: #221d25; --skin-panel-bottom: #29232b;
+  --skin-lcd-top: #180e20; --skin-lcd-mid: #2c1939; --skin-lcd-bottom: #1c1125;
+  --skin-lcd-text: #c29cdf; --skin-accent-top: #985bc1; --skin-accent-bottom: #603180;
+}
+
+main[data-skin="optimod-5700-hd"] {
+  --skin-bg: #292e36; --skin-bg-top: #333a44; --skin-bg-bottom: #292f37;
+  --skin-panel-top: #19212c; --skin-panel-bottom: #202936;
+  --skin-lcd-top: #071526; --skin-lcd-mid: #102c4a; --skin-lcd-bottom: #091a2d;
+  --skin-lcd-text: #80bdf1; --skin-accent-top: #397fca; --skin-accent-bottom: #1e4f89;
+}
+
+main[data-skin="optimod-8500"] {
+  --skin-bg: #34383a; --skin-bg-top: #414649; --skin-bg-bottom: #32373a;
+  --skin-panel-top: #1d2528; --skin-panel-bottom: #263034;
+  --skin-lcd-top: #07191f; --skin-lcd-mid: #113440; --skin-lcd-bottom: #0a2028;
+  --skin-lcd-text: #80d3e9; --skin-accent-top: #289bbd; --skin-accent-bottom: #17657e;
+}
+
+main[data-skin="optimod-6300"] {
+  --skin-bg: #2d3330; --skin-bg-top: #39413d; --skin-bg-bottom: #2b312e;
+  --skin-panel-top: #1b2520; --skin-panel-bottom: #222d28;
+  --skin-lcd-top: #081a15; --skin-lcd-mid: #12392d; --skin-lcd-bottom: #0a211a;
+  --skin-lcd-text: #8bd9b4; --skin-accent-top: #3aa978; --skin-accent-bottom: #1c6a4a;
+}
+
+main[data-skin="optimod-8600"] {
+  --skin-bg: #2b3037; --skin-bg-top: #39414b; --skin-bg-bottom: #2b3139;
+  --skin-panel-top: #19222d; --skin-panel-bottom: #222c38;
+  --skin-lcd-top: #07172a; --skin-lcd-mid: #0e3157; --skin-lcd-bottom: #091c32;
+  --skin-lcd-text: #79c3ff; --skin-accent-top: #318dde; --skin-accent-bottom: #175794;
+}
+
+main[data-skin="optimod-8700i"] {
+  --skin-bg: #343031; --skin-bg-top: #423b3d; --skin-bg-bottom: #322e30;
+  --skin-panel-top: #261b1e; --skin-panel-bottom: #302226;
+  --skin-lcd-top: #20090e; --skin-lcd-mid: #42141e; --skin-lcd-bottom: #260c12;
+  --skin-lcd-text: #f19aa9; --skin-accent-top: #cb415b; --skin-accent-bottom: #812337;
+}
+
+main[data-skin="optimod-9300"] {
+  --skin-bg: #373128; --skin-bg-top: #463d31; --skin-bg-bottom: #342e27;
+  --skin-panel-top: #281f15; --skin-panel-bottom: #33271a;
+  --skin-lcd-top: #251505; --skin-lcd-mid: #4a2e0c; --skin-lcd-bottom: #2b1906;
+  --skin-lcd-text: #efc177; --skin-accent-top: #c78b36; --skin-accent-bottom: #7e511b;
+}
+
+main[data-skin="optimod-9400"] {
+  --skin-bg: #342b2d; --skin-bg-top: #44373a; --skin-bg-bottom: #332a2c;
+  --skin-panel-top: #29191d; --skin-panel-bottom: #342126;
+  --skin-lcd-top: #25080e; --skin-lcd-mid: #49121e; --skin-lcd-bottom: #2b0a11;
+  --skin-lcd-text: #ec91a4; --skin-accent-top: #b93651; --skin-accent-bottom: #742034;
+}
+
+main[data-skin="neutral"] {
+  --skin-bg: #303236; --skin-bg-top: #393c41; --skin-bg-bottom: #2e3135;
+  --skin-panel-top: #202328; --skin-panel-bottom: #272b30;
+  --skin-lcd-top: #111820; --skin-lcd-mid: #1b2732; --skin-lcd-bottom: #131c25;
+  --skin-lcd-text: #a3b0bc; --skin-accent-top: #697684; --skin-accent-bottom: #424c57;
+}
+
+main:not(.connection-mode)::before {
+  content: "";
+  position: absolute;
+  z-index: 50;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(
+    180deg,
+    rgba(164, 163, 160, 0.82) 0,
+    rgba(113, 112, 109, 0.68) 24%,
+    rgba(62, 61, 59, 0.76) 58%,
+    rgba(31, 31, 30, 0) 100%
+  );
+  pointer-events: none;
+}
+
+.instrument-header,
+.meterstrip,
+.tabs {
+  background-color: var(--skin-bg-bottom);
+  background-image:
+    url("/assets/instrument-grain.svg"),
+    linear-gradient(163deg, var(--skin-bg-top) 0%, var(--skin-bg-bottom) 100%);
+  background-repeat: repeat, no-repeat;
+  background-size: 128px 128px, 100% 100%;
+  background-blend-mode: soft-light, normal;
+}
+
+.instrument-header > .status-lcd {
+  border-bottom: 1px solid #68747c;
+  color: var(--skin-lcd-text);
+  background-image:
+    url("/assets/instrument-grain.svg"),
+    radial-gradient(ellipse 82% 145% at 48% -18%, rgba(38, 70, 96, 0.48) 0%, rgba(20, 40, 57, 0.18) 55%, transparent 76%),
+    linear-gradient(163deg, var(--skin-lcd-top) 0%, var(--skin-lcd-mid) 58%, var(--skin-lcd-bottom) 100%);
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-size: 96px 96px, 100% 100%, 100% 100%;
+  background-blend-mode: soft-light, screen, normal;
+  box-shadow:
+    inset 0 2px 5px rgba(2, 7, 12, 0.94),
+    inset 0 -1px 0 rgba(183, 198, 207, 0.28),
+    0 2px 3px rgba(0, 0, 0, 0.34);
+  text-shadow: 0 0 1px rgba(111, 182, 228, 0.38);
+}
+
+.instrument-header > .coupling-control,
+.instrument-header > .instrument-connection,
+.instrument-header > .instrument-action {
+  width: 4.946996%;
+}
+
+.status-pill {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 56 / 22;
+  padding: 0;
+  border: 1px solid #596570;
+  border-radius: 999px;
+  background-color: #20262c;
+  background-image:
+    url("/assets/instrument-grain.svg"),
+    radial-gradient(ellipse 105% 135% at 28% 4%, rgba(68, 83, 96, 0.48) 0%, rgba(43, 53, 62, 0.2) 47%, transparent 72%),
+    linear-gradient(164deg, #313b45 0%, #29323a 38%, #1c2228 100%);
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-size: 64px 64px, 100% 100%, 100% 100%;
+  background-blend-mode: soft-light, screen, normal;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.58),
+    0 4px 5px rgba(0, 0, 0, 0.42);
+  filter: none;
+}
+
+.status-pill::before {
+  content: none;
+}
+
+.status-pill i {
+  width: 8px;
+  border: 0.5px solid rgba(255, 255, 255, 0.35);
+}
+
+.coupling-trigger.is-coupled .status-pill i,
+.instrument-connection.is-connected .status-pill i {
+  background: radial-gradient(circle at 38% 30%, #72ed91 21%, #34c759 83%, #198a36);
+  box-shadow:
+    inset 0.5px 0.5px 0.5px #fff,
+    inset 0 -0.5px 1px rgba(0, 0, 0, 0.38),
+    0 0 3px 1px rgba(52, 199, 89, 0.32);
+}
+
+.coupling-trigger strong,
+.instrument-connection strong,
+.instrument-action strong {
+  margin-top: clamp(5px, 0.441696vw, 7px);
+  font-family: "SF Compact Text", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 500;
+}
+
+.instrument-header > .orban-mark {
+  width: 8.392226%;
+}
+
+.model-path-indicator {
+  text-align: center;
+}
+
+.model-path-indicator .status-pill i {
+  background: radial-gradient(circle at 38% 30%, var(--skin-lcd-text) 18%, var(--skin-accent-top) 75%, var(--skin-accent-bottom));
+  box-shadow: inset 0.5px 0.5px 0.5px #fff, 0 0 4px color-mix(in srgb, var(--skin-accent-top) 60%, transparent);
+}
+
+.model-path-indicator > strong {
+  display: block;
+  margin-top: clamp(5px, 0.441696vw, 7px);
+  color: #bfbfbf;
+  font-family: "SF Compact Text", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: clamp(8px, 0.706714vw, 12px);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.meterstrip {
+  padding: 0 1.413428%;
+  border: 0;
+}
+
+.model-meterstrip {
+  padding: 0 1.413428% 1.413428%;
+  background-color: var(--skin-bg-bottom);
+  background-image:
+    url("/assets/instrument-grain.svg"),
+    linear-gradient(163deg, var(--skin-bg-top) 0%, var(--skin-bg-bottom) 100%);
+  background-repeat: repeat, no-repeat;
+  background-size: 128px 128px, 100% 100%;
+  background-blend-mode: soft-light, normal;
+}
+
+.model-meter-panel {
+  box-sizing: border-box;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(118px, 1fr);
+  min-height: 242px;
+  border: 0.5px solid rgba(255, 255, 255, 0.03);
+  border-right-color: rgba(255, 255, 255, 0.055);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: clamp(8px, 0.706714vw, 12px);
+  overflow: hidden;
+  background: linear-gradient(var(--skin-panel-top), var(--skin-panel-bottom));
+  box-shadow:
+    inset 0 7px 10px -7px rgba(0, 0, 0, 0.72),
+    inset 7px 0 10px -7px rgba(0, 0, 0, 0.48),
+    inset -7px 0 10px -7px rgba(0, 0, 0, 0.42),
+    inset 0 -1.5px 0 -1px rgba(255, 255, 255, 0.075);
+}
+
+.model-meter-group {
+  display: grid;
+  grid-template-rows: 38px 1fr;
+  min-width: 0;
+  padding: 16px 14px 14px;
+  border-right: 1px solid rgba(0, 0, 0, 0.48);
+  box-shadow: inset -1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.model-meter-group:last-child {
+  border-right: 0;
+  box-shadow: none;
+}
+
+.model-meter-group > strong {
+  overflow: hidden;
+  color: #aaa9a6;
+  font: 500 12px/1.2 "SF Compact Text", -apple-system, BlinkMacSystemFont, sans-serif;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-meter-wells {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 7px;
+}
+
+.model-meter-wells > span {
+  position: relative;
+  width: 17px;
+  border: 1px solid rgba(255, 255, 255, 0.025);
+  border-radius: 3px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #101111, #151515);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.75), 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.meter-canvas-scroll {
+  box-shadow: none;
+}
+
+.meter-canvas-scroll::after {
+  box-sizing: border-box;
+  border: 0.5px solid rgba(255, 255, 255, 0.03);
+  border-right-color: rgba(255, 255, 255, 0.055);
+  border-bottom-width: 1px;
+  border-bottom-color: rgba(255, 255, 255, 0.16);
+  background: none;
+  box-shadow:
+    inset 0 7px 10px -7px rgba(0, 0, 0, 0.72),
+    inset 7px 0 10px -7px rgba(0, 0, 0, 0.48),
+    inset -7px 0 10px -7px rgba(0, 0, 0, 0.42),
+    inset 0 -1.5px 0 -1px rgba(255, 255, 255, 0.075);
+}
+
+.tabs {
+  z-index: 3;
+  min-height: 58px;
+  height: 58px;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 9px 16px 0;
+  border: 0;
+  border-bottom: 1px solid #0c0c0c;
+  box-shadow:
+    0 1px 0 rgba(151, 150, 146, 0.68),
+    0 3px 7px rgba(0, 0, 0, 0.34);
+}
+
+.tabs > button {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 7px 7px 0 0;
+  background: transparent;
+  color: #dededb;
+  font-family: "SF Compact Text", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  text-shadow: 0 2px 2px rgba(0, 0, 0, 0.82);
+  box-shadow: none;
+}
+
+.tabs > button:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.tabs > button[aria-pressed="true"] {
+  color: #fff;
+  border: 1px solid #5d9bdf;
+  border-bottom-color: #1f4f88;
+  background: linear-gradient(180deg, var(--skin-accent-top) 0%, var(--skin-accent-bottom) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+.processing {
+  min-height: 500px;
+  padding: 10px 18px 54px;
+  background: var(--skin-bg);
+}
+
+.single-group-page .processing-group {
+  grid-column: 1 / -1;
+  width: 82.5%;
+  max-width: 1280px;
+  justify-self: start;
+}
+
+.single-group-page .processing-group > h3 {
+  display: none;
+}
+
+.single-group-page .control-well.dense {
+  grid-template-columns: repeat(3, 237px);
+  grid-template-rows: repeat(6, auto);
+  grid-auto-flow: column;
+  justify-content: start;
+  column-gap: 56px;
+  row-gap: 17px;
+  padding-right: 38px;
+  padding-left: 38px;
+}
+
+.single-group-page .control-well.dense > .processing-control:first-child {
+  margin: -8px -16px -9px;
+  padding: 8px 16px 9px;
+  border: 1px solid #50504e;
+  border-radius: 4px;
+}
+
+.single-group-page .control-well.dense > .processing-control:first-child output {
+  text-transform: uppercase;
+}
+
+.control-well {
+  background-color: #232321;
+  background-image:
+    url("/assets/instrument-grain.svg"),
+    linear-gradient(180deg, #20201e 0%, #252523 100%);
+  background-repeat: repeat, no-repeat;
+  background-size: 128px 128px, 100% 100%;
+  background-blend-mode: soft-light, normal;
+  box-shadow:
+    inset 6px 6px 3px rgba(0, 0, 0, 0.18),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.control > label,
+.toggle-control > label,
+.control-value,
+.toggle-control output {
+  font-family: "SF Compact Text", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 500;
+}
+
+.control > label,
+.toggle-control > label,
+.control-value,
+.toggle-control output {
+  font-size: 12px;
+}
+
+.toggle-switch.on > span {
+  left: 30px !important;
+  transform: none !important;
+}

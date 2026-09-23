@@ -1,0 +1,1939 @@
+{
+  "model": "OPTIMOD 5500",
+  "worksheet_version": "1.2.7",
+  "evidence": "Verbatim functional labels, ranges and units extracted from the official setup/parameters worksheet. Labels are not assumed to equal wire field names.",
+  "entries": [
+    {
+      "row": 7,
+      "label": "Parameter",
+      "range": "Range",
+      "unit": "Unit"
+    },
+    {
+      "row": 9,
+      "label": "SYSTEM SETUP",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 10,
+      "label": "I/O CALIB",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 11,
+      "label": "INPUT",
+      "range": "Analog, Digital, Dig+J17",
+      "unit": ""
+    },
+    {
+      "row": 12,
+      "label": "ANL IN CALIB",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 13,
+      "label": "Ref. Level VU",
+      "range": "-9.0... +13.0",
+      "unit": "dBu"
+    },
+    {
+      "row": 14,
+      "label": "Ref. Level PPM",
+      "range": "-2.0... +20.0",
+      "unit": "dBu"
+    },
+    {
+      "row": 15,
+      "label": "Right Channel Balance",
+      "range": "-3.0… +3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 16,
+      "label": "DIG IN CALIB",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 17,
+      "label": "Ref. Level VU",
+      "range": "-30.0d... -7.0",
+      "unit": "dBFS"
+    },
+    {
+      "row": 18,
+      "label": "Ref. Level PPM",
+      "range": "-23.0d... -0.0",
+      "unit": "dBFS"
+    },
+    {
+      "row": 19,
+      "label": "Right Channel Balance",
+      "range": "-3.0... +3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 20,
+      "label": "ANLG OUT CALIB",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 21,
+      "label": "AO 100%",
+      "range": "-6.0...+24.0",
+      "unit": "dBu"
+    },
+    {
+      "row": 22,
+      "label": "AO Pre-Emphasis",
+      "range": "Flat, Pre-e",
+      "unit": ""
+    },
+    {
+      "row": 23,
+      "label": "AO Source",
+      "range": "Monitor, FM, FM + Delay",
+      "unit": ""
+    },
+    {
+      "row": 24,
+      "label": "DIG OUT CALIB",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 25,
+      "label": "DO 100%",
+      "range": "-20.0… 0.0",
+      "unit": "dBFS"
+    },
+    {
+      "row": 26,
+      "label": "DO Pre-Emphasis",
+      "range": "Flat, Pre-e, J.17, Pre+J17",
+      "unit": ""
+    },
+    {
+      "row": 27,
+      "label": "DO Rate",
+      "range": "32, 44.1, 48, 88.2, 96",
+      "unit": "kHz"
+    },
+    {
+      "row": 28,
+      "label": "DO Sync",
+      "range": "Digital In, Pilot Sync",
+      "unit": ""
+    },
+    {
+      "row": 29,
+      "label": "Pilot Sync",
+      "range": "Ref In, Digital In, Internal",
+      "unit": ""
+    },
+    {
+      "row": 30,
+      "label": "Word Length",
+      "range": "14… 24",
+      "unit": ""
+    },
+    {
+      "row": 31,
+      "label": "Dither",
+      "range": "In, Out",
+      "unit": ""
+    },
+    {
+      "row": 32,
+      "label": "Format",
+      "range": "AES, SPDIF",
+      "unit": ""
+    },
+    {
+      "row": 33,
+      "label": "DO Source",
+      "range": "Monitor, FM, FM + Delay",
+      "unit": ""
+    },
+    {
+      "row": 34,
+      "label": "STEREO ENCODER",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 35,
+      "label": "Composite 1 Level",
+      "range": "-12.0 ... +16.0",
+      "unit": "dBu"
+    },
+    {
+      "row": 36,
+      "label": "Composite 2 Level",
+      "range": "-12.0 … +16.0",
+      "unit": "dBu"
+    },
+    {
+      "row": 37,
+      "label": "Mode",
+      "range": "Stereo, Pilot Off, mono-L, mono-R, mono-SUM, SSB",
+      "unit": ""
+    },
+    {
+      "row": 38,
+      "label": "Pilot Level",
+      "range": "6.0%...12.0%",
+      "unit": ""
+    },
+    {
+      "row": 39,
+      "label": "Processing Pre-emphasis",
+      "range": "75, 50",
+      "unit": "uS"
+    },
+    {
+      "row": 40,
+      "label": "ITU-412",
+      "range": "-2.0... +10.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 41,
+      "label": "19k Reference",
+      "range": "0, 90, 180, 270",
+      "unit": "deg"
+    },
+    {
+      "row": 42,
+      "label": "Composite Diversity Delay",
+      "range": "In, Out",
+      "unit": ""
+    },
+    {
+      "row": 43,
+      "label": "TEST",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 44,
+      "label": "Bypass Gain",
+      "range": "-18.0… 25.0",
+      "unit": "dB"
+    },
+    {
+      "row": 45,
+      "label": "Crosstalk Test",
+      "range": "operate, MtoS P on, MtoS P off, StoM P on, StoM P off",
+      "unit": ""
+    },
+    {
+      "row": 46,
+      "label": "Tone Frequency",
+      "range": "16… 15,000",
+      "unit": "Hz"
+    },
+    {
+      "row": 47,
+      "label": "Tone Level/Modulation",
+      "range": "0… 121%",
+      "unit": ""
+    },
+    {
+      "row": 48,
+      "label": "Tone Channels",
+      "range": "L+R, L-R, Left, Right",
+      "unit": ""
+    },
+    {
+      "row": 49,
+      "label": "Pilot",
+      "range": "On, Off",
+      "unit": ""
+    },
+    {
+      "row": 50,
+      "label": "Time Date and ID",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 51,
+      "label": "Daylight Time Begins Month",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 52,
+      "label": "Daylight Time Begins Week",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 53,
+      "label": "Standard Time Begins Month",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 54,
+      "label": "Standard Time Begins Week",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 55,
+      "label": "Station ID",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 56,
+      "label": "Time Sync",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 57,
+      "label": "Protocol",
+      "range": "SNTP, Time Pro",
+      "unit": ""
+    },
+    {
+      "row": 58,
+      "label": "Sync Period",
+      "range": "Off, 8 Hrs, 24 Hrs",
+      "unit": ""
+    },
+    {
+      "row": 59,
+      "label": "Offset",
+      "range": "+12 … -12",
+      "unit": "Hrs"
+    },
+    {
+      "row": 60,
+      "label": "Time Server Address",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 61,
+      "label": "NETWORK & REMOTE",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 62,
+      "label": "PC Connect",
+      "range": "ASCII, Direct, Modem",
+      "unit": ""
+    },
+    {
+      "row": 63,
+      "label": "Modem Init String",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 64,
+      "label": "IP Address",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 65,
+      "label": "Subnet Mask",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 66,
+      "label": "Gateway Address",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 67,
+      "label": "IP Port",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 68,
+      "label": "Tally Output",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 69,
+      "label": "Tally 1",
+      "range": "Input: Analog, Input:Digital, Analog Input Silent, AES Input Silent, AES Input Error, Sync In Error, No Function",
+      "unit": ""
+    },
+    {
+      "row": 70,
+      "label": "Tally 2",
+      "range": "Input: Analog, Input:Digital, Analog Input Silent, AES Input Silent, AES Input Error, Sync In Error, No Function",
+      "unit": ""
+    },
+    {
+      "row": 71,
+      "label": "REMOTE INTERFACE",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 72,
+      "label": "Remote Contact 1",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 73,
+      "label": "Remote Contact 2",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 74,
+      "label": "Remote Contact 3",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 75,
+      "label": "Remote Contact 4",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 76,
+      "label": "Remote Contact 5",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 77,
+      "label": "Remote Contact 6",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 78,
+      "label": "Remote Contact 7",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 79,
+      "label": "Remote Contact 8",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 80,
+      "label": "EXT AGC",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 81,
+      "label": "EXT AGC",
+      "range": "No, Yes",
+      "unit": ""
+    },
+    {
+      "row": 82,
+      "label": "MODULATION REDUCTION",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 83,
+      "label": "Mod. Reduction 1",
+      "range": "-20.0%…0.0%",
+      "unit": ""
+    },
+    {
+      "row": 84,
+      "label": "Mod. Reduction 2",
+      "range": "-20.0%…0.0%",
+      "unit": ""
+    },
+    {
+      "row": 85,
+      "label": "MPX POWER",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 86,
+      "label": "MPX POWER thresh",
+      "range": "-2.0…10.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 87,
+      "label": "FINAL CLIP",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 88,
+      "label": "Final Clip",
+      "range": "active, defeat",
+      "unit": ""
+    },
+    {
+      "row": 89,
+      "label": "Silence Detect",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 90,
+      "label": "Silence Threshold",
+      "range": "-60… -20",
+      "unit": "dB"
+    },
+    {
+      "row": 91,
+      "label": "Silence Delay",
+      "range": "2… 60",
+      "unit": "sec"
+    },
+    {
+      "row": 92,
+      "label": "Analog Fallback",
+      "range": "Yes, No",
+      "unit": ""
+    },
+    {
+      "row": 93,
+      "label": "DI Analog Fallback",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 94,
+      "label": "DI Analog Fallback",
+      "range": "Yes, No",
+      "unit": ""
+    },
+    {
+      "row": 95,
+      "label": "Diversity Delay",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 96,
+      "label": "Diversity Delay Trim",
+      "range": "Increments of 15.6 microseconds (one sample delay at 64 kHz sample rate)",
+      "unit": ""
+    },
+    {
+      "row": 97,
+      "label": "ADVANCED MODIFY",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 98,
+      "label": "Stereo Enhancer",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 99,
+      "label": "Amount",
+      "range": "0.0... 10.0",
+      "unit": ""
+    },
+    {
+      "row": 100,
+      "label": "Ratio Limit",
+      "range": "70%...100%",
+      "unit": ""
+    },
+    {
+      "row": 101,
+      "label": "AGC",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 102,
+      "label": "AGC Off/On",
+      "range": "Off, On",
+      "unit": ""
+    },
+    {
+      "row": 103,
+      "label": "AGC Drive",
+      "range": "-10... 25",
+      "unit": "dB"
+    },
+    {
+      "row": 104,
+      "label": "Crossover",
+      "range": "Linear, Allpass, LiNoDly",
+      "unit": ""
+    },
+    {
+      "row": 105,
+      "label": "Master Attack",
+      "range": "0.2... 6.0",
+      "unit": "s"
+    },
+    {
+      "row": 106,
+      "label": "Bass Attack",
+      "range": "1.0... 10.0",
+      "unit": "s"
+    },
+    {
+      "row": 107,
+      "label": "Release",
+      "range": "0.5... 20.0",
+      "unit": "dB/s"
+    },
+    {
+      "row": 108,
+      "label": "Bass Release",
+      "range": "1.0... 10.0",
+      "unit": "s"
+    },
+    {
+      "row": 109,
+      "label": "Bass Threshold",
+      "range": "-12.0…+2.5",
+      "unit": "dB"
+    },
+    {
+      "row": 110,
+      "label": "Master Delta Threshold",
+      "range": "-6.0…6.0",
+      "unit": "dB"
+    },
+    {
+      "row": 111,
+      "label": "Bass Delta Threshold",
+      "range": "-6.0…6.0",
+      "unit": "dB"
+    },
+    {
+      "row": 112,
+      "label": "AGC Ratio",
+      "range": "inf:1, 4:1, 3:1, 2:1,",
+      "unit": ""
+    },
+    {
+      "row": 113,
+      "label": "Idle Gain",
+      "range": "-10.0…10.0",
+      "unit": "dB"
+    },
+    {
+      "row": 114,
+      "label": "AGC Gate Threshold",
+      "range": "Off, -44... -15",
+      "unit": "dB"
+    },
+    {
+      "row": 115,
+      "label": "Window Size",
+      "range": "-25.0.. 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 116,
+      "label": "Window Release",
+      "range": "0.5... 20.0",
+      "unit": "dB/s"
+    },
+    {
+      "row": 117,
+      "label": "Maximum Delta GR",
+      "range": "0.0... 24.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 118,
+      "label": "AGC Bass Couple",
+      "range": "0... 12, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 119,
+      "label": "AGC Matrix",
+      "range": "L/R, sum/dif",
+      "unit": ""
+    },
+    {
+      "row": 120,
+      "label": "Equalizer",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 121,
+      "label": "Phase Rotator",
+      "range": "Out, In",
+      "unit": ""
+    },
+    {
+      "row": 122,
+      "label": "30 Hz High Pass Filter",
+      "range": "Out, In",
+      "unit": ""
+    },
+    {
+      "row": 123,
+      "label": "DJ Bass Boost (not in 2 Band)",
+      "range": "Off, 0… 10",
+      "unit": "dB"
+    },
+    {
+      "row": 124,
+      "label": "Bass Gain",
+      "range": "0 … 12",
+      "unit": "dB"
+    },
+    {
+      "row": 125,
+      "label": "Bass Freq",
+      "range": "80... 500",
+      "unit": "Hz"
+    },
+    {
+      "row": 126,
+      "label": "Bass Slope",
+      "range": "6,12,18",
+      "unit": "dB/Oct"
+    },
+    {
+      "row": 127,
+      "label": "Low Gain",
+      "range": "-10.0… 10.0",
+      "unit": "dB"
+    },
+    {
+      "row": 128,
+      "label": "Low Freq",
+      "range": "20.0... 500.0",
+      "unit": "Hz"
+    },
+    {
+      "row": 129,
+      "label": "Low Width",
+      "range": "4.0... 0.8",
+      "unit": "octave"
+    },
+    {
+      "row": 130,
+      "label": "Mid Gain",
+      "range": "-10.0... +10.0",
+      "unit": "dB"
+    },
+    {
+      "row": 131,
+      "label": "Mid Freq",
+      "range": "250…  6000",
+      "unit": "Hz"
+    },
+    {
+      "row": 132,
+      "label": "Mid Width",
+      "range": "4.0…  0.8",
+      "unit": "octave"
+    },
+    {
+      "row": 133,
+      "label": "High Gain",
+      "range": "-10.0...10.0",
+      "unit": "dB"
+    },
+    {
+      "row": 134,
+      "label": "High Freq",
+      "range": "1.0... 15.0",
+      "unit": "kHz"
+    },
+    {
+      "row": 135,
+      "label": "High Width",
+      "range": "4.0... 0.8",
+      "unit": "octave"
+    },
+    {
+      "row": 136,
+      "label": "Brilliance (not in 2 Band)",
+      "range": "0.0... 6.0",
+      "unit": ""
+    },
+    {
+      "row": 137,
+      "label": "High Frequency Enhancer",
+      "range": "0... 15",
+      "unit": ""
+    },
+    {
+      "row": 138,
+      "label": "Multiband (5 Band)",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 139,
+      "label": "Multiband Drive",
+      "range": "0... 25",
+      "unit": "dB"
+    },
+    {
+      "row": 140,
+      "label": "Multiband Release",
+      "range": "Slow, Slow2, Med, Med2, Mfast, Mfast2, Fast",
+      "unit": ""
+    },
+    {
+      "row": 141,
+      "label": "Down Expander Threshold",
+      "range": "Off, -18.0…  +12.0",
+      "unit": "dB"
+    },
+    {
+      "row": 142,
+      "label": "B5 Down Expander Delta Threshold",
+      "range": "-18.0… +12.0",
+      "unit": "dB"
+    },
+    {
+      "row": 143,
+      "label": "Down Expander Stereo Couple",
+      "range": "Off, On",
+      "unit": ""
+    },
+    {
+      "row": 144,
+      "label": "MB Gate Threshold",
+      "range": "Off, -44.0… -15.0",
+      "unit": "dB"
+    },
+    {
+      "row": 145,
+      "label": "B1/B2 Crossover",
+      "range": "100, 200",
+      "unit": "Hz"
+    },
+    {
+      "row": 146,
+      "label": "Band 2>1 Coupling",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 147,
+      "label": "Band 2>3 Coupling",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 148,
+      "label": "Band 3>2 Coupling",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 149,
+      "label": "Band 3>4 Coupling",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 150,
+      "label": "Band 4>5 Coupling",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 151,
+      "label": "Compressors (5 Band)",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 152,
+      "label": "B1 Attack",
+      "range": "4.0... 50.0, Off",
+      "unit": "ms"
+    },
+    {
+      "row": 153,
+      "label": "B2 Attack",
+      "range": "4.0... 50.0, Off",
+      "unit": "ms"
+    },
+    {
+      "row": 154,
+      "label": "B3 Attack",
+      "range": "4.0... 50.0, Off",
+      "unit": "ms"
+    },
+    {
+      "row": 155,
+      "label": "B4 Attack",
+      "range": "4.0... 50.0, Off",
+      "unit": "ms"
+    },
+    {
+      "row": 156,
+      "label": "B5 Attack",
+      "range": "4.0... 50.0, Off",
+      "unit": "ms"
+    },
+    {
+      "row": 157,
+      "label": "B1 Delta Release",
+      "range": "-6... 6",
+      "unit": ""
+    },
+    {
+      "row": 158,
+      "label": "B2 Delta Release",
+      "range": "-6... 6",
+      "unit": ""
+    },
+    {
+      "row": 159,
+      "label": "B3 Delta Release",
+      "range": "-6... 6",
+      "unit": ""
+    },
+    {
+      "row": 160,
+      "label": "B4 Delta Release",
+      "range": "-6... 6",
+      "unit": ""
+    },
+    {
+      "row": 161,
+      "label": "B5 Delta Release",
+      "range": "-6... 6",
+      "unit": ""
+    },
+    {
+      "row": 162,
+      "label": "B1 Compression Threshold",
+      "range": "-16.0... 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 163,
+      "label": "B2 Compression Threshold",
+      "range": "-16.0... 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 164,
+      "label": "B3 Compression Threshold",
+      "range": "-16.0... 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 165,
+      "label": "B4 Compression Threshold",
+      "range": "-16.0... 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 166,
+      "label": "B5 Compression Threshold",
+      "range": "-16.0... 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 167,
+      "label": "B1 Limiter Attack",
+      "range": "0%... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 168,
+      "label": "B2 Limiter Attack",
+      "range": "0%... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 169,
+      "label": "B3 Limiter Attack",
+      "range": "0%... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 170,
+      "label": "B4 Limiter Attack",
+      "range": "0%... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 171,
+      "label": "B5 Limiter Attack",
+      "range": "0%... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 172,
+      "label": "Bandmix (5 Band)",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 173,
+      "label": "B1 Output Mix",
+      "range": "-3.0... + 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 174,
+      "label": "B2 Ouput Mix",
+      "range": "-3.0... + 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 175,
+      "label": "B3 Output Mix",
+      "range": "-3.0... + 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 176,
+      "label": "B4 Output Mix",
+      "range": "-3.0... + 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 177,
+      "label": "B5 Output Mix",
+      "range": "-3.0... + 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 178,
+      "label": "B1 On/Off",
+      "range": "On, Off",
+      "unit": ""
+    },
+    {
+      "row": 179,
+      "label": "B2 On/Off",
+      "range": "On, Off",
+      "unit": ""
+    },
+    {
+      "row": 180,
+      "label": "B3 On/Off",
+      "range": "On, Off",
+      "unit": ""
+    },
+    {
+      "row": 181,
+      "label": "B4 On/Off",
+      "range": "On, Off",
+      "unit": ""
+    },
+    {
+      "row": 182,
+      "label": "B5 On/Off",
+      "range": "On, Off",
+      "unit": ""
+    },
+    {
+      "row": 183,
+      "label": "Two Band (2 Band )",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 184,
+      "label": "2B Drive",
+      "range": "-10.0... 25",
+      "unit": "dB"
+    },
+    {
+      "row": 185,
+      "label": "2B Master Attack",
+      "range": "4.0... 50.0, Off",
+      "unit": "ms"
+    },
+    {
+      "row": 186,
+      "label": "2B Bass Attack",
+      "range": "4.0... 50.0, Off",
+      "unit": "ms"
+    },
+    {
+      "row": 187,
+      "label": "2B Release",
+      "range": "0.5…  20.0",
+      "unit": "dB/s"
+    },
+    {
+      "row": 188,
+      "label": "2B Master Compresion Threshold",
+      "range": "-15.0…0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 189,
+      "label": "2B Bass Compresion Threshold",
+      "range": "-10.0... 5.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 190,
+      "label": "2B Crossover",
+      "range": "Linear, No Dly",
+      "unit": ""
+    },
+    {
+      "row": 191,
+      "label": "2B Bass Couple",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 192,
+      "label": "2B Gate Threshold",
+      "range": "Off, -44… -15",
+      "unit": "dB"
+    },
+    {
+      "row": 193,
+      "label": "Distortion (5 Band but not in UL)",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 194,
+      "label": "Bass Clip Threshold",
+      "range": "-6.00… 0.00",
+      "unit": "dB"
+    },
+    {
+      "row": 195,
+      "label": "Speech Bass Clip Threshold",
+      "range": "-6.0… 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 196,
+      "label": "Bass Clip Shape (5 Band only)",
+      "range": "0.0… 10.0",
+      "unit": ""
+    },
+    {
+      "row": 197,
+      "label": "High Frequency Limiter",
+      "range": "Off, -23.8... 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 198,
+      "label": "High Frequency Clip Threshold",
+      "range": "-16.0... 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 199,
+      "label": "Multiband Limit Drive",
+      "range": "-4.0... 5.0",
+      "unit": "dB"
+    },
+    {
+      "row": 200,
+      "label": "Multiband Limit Threshold",
+      "range": "-3.0... 6.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 201,
+      "label": "Multiband Limit Speech Threshold",
+      "range": "-6.0... 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 202,
+      "label": "Maximun Distortion Control",
+      "range": "0.0... 18.0",
+      "unit": "dB"
+    },
+    {
+      "row": 203,
+      "label": "Distortion (UL presets only)",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 204,
+      "label": "Bass Clip Threshold",
+      "range": "-6.00… 0.00",
+      "unit": "dB"
+    },
+    {
+      "row": 205,
+      "label": "Bass Clip Shape",
+      "range": "0.0… 10.0",
+      "unit": ""
+    },
+    {
+      "row": 206,
+      "label": "High Frequency Limiter",
+      "range": "Off, -23.75... 0.00",
+      "unit": "dB"
+    },
+    {
+      "row": 207,
+      "label": "B5 Clip Thr  (called HF Clip Thr in 5B)",
+      "range": "-16.00... 0.00, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 208,
+      "label": "Multband Limiter Drive (MB Clipping)",
+      "range": "-4.0... 5.0",
+      "unit": "dB"
+    },
+    {
+      "row": 209,
+      "label": "B4 Clip Thr (called MB Limit Thr in 5B)",
+      "range": "-16.00... 0.00, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 210,
+      "label": "2B Distortion Band (2 Band only)",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 211,
+      "label": "Bass Clip Threshold",
+      "range": "-6.00… 0.00",
+      "unit": "dB"
+    },
+    {
+      "row": 212,
+      "label": "Speech Bass Clip Threshold",
+      "range": "-6.0… 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 213,
+      "label": "2B High Frequency Limiting",
+      "range": "-4.0... 2.0",
+      "unit": "dB"
+    },
+    {
+      "row": 214,
+      "label": "2B Clipping",
+      "range": "-4.0... 5.0",
+      "unit": "dB"
+    },
+    {
+      "row": 215,
+      "label": "Multiband Limit Threshold",
+      "range": "-3.0... 6.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 216,
+      "label": "Multiband Limit Speech Threshold",
+      "range": "-6.0... 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 217,
+      "label": "Maximun Distortion Control",
+      "range": "0.0... 18.0",
+      "unit": "dB"
+    },
+    {
+      "row": 218,
+      "label": "2B 6-15kHz HF Limiter",
+      "range": "Off, -23.75... 0.00",
+      "unit": "dB"
+    },
+    {
+      "row": 219,
+      "label": "Final Clipping",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 220,
+      "label": "Overshoot Compensator Drive",
+      "range": "-2.0... 2.0",
+      "unit": "dB"
+    },
+    {
+      "row": 221,
+      "label": "Final Clip Drive",
+      "range": "-3.0... +5.0",
+      "unit": "dB"
+    },
+    {
+      "row": 222,
+      "label": "Composite Limiter Drive",
+      "range": "Off, 0.0... 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 223,
+      "label": "Multiplex Offset",
+      "range": "-12.0… 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 224,
+      "label": "Stereo Encoder Preset",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 225,
+      "label": "Input LPF",
+      "range": "Out, 15.0, 16.0, 17.0",
+      "unit": "kHz"
+    },
+    {
+      "row": 226,
+      "label": "Input Level",
+      "range": "-10.0…+10.0",
+      "unit": "dB"
+    },
+    {
+      "row": 227,
+      "label": "Apply Emphasis",
+      "range": "No, Yes",
+      "unit": ""
+    },
+    {
+      "row": 228,
+      "label": "L/R Limit",
+      "range": "In, Out",
+      "unit": ""
+    },
+    {
+      "row": 229,
+      "label": "MPX Lim Mode",
+      "range": "Hard, HalfCos",
+      "unit": ""
+    },
+    {
+      "row": 230,
+      "label": "MPX Lim Drive",
+      "range": "Off, 0.1… 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 231,
+      "label": "BASIC & FULL MODIFY",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 232,
+      "label": "Stereo Enhancer",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 233,
+      "label": "Amount",
+      "range": "0.0... 10.0",
+      "unit": ""
+    },
+    {
+      "row": 234,
+      "label": "Ratio Limit",
+      "range": "70%...100%",
+      "unit": ""
+    },
+    {
+      "row": 235,
+      "label": "Equalizer",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 236,
+      "label": "Bass Gain",
+      "range": "0 … 12",
+      "unit": "dB"
+    },
+    {
+      "row": 237,
+      "label": "Bass Freq",
+      "range": "80... 500",
+      "unit": "Hz"
+    },
+    {
+      "row": 238,
+      "label": "Bass Slope",
+      "range": "6,12,18",
+      "unit": "dB/Oct"
+    },
+    {
+      "row": 239,
+      "label": "Low Gain",
+      "range": "-10.0… 10.0",
+      "unit": "dB"
+    },
+    {
+      "row": 240,
+      "label": "Low Freq",
+      "range": "20.0... 500.0",
+      "unit": "Hz"
+    },
+    {
+      "row": 241,
+      "label": "Low Width",
+      "range": "4.0... 0.8",
+      "unit": "octave"
+    },
+    {
+      "row": 242,
+      "label": "Mid Gain",
+      "range": "-10.0... +10.0",
+      "unit": "dB"
+    },
+    {
+      "row": 243,
+      "label": "Mid Freq",
+      "range": "250…  6000",
+      "unit": "Hz"
+    },
+    {
+      "row": 244,
+      "label": "Mid Width",
+      "range": "4.0…  0.8",
+      "unit": "octave"
+    },
+    {
+      "row": 245,
+      "label": "High Gain",
+      "range": "-10.0...10.0",
+      "unit": "dB"
+    },
+    {
+      "row": 246,
+      "label": "High Freq",
+      "range": "1.0... 15.0",
+      "unit": "kHz"
+    },
+    {
+      "row": 247,
+      "label": "High Width",
+      "range": "4.0... 0.8",
+      "unit": "octave"
+    },
+    {
+      "row": 248,
+      "label": "High Frequency Enhancer",
+      "range": "0... 15",
+      "unit": ""
+    },
+    {
+      "row": 249,
+      "label": "Brilliance (not in 2 Band)",
+      "range": "0.0... 6.0",
+      "unit": ""
+    },
+    {
+      "row": 250,
+      "label": "DJ Bass Boost (not in 2 Band)",
+      "range": "Off, 0… 10",
+      "unit": "dB"
+    },
+    {
+      "row": 251,
+      "label": "30 Hz High Pass Filter",
+      "range": "Out, In",
+      "unit": ""
+    },
+    {
+      "row": 252,
+      "label": "Phase Rotator",
+      "range": "Out, In",
+      "unit": ""
+    },
+    {
+      "row": 253,
+      "label": "Less/More",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 254,
+      "label": "Less More",
+      "range": "1... 10",
+      "unit": ""
+    },
+    {
+      "row": 255,
+      "label": "Full Control (5 Band)",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 256,
+      "label": "AGC Off/On",
+      "range": "Off, On",
+      "unit": ""
+    },
+    {
+      "row": 257,
+      "label": "AGC Drive",
+      "range": "-10... 25",
+      "unit": "dB"
+    },
+    {
+      "row": 258,
+      "label": "AGC Release",
+      "range": "0.5... 20.0",
+      "unit": "dB/s"
+    },
+    {
+      "row": 259,
+      "label": "AGC Gate Threshold",
+      "range": "Off, -44... -15",
+      "unit": "dB"
+    },
+    {
+      "row": 260,
+      "label": "AGC Bass Couple",
+      "range": "0... 12, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 261,
+      "label": "AGC Meter",
+      "range": "Master, Bass, Delta (not saved; always defaults back to Master)",
+      "unit": ""
+    },
+    {
+      "row": 262,
+      "label": "Multiband Drive",
+      "range": "0... 25",
+      "unit": "dB"
+    },
+    {
+      "row": 263,
+      "label": "Multiband Release",
+      "range": "Slow, Slow2, Med, Med2, Mfast, Mfast2, Fast",
+      "unit": ""
+    },
+    {
+      "row": 264,
+      "label": "MB Down Expander Threshold",
+      "range": "Off, -6.0…  +12.0",
+      "unit": "dB"
+    },
+    {
+      "row": 265,
+      "label": "MB Gate Threshold",
+      "range": "Off, -44.0… -15.0",
+      "unit": "dB"
+    },
+    {
+      "row": 266,
+      "label": "Multiband Limit Drive",
+      "range": "-4.0... 5.0",
+      "unit": "dB"
+    },
+    {
+      "row": 267,
+      "label": "Band 2>1 Coupling",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 268,
+      "label": "Band 2>3 Coupling",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 269,
+      "label": "Band 3>2 Coupling",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 270,
+      "label": "Band 3>4 Coupling",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 271,
+      "label": "Band 4>5 Coupling",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 272,
+      "label": "B1 Compression Threshold",
+      "range": "-16.0... 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 273,
+      "label": "B2 Compression Threshold",
+      "range": "-16.0... 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 274,
+      "label": "B3 Compression Threshold",
+      "range": "-16.0… 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 275,
+      "label": "B4 Compression Threshold",
+      "range": "-16.0… 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 276,
+      "label": "B5 Compression Threshold",
+      "range": "-16.0... 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 277,
+      "label": "B1 Output Mix",
+      "range": "-3.0... + 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 278,
+      "label": "B2 Ouput Mix",
+      "range": "-3.0... + 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 279,
+      "label": "B3 Output Mix",
+      "range": "-3.0... + 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 280,
+      "label": "B4 Output Mix",
+      "range": "-3.0... + 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 281,
+      "label": "B5 Output Mix",
+      "range": "-3.0... + 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 282,
+      "label": "Bass Clip Threshold",
+      "range": "-6.0… 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 283,
+      "label": "Bass Clip Shape",
+      "range": "0.0… 10.0",
+      "unit": ""
+    },
+    {
+      "row": 284,
+      "label": "B5 Clip Thr (UL only)",
+      "range": "-16.00... 0.00, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 285,
+      "label": "B4 Clip Thr (UL only)",
+      "range": "-16.00... 0.00, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 286,
+      "label": "HF Clip Threshold  (called B5 Clip in UL)",
+      "range": "-16.0... 0.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 287,
+      "label": "MB Limit Threshold (called B4 Clip in UL)",
+      "range": "-3.0... 6.0, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 288,
+      "label": "Final Clip Drive",
+      "range": "-3.0... +5.0",
+      "unit": "dB"
+    },
+    {
+      "row": 289,
+      "label": "Composite Limiter Drive",
+      "range": "Off, 0.0... 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 290,
+      "label": "Multiplex Offset",
+      "range": "-12.0… 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 291,
+      "label": "Less More",
+      "range": "1... 10",
+      "unit": ""
+    },
+    {
+      "row": 292,
+      "label": "Parent Preset",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 293,
+      "label": "Full Control (2 Band & Protect Only)",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 294,
+      "label": "AGC On/Off",
+      "range": "On, Off",
+      "unit": ""
+    },
+    {
+      "row": 295,
+      "label": "AGC Drive",
+      "range": "-10... 25",
+      "unit": "dB"
+    },
+    {
+      "row": 296,
+      "label": "AGC Release",
+      "range": "0.5... 20.0",
+      "unit": "dB/s"
+    },
+    {
+      "row": 297,
+      "label": "AGC Gate Threshold",
+      "range": "Off, -44... -15",
+      "unit": "dB"
+    },
+    {
+      "row": 298,
+      "label": "AGC Bass Couple",
+      "range": "0... 12, Off",
+      "unit": "dB"
+    },
+    {
+      "row": 299,
+      "label": "AGC Meter",
+      "range": "Master, Bass, Delta (not saved; always defaults back to Master)",
+      "unit": ""
+    },
+    {
+      "row": 300,
+      "label": "2B Drive",
+      "range": "-10.0... 25",
+      "unit": "dB"
+    },
+    {
+      "row": 301,
+      "label": "2B Release",
+      "range": "0.5…  20.0",
+      "unit": "dB/s"
+    },
+    {
+      "row": 302,
+      "label": "2B Gate Threshold",
+      "range": "Off, -44… -15",
+      "unit": "dB"
+    },
+    {
+      "row": 303,
+      "label": "2B Bass Couple",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 304,
+      "label": "Bass Clip Threshold",
+      "range": "-6.0… 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 305,
+      "label": "2B Clipping",
+      "range": "-4.0... 5.0",
+      "unit": "dB"
+    },
+    {
+      "row": 306,
+      "label": "2B High Frequency Limiting",
+      "range": "-4.0... 2.0",
+      "unit": "dB"
+    },
+    {
+      "row": 307,
+      "label": "Final Clip Drive",
+      "range": "-3.0... +5.0",
+      "unit": "dB"
+    },
+    {
+      "row": 308,
+      "label": "Composite Limiter Drive",
+      "range": "Off, 0.0... 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 309,
+      "label": "Multiplex Offset",
+      "range": "-12.0… 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 310,
+      "label": "Less More",
+      "range": "1... 10",
+      "unit": ""
+    },
+    {
+      "row": 311,
+      "label": "Parent Preset",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 313,
+      "label": "2B Release",
+      "range": "0.5…  20.0",
+      "unit": "dB/s"
+    },
+    {
+      "row": 314,
+      "label": "2B Gate Threshold",
+      "range": "Off, -44… -15",
+      "unit": "dB"
+    },
+    {
+      "row": 315,
+      "label": "2B Bass Couple",
+      "range": "0... 100%",
+      "unit": "%"
+    },
+    {
+      "row": 316,
+      "label": "Bass Clip Threshold",
+      "range": "-6.0… 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 317,
+      "label": "2B Clipping",
+      "range": "-4.0... 5.0",
+      "unit": "dB"
+    },
+    {
+      "row": 318,
+      "label": "2B High Frequency Limiting",
+      "range": "-4.0... 2.0",
+      "unit": "dB"
+    },
+    {
+      "row": 319,
+      "label": "Final Clip Drive",
+      "range": "-3.0... +5.0",
+      "unit": "dB"
+    },
+    {
+      "row": 320,
+      "label": "Composite Limiter Drive",
+      "range": "Off, 0.0... 3.0",
+      "unit": "dB"
+    },
+    {
+      "row": 321,
+      "label": "HD Limit Drive",
+      "range": "0.0…+12.0 dB",
+      "unit": "dB"
+    },
+    {
+      "row": 322,
+      "label": "Multiplex Offset",
+      "range": "-12.0… 0.0",
+      "unit": "dB"
+    },
+    {
+      "row": 323,
+      "label": "Less More",
+      "range": "1... 10",
+      "unit": ""
+    },
+    {
+      "row": 324,
+      "label": "Parent Preset",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 325,
+      "label": "Stereo Encoder Preset",
+      "range": "",
+      "unit": ""
+    },
+    {
+      "row": 326,
+      "label": "Input LPF",
+      "range": "Out, 15.0, 16.0, 17.0",
+      "unit": "kHz"
+    },
+    {
+      "row": 327,
+      "label": "Apply Emphasis",
+      "range": "No, Yes",
+      "unit": ""
+    },
+    {
+      "row": 328,
+      "label": "L/R Limit",
+      "range": "In, Out",
+      "unit": ""
+    },
+    {
+      "row": 329,
+      "label": "MPX Lim Mode",
+      "range": "Hard, HalfCos",
+      "unit": ""
+    },
+    {
+      "row": 330,
+      "label": "MPX Lim Drive",
+      "range": "Off, 0.1… 3.0",
+      "unit": "dB"
+    }
+  ]
+}

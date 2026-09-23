@@ -1,0 +1,3 @@
+interface:
+  display_name: "Optimod 5500 Control"
+  short_description: "Verified OPTIMOD 5500 protocol and parameters"

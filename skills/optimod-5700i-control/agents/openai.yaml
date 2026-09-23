@@ -1,0 +1,4 @@
+interface:
+  display_name: "OPTIMOD 5700i Control"
+  short_description: "Develop and diagnose direct 5700i control"
+  default_prompt: "Use $optimod-5700i-control to implement or diagnose safe direct communication with an OPTIMOD 5700i."

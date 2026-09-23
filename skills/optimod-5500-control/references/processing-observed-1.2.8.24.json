@@ -1,0 +1,3223 @@
+{
+  "model": "OPTIMOD 5500",
+  "remote_version": "1.2.8.24",
+  "worksheet_version": "1.2.7",
+  "document_family": "8300.10",
+  "evidence": "Values and D indexes observed in 294 factory preset documents from the official Remote installer. Absence from this file does not mean a value is unsupported.",
+  "preset_file_count": 294,
+  "fields": [
+    {
+      "name": "2B 6K+ HF LIM",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Off"
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B BASS ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 7,
+          "values": [
+            1100
+          ]
+        },
+        {
+          "index": 19,
+          "values": [
+            2300
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B BASS CLIP",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 12,
+          "values": [
+            -300
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B BASS CLIP MODE",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 1,
+          "values": [
+            "Med"
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B BASS COMP THR",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            -1000
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            -850
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B BASS COUPLE",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 10,
+          "values": [
+            50
+          ]
+        },
+        {
+          "index": 18,
+          "values": [
+            90
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            100
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B CLIPPING",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 15,
+          "values": [
+            -100
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 25,
+          "values": [
+            100
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B DRIVE",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 13,
+          "values": [
+            3
+          ]
+        },
+        {
+          "index": 15,
+          "values": [
+            5
+          ]
+        },
+        {
+          "index": 17,
+          "values": [
+            7
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            10
+          ]
+        },
+        {
+          "index": 29,
+          "values": [
+            19
+          ]
+        },
+        {
+          "index": 35,
+          "values": [
+            25
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B HF LIMITING",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 8,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 12,
+          "values": [
+            200
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B LOOKAHEAD",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 36,
+          "values": [
+            360
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B MASTER COMP THR",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 42,
+          "values": [
+            -450
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B MASTR ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 7,
+          "values": [
+            1100
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B RELEASE",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 1,
+          "values": [
+            100
+          ]
+        },
+        {
+          "index": 7,
+          "values": [
+            700
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "2B XOVER",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Linear"
+          ]
+        }
+      ],
+      "preset_files": 24
+    },
+    {
+      "name": "30 HZ HPF",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Out"
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Off"
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            "On"
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC BASS ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 27,
+          "values": [
+            640
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC BASS COUPLE",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 10,
+          "values": [
+            3
+          ]
+        },
+        {
+          "index": 11,
+          "values": [
+            2
+          ]
+        },
+        {
+          "index": 13,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC BASS DELTA TH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 24,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC BASS RELEASE",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 27,
+          "values": [
+            640
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC BASS TH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 48,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC DIFF GR",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC DRIVE",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 10,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 14,
+          "values": [
+            4
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            10
+          ]
+        },
+        {
+          "index": 22,
+          "values": [
+            12
+          ]
+        },
+        {
+          "index": 24,
+          "values": [
+            14
+          ]
+        },
+        {
+          "index": 28,
+          "values": [
+            18
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC MAST DELTA TH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 24,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC MASTER ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 5,
+          "values": [
+            120
+          ]
+        },
+        {
+          "index": 14,
+          "values": [
+            300
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC MATRIX",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "L/R"
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC RATIO",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "inf : 1"
+          ]
+        },
+        {
+          "index": 3,
+          "values": [
+            "2:1"
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC RELEASE",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 1,
+          "values": [
+            100
+          ]
+        },
+        {
+          "index": 2,
+          "values": [
+            150
+          ]
+        },
+        {
+          "index": 4,
+          "values": [
+            300
+          ]
+        },
+        {
+          "index": 5,
+          "values": [
+            400
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            500
+          ]
+        },
+        {
+          "index": 11,
+          "values": [
+            1000
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC WINDOW RELEASE",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            50
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC WINDOW THRESH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 19,
+          "values": [
+            -600
+          ]
+        },
+        {
+          "index": 21,
+          "values": [
+            -400
+          ]
+        },
+        {
+          "index": 22,
+          "values": [
+            -300
+          ]
+        },
+        {
+          "index": 25,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "AGC XOVER",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Linear"
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            "AllPass"
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "B1 ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            400
+          ]
+        },
+        {
+          "index": 2,
+          "values": [
+            600
+          ]
+        },
+        {
+          "index": 4,
+          "values": [
+            800
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            1000
+          ]
+        },
+        {
+          "index": 8,
+          "values": [
+            1200
+          ]
+        },
+        {
+          "index": 9,
+          "values": [
+            1300
+          ]
+        },
+        {
+          "index": 11,
+          "values": [
+            1500
+          ]
+        },
+        {
+          "index": 12,
+          "values": [
+            1600
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            2000
+          ]
+        },
+        {
+          "index": 21,
+          "values": [
+            2500
+          ]
+        },
+        {
+          "index": 30,
+          "values": [
+            3400
+          ]
+        },
+        {
+          "index": 35,
+          "values": [
+            3900
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B1 COMP THRSH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            -1600
+          ]
+        },
+        {
+          "index": 4,
+          "values": [
+            -1500
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            -1100
+          ]
+        },
+        {
+          "index": 21,
+          "values": [
+            -1075
+          ]
+        },
+        {
+          "index": 24,
+          "values": [
+            -1000
+          ]
+        },
+        {
+          "index": 28,
+          "values": [
+            -900
+          ]
+        },
+        {
+          "index": 32,
+          "values": [
+            -800
+          ]
+        },
+        {
+          "index": 36,
+          "values": [
+            -700
+          ]
+        },
+        {
+          "index": 40,
+          "values": [
+            -600
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B1 DELTA REL",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 6,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B1 LIMIT ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 20,
+          "values": [
+            10000
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B1 ON/OFF",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "On"
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B1 OUTPUT MIX",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 30,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 35,
+          "values": [
+            50
+          ]
+        },
+        {
+          "index": 40,
+          "values": [
+            100
+          ]
+        },
+        {
+          "index": 45,
+          "values": [
+            150
+          ]
+        },
+        {
+          "index": 50,
+          "values": [
+            200
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B12 CROSSOVER",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "100Hz"
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            "200Hz"
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B2 ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 6,
+          "values": [
+            1000
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            2000
+          ]
+        },
+        {
+          "index": 24,
+          "values": [
+            2800
+          ]
+        },
+        {
+          "index": 29,
+          "values": [
+            3300
+          ]
+        },
+        {
+          "index": 31,
+          "values": [
+            3500
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B2 COMP THRSH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 37,
+          "values": [
+            -675
+          ]
+        },
+        {
+          "index": 38,
+          "values": [
+            -650
+          ]
+        },
+        {
+          "index": 40,
+          "values": [
+            -600
+          ]
+        },
+        {
+          "index": 44,
+          "values": [
+            -500
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B2 DELTA REL",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 6,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B2 LIMIT ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 20,
+          "values": [
+            10000
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B2 ON/OFF",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "On"
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B2 OUTPUT MIX",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 30,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B3 ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 6,
+          "values": [
+            1000
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            2000
+          ]
+        },
+        {
+          "index": 21,
+          "values": [
+            2500
+          ]
+        },
+        {
+          "index": 24,
+          "values": [
+            2800
+          ]
+        },
+        {
+          "index": 26,
+          "values": [
+            3000
+          ]
+        },
+        {
+          "index": 29,
+          "values": [
+            3300
+          ]
+        },
+        {
+          "index": 31,
+          "values": [
+            3500
+          ]
+        },
+        {
+          "index": 36,
+          "values": [
+            4000
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B3 CLIP THRSH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 2,
+          "values": [
+            -250
+          ]
+        },
+        {
+          "index": 4,
+          "values": [
+            -200
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            -150
+          ]
+        },
+        {
+          "index": 8,
+          "values": [
+            -100
+          ]
+        },
+        {
+          "index": 10,
+          "values": [
+            -50
+          ]
+        },
+        {
+          "index": 12,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 14,
+          "values": [
+            50
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            100
+          ]
+        },
+        {
+          "index": 18,
+          "values": [
+            150
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            200
+          ]
+        },
+        {
+          "index": 44,
+          "values": [
+            -500
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "B3 COMP THRSH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 28,
+          "values": [
+            -900
+          ]
+        },
+        {
+          "index": 30,
+          "values": [
+            -850
+          ]
+        },
+        {
+          "index": 32,
+          "values": [
+            -800
+          ]
+        },
+        {
+          "index": 36,
+          "values": [
+            -700
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B3 DELTA REL",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 6,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B3 LIMIT ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 20,
+          "values": [
+            10000
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B3 ON/OFF",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "On"
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B3 OUTPUT MIX",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 30,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B4 ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 6,
+          "values": [
+            1000
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            2000
+          ]
+        },
+        {
+          "index": 21,
+          "values": [
+            2500
+          ]
+        },
+        {
+          "index": 26,
+          "values": [
+            3000
+          ]
+        },
+        {
+          "index": 28,
+          "values": [
+            3200
+          ]
+        },
+        {
+          "index": 29,
+          "values": [
+            3300
+          ]
+        },
+        {
+          "index": 31,
+          "values": [
+            3500
+          ]
+        },
+        {
+          "index": 34,
+          "values": [
+            3800
+          ]
+        },
+        {
+          "index": 36,
+          "values": [
+            4000
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B4 COMP THRSH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 22,
+          "values": [
+            -1050
+          ]
+        },
+        {
+          "index": 28,
+          "values": [
+            -900
+          ]
+        },
+        {
+          "index": 32,
+          "values": [
+            -800
+          ]
+        },
+        {
+          "index": 34,
+          "values": [
+            -750
+          ]
+        },
+        {
+          "index": 38,
+          "values": [
+            -650
+          ]
+        },
+        {
+          "index": 40,
+          "values": [
+            -600
+          ]
+        },
+        {
+          "index": 42,
+          "values": [
+            -550
+          ]
+        },
+        {
+          "index": 44,
+          "values": [
+            -500
+          ]
+        },
+        {
+          "index": 50,
+          "values": [
+            -350
+          ]
+        },
+        {
+          "index": 52,
+          "values": [
+            -300
+          ]
+        },
+        {
+          "index": 54,
+          "values": [
+            -250
+          ]
+        },
+        {
+          "index": 56,
+          "values": [
+            -200
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B4 LIMIT ATTACK",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 20,
+          "values": [
+            10000
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B4 ON/OFF",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "On"
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B4 OUTPUT MIX",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 30,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 40,
+          "values": [
+            100
+          ]
+        },
+        {
+          "index": 45,
+          "values": [
+            150
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B4/5 DELTA REL",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 4,
+          "values": [
+            -2
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B5 CLIP THRSH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 36,
+          "values": [
+            -700
+          ]
+        },
+        {
+          "index": 40,
+          "values": [
+            -600
+          ]
+        },
+        {
+          "index": 44,
+          "values": [
+            -500
+          ]
+        },
+        {
+          "index": 48,
+          "values": [
+            -400
+          ]
+        },
+        {
+          "index": 50,
+          "values": [
+            -350
+          ]
+        },
+        {
+          "index": 54,
+          "values": [
+            -250
+          ]
+        },
+        {
+          "index": 56,
+          "values": [
+            -200
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B5 ON/OFF",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "On"
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "B5 OUTPUT MIX",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 30,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 35,
+          "values": [
+            50
+          ]
+        },
+        {
+          "index": 40,
+          "values": [
+            100
+          ]
+        },
+        {
+          "index": 45,
+          "values": [
+            150
+          ]
+        },
+        {
+          "index": 50,
+          "values": [
+            200
+          ]
+        },
+        {
+          "index": 60,
+          "values": [
+            300
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "BAND 23 COUPL",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 10,
+          "values": [
+            50
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "BAND 32 COUPL",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 10,
+          "values": [
+            50
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "BAND 34 COUPL",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 5,
+          "values": [
+            25
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            30
+          ]
+        },
+        {
+          "index": 14,
+          "values": [
+            70
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            80
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "BAND 45 COUPL",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 15,
+          "values": [
+            75
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            80
+          ]
+        },
+        {
+          "index": 17,
+          "values": [
+            85
+          ]
+        },
+        {
+          "index": 18,
+          "values": [
+            90
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            100
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "BASS CLIP",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 8,
+          "values": [
+            -400
+          ]
+        },
+        {
+          "index": 10,
+          "values": [
+            -350
+          ]
+        },
+        {
+          "index": 12,
+          "values": [
+            -300
+          ]
+        },
+        {
+          "index": 14,
+          "values": [
+            -250
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            -200
+          ]
+        },
+        {
+          "index": 18,
+          "values": [
+            -150
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            -100
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "BASS CLIP MODE",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 1,
+          "values": [
+            "LLHard"
+          ]
+        },
+        {
+          "index": 3,
+          "values": [
+            "LLHard"
+          ]
+        }
+      ],
+      "preset_files": 216
+    },
+    {
+      "name": "BASS CLIP SHAPE",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 38,
+          "values": [
+            760
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "BASS COUPLING",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            30
+          ]
+        },
+        {
+          "index": 10,
+          "values": [
+            50
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            80
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "BRILLIANCE",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            50
+          ]
+        },
+        {
+          "index": 2,
+          "values": [
+            100
+          ]
+        },
+        {
+          "index": 4,
+          "values": [
+            200
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            300
+          ]
+        },
+        {
+          "index": 7,
+          "values": [
+            350
+          ]
+        },
+        {
+          "index": 8,
+          "values": [
+            400
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "CLIP W2",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 40,
+          "values": [
+            -950
+          ]
+        }
+      ],
+      "preset_files": 240
+    },
+    {
+      "name": "COMP DRIVE",
+      "types": [
+        "Cent",
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Off"
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            50
+          ]
+        },
+        {
+          "index": 11,
+          "values": [
+            100
+          ]
+        }
+      ],
+      "preset_files": 294
+    },
+    {
+      "name": "COMPOSITE MODE",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "HalfCos"
+          ]
+        }
+      ],
+      "preset_files": 2
+    },
+    {
+      "name": "DIST CANC CLIP THR",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 120,
+          "values": [
+            -800
+          ]
+        }
+      ],
+      "preset_files": 52
+    },
+    {
+      "name": "DJ BASS BOOST",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Off"
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "DRIVE W2",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 20,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "DWNWRD EXP",
+      "types": [
+        "Cent",
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Off"
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            -600
+          ]
+        },
+        {
+          "index": 13,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "FINAL CLIP DRV",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            -300
+          ]
+        },
+        {
+          "index": 15,
+          "values": [
+            -150
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            -100
+          ]
+        },
+        {
+          "index": 25,
+          "values": [
+            -50
+          ]
+        },
+        {
+          "index": 30,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 35,
+          "values": [
+            50
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "GATE THRESH",
+      "types": [
+        "Int",
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Off"
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            -44
+          ]
+        },
+        {
+          "index": 5,
+          "values": [
+            -40
+          ]
+        },
+        {
+          "index": 7,
+          "values": [
+            -38
+          ]
+        },
+        {
+          "index": 10,
+          "values": [
+            -35
+          ]
+        },
+        {
+          "index": 15,
+          "values": [
+            -30
+          ]
+        },
+        {
+          "index": 19,
+          "values": [
+            -26
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "HF ENHANCER",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            1
+          ]
+        },
+        {
+          "index": 2,
+          "values": [
+            2
+          ]
+        },
+        {
+          "index": 3,
+          "values": [
+            3
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "HF LIMITER",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 8,
+          "values": [
+            -2200
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            -2000
+          ]
+        },
+        {
+          "index": 24,
+          "values": [
+            -1800
+          ]
+        },
+        {
+          "index": 32,
+          "values": [
+            -1600
+          ]
+        },
+        {
+          "index": 36,
+          "values": [
+            -1500
+          ]
+        },
+        {
+          "index": 48,
+          "values": [
+            -1200
+          ]
+        },
+        {
+          "index": 60,
+          "values": [
+            -900
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "IDLE GR",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 10,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "INPUT EMPH STATUS",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Flat"
+          ]
+        }
+      ],
+      "preset_files": 2
+    },
+    {
+      "name": "INPUT LPF",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 3,
+          "values": [
+            "Out"
+          ]
+        }
+      ],
+      "preset_files": 2
+    },
+    {
+      "name": "LESS MORE",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            100
+          ]
+        },
+        {
+          "index": 4,
+          "values": [
+            300
+          ]
+        },
+        {
+          "index": 8,
+          "values": [
+            500
+          ]
+        },
+        {
+          "index": 12,
+          "values": [
+            700
+          ]
+        },
+        {
+          "index": 15,
+          "values": [
+            850
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            900
+          ]
+        },
+        {
+          "index": 17,
+          "values": [
+            950
+          ]
+        },
+        {
+          "index": 18,
+          "values": [
+            1000
+          ]
+        }
+      ],
+      "preset_files": 294
+    },
+    {
+      "name": "LIMITER BYPASS",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Out"
+          ]
+        }
+      ],
+      "preset_files": 2
+    },
+    {
+      "name": "LOW BASS FREQ",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 7,
+          "values": [
+            115
+          ]
+        },
+        {
+          "index": 8,
+          "values": [
+            120
+          ]
+        },
+        {
+          "index": 14,
+          "values": [
+            150
+          ]
+        },
+        {
+          "index": 19,
+          "values": [
+            200
+          ]
+        },
+        {
+          "index": 31,
+          "values": [
+            410
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "LOW BASS GAIN",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 2,
+          "values": [
+            2
+          ]
+        },
+        {
+          "index": 3,
+          "values": [
+            3
+          ]
+        },
+        {
+          "index": 4,
+          "values": [
+            4
+          ]
+        },
+        {
+          "index": 5,
+          "values": [
+            5
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            6
+          ]
+        },
+        {
+          "index": 7,
+          "values": [
+            7
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "LOW BASS Q",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            6
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            12
+          ]
+        },
+        {
+          "index": 2,
+          "values": [
+            18
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "MAX DIST CONTRL",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 40,
+          "values": [
+            400
+          ]
+        },
+        {
+          "index": 50,
+          "values": [
+            500
+          ]
+        },
+        {
+          "index": 60,
+          "values": [
+            600
+          ]
+        }
+      ],
+      "preset_files": 240
+    },
+    {
+      "name": "MB DRIVE",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 2,
+          "values": [
+            2
+          ]
+        },
+        {
+          "index": 4,
+          "values": [
+            4
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            6
+          ]
+        },
+        {
+          "index": 8,
+          "values": [
+            8
+          ]
+        },
+        {
+          "index": 9,
+          "values": [
+            9
+          ]
+        },
+        {
+          "index": 10,
+          "values": [
+            10
+          ]
+        },
+        {
+          "index": 11,
+          "values": [
+            11
+          ]
+        },
+        {
+          "index": 12,
+          "values": [
+            12
+          ]
+        },
+        {
+          "index": 13,
+          "values": [
+            13
+          ]
+        },
+        {
+          "index": 14,
+          "values": [
+            14
+          ]
+        },
+        {
+          "index": 15,
+          "values": [
+            15
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            16
+          ]
+        },
+        {
+          "index": 17,
+          "values": [
+            17
+          ]
+        },
+        {
+          "index": 18,
+          "values": [
+            18
+          ]
+        },
+        {
+          "index": 19,
+          "values": [
+            19
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            20
+          ]
+        },
+        {
+          "index": 21,
+          "values": [
+            21
+          ]
+        },
+        {
+          "index": 22,
+          "values": [
+            22
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "MB GATE THR",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 5,
+          "values": [
+            -40
+          ]
+        },
+        {
+          "index": 10,
+          "values": [
+            -35
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            -25
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "MB RELEASE",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "Slow"
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            "Slow2"
+          ]
+        },
+        {
+          "index": 2,
+          "values": [
+            "Med"
+          ]
+        },
+        {
+          "index": 4,
+          "values": [
+            "MFast"
+          ]
+        },
+        {
+          "index": 6,
+          "values": [
+            "Fast"
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "MPX PWR OFFSET",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 12,
+          "values": [
+            -900
+          ]
+        },
+        {
+          "index": 18,
+          "values": [
+            -750
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            -700
+          ]
+        },
+        {
+          "index": 22,
+          "values": [
+            -650
+          ]
+        },
+        {
+          "index": 24,
+          "values": [
+            -600
+          ]
+        },
+        {
+          "index": 28,
+          "values": [
+            -500
+          ]
+        },
+        {
+          "index": 30,
+          "values": [
+            -450
+          ]
+        },
+        {
+          "index": 32,
+          "values": [
+            -400
+          ]
+        },
+        {
+          "index": 36,
+          "values": [
+            -300
+          ]
+        },
+        {
+          "index": 40,
+          "values": [
+            -200
+          ]
+        },
+        {
+          "index": 48,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "MULTIBAND CLIP",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            -400
+          ]
+        },
+        {
+          "index": 5,
+          "values": [
+            -300
+          ]
+        },
+        {
+          "index": 7,
+          "values": [
+            -260
+          ]
+        },
+        {
+          "index": 10,
+          "values": [
+            -200
+          ]
+        },
+        {
+          "index": 13,
+          "values": [
+            -140
+          ]
+        },
+        {
+          "index": 15,
+          "values": [
+            -100
+          ]
+        },
+        {
+          "index": 18,
+          "values": [
+            -40
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 22,
+          "values": [
+            40
+          ]
+        },
+        {
+          "index": 24,
+          "values": [
+            80
+          ]
+        },
+        {
+          "index": 25,
+          "values": [
+            100
+          ]
+        },
+        {
+          "index": 27,
+          "values": [
+            140
+          ]
+        },
+        {
+          "index": 28,
+          "values": [
+            160
+          ]
+        },
+        {
+          "index": 29,
+          "values": [
+            180
+          ]
+        },
+        {
+          "index": 30,
+          "values": [
+            200
+          ]
+        },
+        {
+          "index": 31,
+          "values": [
+            220
+          ]
+        },
+        {
+          "index": 32,
+          "values": [
+            240
+          ]
+        },
+        {
+          "index": 34,
+          "values": [
+            280
+          ]
+        },
+        {
+          "index": 35,
+          "values": [
+            300
+          ]
+        },
+        {
+          "index": 37,
+          "values": [
+            340
+          ]
+        },
+        {
+          "index": 38,
+          "values": [
+            360
+          ]
+        }
+      ],
+      "preset_files": 268
+    },
+    {
+      "name": "PEQ HIGH FREQ",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 19,
+          "values": [
+            380
+          ]
+        },
+        {
+          "index": 20,
+          "values": [
+            410
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "PEQ HIGH GAIN",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 20,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 22,
+          "values": [
+            100
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "PEQ HIGH WIDTH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            400
+          ]
+        },
+        {
+          "index": 15,
+          "values": [
+            120
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            110
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "PEQ LOW FREQ",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 18,
+          "values": [
+            7040
+          ]
+        },
+        {
+          "index": 33,
+          "values": [
+            20130
+          ]
+        },
+        {
+          "index": 37,
+          "values": [
+            26630
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "PEQ LOW GAIN",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 20,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 22,
+          "values": [
+            100
+          ]
+        },
+        {
+          "index": 24,
+          "values": [
+            200
+          ]
+        },
+        {
+          "index": 26,
+          "values": [
+            300
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "PEQ LOW WIDTH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 10,
+          "values": [
+            190
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "PEQ MID FREQ",
+      "types": [
+        "Int"
+      ],
+      "observed": [
+        {
+          "index": 33,
+          "values": [
+            2570
+          ]
+        },
+        {
+          "index": 35,
+          "values": [
+            2960
+          ]
+        },
+        {
+          "index": 43,
+          "values": [
+            5209
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "PEQ MID GAIN",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 20,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 23,
+          "values": [
+            150
+          ]
+        },
+        {
+          "index": 24,
+          "values": [
+            200
+          ]
+        },
+        {
+          "index": 25,
+          "values": [
+            250
+          ]
+        },
+        {
+          "index": 26,
+          "values": [
+            300
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "PEQ MID WIDTH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            400
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            110
+          ]
+        },
+        {
+          "index": 18,
+          "values": [
+            90
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "PHASE ROTATOR",
+      "types": [
+        "String"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            "In"
+          ]
+        },
+        {
+          "index": 1,
+          "values": [
+            "Out"
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "SE AMOUNT",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 0,
+          "values": [
+            0
+          ]
+        },
+        {
+          "index": 10,
+          "values": [
+            250
+          ]
+        },
+        {
+          "index": 16,
+          "values": [
+            400
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "SE RATIO WIDTH",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 15,
+          "values": [
+            10000
+          ]
+        }
+      ],
+      "preset_files": 292
+    },
+    {
+      "name": "SPEECH BC THR",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 24,
+          "values": [
+            0
+          ]
+        }
+      ],
+      "preset_files": 240
+    },
+    {
+      "name": "SPEECH THR",
+      "types": [
+        "Cent"
+      ],
+      "observed": [
+        {
+          "index": 30,
+          "values": [
+            -300
+          ]
+        },
+        {
+          "index": 35,
+          "values": [
+            -250
+          ]
+        },
+        {
+          "index": 40,
+          "values": [
+            -200
+          ]
+        },
+        {
+          "index": 45,
+          "values": [
+            -150
+          ]
+        },
+        {
+          "index": 50,
+          "values": [
+            -100
+          ]
+        }
+      ],
+      "preset_files": 240
+    }
+  ]
+}

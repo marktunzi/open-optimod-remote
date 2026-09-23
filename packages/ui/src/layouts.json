@@ -1,0 +1,2599 @@
+[
+  {
+    "title": "Less More",
+    "path": "Shared",
+    "width": 345,
+    "height": 88,
+    "reference_dialog": 0,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "LESS MORE",
+        "label": "Less / More",
+        "x": 18,
+        "y": 22,
+        "w": 260,
+        "id": 273,
+        "reference_id": 273,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 331,
+        "h": 78,
+        "text": " LESS MORE "
+      }
+    ]
+  },
+  {
+    "title": "Stereo Enhancer",
+    "path": "FM",
+    "width": 173,
+    "height": 193,
+    "reference_dialog": 232,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "SE IN OUT",
+        "label": "Stereo Enhancer",
+        "x": 16,
+        "y": 18,
+        "w": 94,
+        "id": 3335,
+        "options": [
+          "Out",
+          "In"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "SE AMOUNT",
+        "label": "Amount",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3042,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SE RATIO WIDTH",
+        "label": "Ratio Limit",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3045,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SE DIFFUSION",
+        "label": "Diffusion",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3048,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SE STYLE",
+        "label": "Style",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3049,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SE DEPTH",
+        "label": "Depth",
+        "x": 13,
+        "y": 166,
+        "w": 105,
+        "id": 3054,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 14,
+        "y": 13,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 190,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "AGC",
+    "path": "Shared",
+    "width": 345,
+    "height": 313,
+    "reference_dialog": 233,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "AGC",
+        "label": "AGC Enabled",
+        "x": 16,
+        "y": 18,
+        "w": 94,
+        "id": 1276,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AGC DRIVE",
+        "label": "AGC Drive",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 1279,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC XOVER",
+        "label": "AGC Crossover",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 1282,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC MASTER ATTACK",
+        "label": "AGC Master Attack",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3036,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS ATTACK",
+        "label": "AGC Bass Attack",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 1383,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC RELEASE",
+        "label": "AGC Release",
+        "x": 13,
+        "y": 166,
+        "w": 105,
+        "id": 3013,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS TH",
+        "label": "AGC Bass Threshold",
+        "x": 13,
+        "y": 226,
+        "w": 105,
+        "id": 3025,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC MAST DELTA TH",
+        "label": "AGC Master Delta Threshold",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 3021,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS DELTA TH",
+        "label": "AGC Bass Delta Threshold",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 1385,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC RATIO",
+        "label": "AGC Ratio",
+        "x": 182,
+        "y": 77,
+        "w": 105,
+        "id": 1397,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "IDLE GR",
+        "label": "AGC Idle Gain",
+        "x": 182,
+        "y": 107,
+        "w": 105,
+        "id": 1398,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "GATE THRESH",
+        "label": "AGC Gate Threshold",
+        "x": 182,
+        "y": 136,
+        "w": 105,
+        "id": 1400,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC WINDOW THRESH",
+        "label": "AGC Window size",
+        "x": 182,
+        "y": 166,
+        "w": 105,
+        "id": 3004,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC WINDOW RELEASE",
+        "label": "AGC Window Release",
+        "x": 182,
+        "y": 196,
+        "w": 105,
+        "id": 3009,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC DIFF GR",
+        "label": "AGC Master Delta Gr",
+        "x": 182,
+        "y": 226,
+        "w": 105,
+        "id": 3001,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS COUPLE",
+        "label": "AGC Bass Couple",
+        "x": 182,
+        "y": 256,
+        "w": 105,
+        "id": 1107,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC MATRIX",
+        "label": "AGC Matrix",
+        "x": 182,
+        "y": 285,
+        "w": 105,
+        "id": 1108,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS RELEASE",
+        "label": "AGC Bass Release",
+        "x": 13,
+        "y": 196,
+        "w": 105,
+        "id": 3029,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 14,
+        "y": 13,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 337,
+        "h": 310,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Equalizer",
+    "path": "FM",
+    "width": 513,
+    "height": 303,
+    "reference_dialog": 234,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "LOW BASS GAIN",
+        "label": "Bass Gain",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3078,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "LOW BASS FREQ",
+        "label": "Bass Frequency",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 1382,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "LOW BASS Q",
+        "label": "Bass Slope",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3081,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "PHASE ROTATOR",
+        "label": "Phase Rotator",
+        "x": 16,
+        "y": 122,
+        "w": 94,
+        "id": 1019,
+        "options": [
+          "In",
+          "Out"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "30 HZ HPF",
+        "label": "30 Hz High Pass Filter",
+        "x": 16,
+        "y": 151,
+        "w": 94,
+        "id": 1405,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DJ BASS BOOST",
+        "label": "DJ Bass Boost",
+        "x": 13,
+        "y": 176,
+        "w": 105,
+        "id": 3084,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW GAIN",
+        "label": "Low Gain",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 3051,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW FREQ",
+        "label": "Low Frequency",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 1336,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW WIDTH",
+        "label": "Low Width",
+        "x": 182,
+        "y": 76,
+        "w": 105,
+        "id": 1361,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID GAIN",
+        "label": "Mid Gain",
+        "x": 182,
+        "y": 116,
+        "w": 105,
+        "id": 3057,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID FREQ",
+        "label": "Mid Frequency",
+        "x": 182,
+        "y": 146,
+        "w": 105,
+        "id": 3054,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID WIDTH",
+        "label": "Mid Width",
+        "x": 182,
+        "y": 176,
+        "w": 105,
+        "id": 3061,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH GAIN",
+        "label": "High Gain",
+        "x": 182,
+        "y": 216,
+        "w": 105,
+        "id": 3069,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH FREQ",
+        "label": "High Frequency",
+        "x": 182,
+        "y": 246,
+        "w": 105,
+        "id": 3065,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH WIDTH",
+        "label": "High Width",
+        "x": 182,
+        "y": 276,
+        "w": 105,
+        "id": 3073,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BRILLIANCE",
+        "label": "Brilliance",
+        "x": 352,
+        "y": 16,
+        "w": 105,
+        "id": 3082,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HF ENHANCER",
+        "label": "High Frequency Enhancer",
+        "x": 352,
+        "y": 46,
+        "w": 105,
+        "id": 3083,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 177,
+        "y": 103,
+        "w": 166,
+        "h": 100,
+        "text": " MID BAND EQUALIZER "
+      },
+      {
+        "x": 177,
+        "y": 203,
+        "w": 166,
+        "h": 100,
+        "text": " HIGH BAND EQUALIZER "
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 100,
+        "text": " LF SHELF EQUALIZER "
+      },
+      {
+        "x": 177,
+        "y": 3,
+        "w": 166,
+        "h": 100,
+        "text": " LOW BAND EQUALIZER "
+      },
+      {
+        "x": 347,
+        "y": 3,
+        "w": 166,
+        "h": 70,
+        "text": " HF CONTOUR "
+      },
+      {
+        "x": 14,
+        "y": 146,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 14,
+        "y": 116,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 7,
+        "y": 103,
+        "w": 166,
+        "h": 100,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Multiband",
+    "path": "FM",
+    "width": 516,
+    "height": 225,
+    "reference_dialog": 235,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "MB DRIVE",
+        "label": "Multiband Drive",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3083,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MB RELEASE",
+        "label": "Multiband Release",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3086,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DWNWRD EXP",
+        "label": "Down Expander",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3091,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 DWNWRD EXP",
+        "label": "B5 Down Expander Delta Thresh",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3130,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DE STEREO COUPL",
+        "label": "Down Expander Stereo Couple",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3118,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MB GATE THR",
+        "label": "Multiband Gate Threshold",
+        "x": 13,
+        "y": 166,
+        "w": 105,
+        "id": 3098,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B12 CROSSOVER",
+        "label": "B1/B2 Crossover",
+        "x": 13,
+        "y": 196,
+        "w": 105,
+        "id": 3114,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BASS COUPLING",
+        "label": "Band 2>1 Coupling",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 3103,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BAND 23 COUPL",
+        "label": "Band 2>3 Coupling",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 3122,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BAND 32 COUPL",
+        "label": "Band 3>2 Coupling",
+        "x": 182,
+        "y": 76,
+        "w": 105,
+        "id": 3123,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BAND 34 COUPL",
+        "label": "Band 3>4 Coupling",
+        "x": 182,
+        "y": 106,
+        "w": 105,
+        "id": 3107,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BAND 45 COUPL",
+        "label": "Band 4>5 Coupling",
+        "x": 182,
+        "y": 136,
+        "w": 105,
+        "id": 3110,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B1 DIFF GR",
+        "label": "B1 Max Delta GR",
+        "x": 352,
+        "y": 16,
+        "w": 105,
+        "id": 3170,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 DIFF GR",
+        "label": "B2 Max Delta GR",
+        "x": 352,
+        "y": 46,
+        "w": 105,
+        "id": 3171,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 DIFF GR",
+        "label": "B3 Max Delta GR",
+        "x": 352,
+        "y": 76,
+        "w": 105,
+        "id": 3172,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 DIFF GR",
+        "label": "B4 Max Delta GR",
+        "x": 352,
+        "y": 106,
+        "w": 105,
+        "id": 3173,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 DIFF GR",
+        "label": "B5 Max Delta GR",
+        "x": 351,
+        "y": 136,
+        "w": 105,
+        "id": 3202,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 347,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND MAX DELTA GR "
+      },
+      {
+        "x": 177,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND COUPLING "
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 220,
+        "text": " MULTIBAND "
+      }
+    ]
+  },
+  {
+    "title": "Compressors",
+    "path": "FM",
+    "width": 683,
+    "height": 166,
+    "reference_dialog": 380,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "B1 ATTACK",
+        "label": "B1 Attack",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3154,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 ATTACK",
+        "label": "B2 Attack",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3158,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 ATTACK",
+        "label": "B3 Attack",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3162,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 ATTACK",
+        "label": "B4 Attack",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3166,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B1 DELTA REL",
+        "label": "B1 Delta Release",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 3174,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 DELTA REL",
+        "label": "B2 Delta Release",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 3178,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 DELTA REL",
+        "label": "B3 Delta Release",
+        "x": 182,
+        "y": 76,
+        "w": 105,
+        "id": 3182,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 DELTA REL",
+        "label": "B4 Delta Release",
+        "x": 182,
+        "y": 106,
+        "w": 105,
+        "id": 3186,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B1 COMP THRSH",
+        "label": "B1 Compression Threshold",
+        "x": 352,
+        "y": 16,
+        "w": 105,
+        "id": 3134,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 COMP THRSH",
+        "label": "B2 Compression Threshold",
+        "x": 352,
+        "y": 46,
+        "w": 105,
+        "id": 3138,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 COMP THRSH",
+        "label": "B3 Compression Threshold",
+        "x": 352,
+        "y": 76,
+        "w": 105,
+        "id": 3142,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 COMP THRSH",
+        "label": "B4 Compression Threshold",
+        "x": 352,
+        "y": 106,
+        "w": 105,
+        "id": 3146,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B1 LIMIT ATTACK",
+        "label": "B1 Limiter Attack",
+        "x": 522,
+        "y": 16,
+        "w": 105,
+        "id": 3114,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 LIMIT ATTACK",
+        "label": "B2 Limiter Attack",
+        "x": 522,
+        "y": 46,
+        "w": 105,
+        "id": 3118,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 LIMIT ATTACK",
+        "label": "B3 Limiter Attack",
+        "x": 522,
+        "y": 76,
+        "w": 105,
+        "id": 3122,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 LIMIT ATTACK",
+        "label": "B4 Limiter Attack",
+        "x": 522,
+        "y": 106,
+        "w": 105,
+        "id": 3126,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 ATTACK",
+        "label": "B5 Attack",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 0,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 DELTA REL",
+        "label": "B5 Delta Release",
+        "x": 182,
+        "y": 136,
+        "w": 105,
+        "id": 0,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 COMP THRSH",
+        "label": "B5 Compression Threshold",
+        "x": 352,
+        "y": 136,
+        "w": 105,
+        "id": 0,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 LIMIT ATTACK",
+        "label": "B5 Limiter Attack",
+        "x": 522,
+        "y": 136,
+        "w": 105,
+        "id": 0,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 166,
+        "h": 156,
+        "text": " MULTIBAND ATTACK "
+      },
+      {
+        "x": 517,
+        "y": 7,
+        "w": 166,
+        "h": 156,
+        "text": " MULTIBAND LIMITER ATTACK "
+      },
+      {
+        "x": 347,
+        "y": 7,
+        "w": 166,
+        "h": 156,
+        "text": " MULTIBAND COMPRESSOR THRESH "
+      },
+      {
+        "x": 177,
+        "y": 7,
+        "w": 166,
+        "h": 156,
+        "text": " MULTIBAND DELTA RELEASE "
+      }
+    ]
+  },
+  {
+    "title": "Band Mix",
+    "path": "FM",
+    "width": 345,
+    "height": 163,
+    "reference_dialog": 240,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "B1 OUTPUT MIX",
+        "label": "B1 Output Mix",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3213,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 OUTPUT MIX",
+        "label": "B2 Output Mix",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3217,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 OUTPUT MIX",
+        "label": "B3 Output Mix",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3221,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 OUTPUT MIX",
+        "label": "B4 Output Mix",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3225,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 OUTPUT MIX",
+        "label": "B5 Output Mix",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3229,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "B1 ON/OFF",
+        "label": "B1 On/Off",
+        "x": 184,
+        "y": 18,
+        "w": 93,
+        "id": 3233,
+        "options": [
+          "On",
+          "Off"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "B2 ON/OFF",
+        "label": "B2 On/Off",
+        "x": 184,
+        "y": 47,
+        "w": 93,
+        "id": 3234,
+        "options": [
+          "On",
+          "Off"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "B3 ON/OFF",
+        "label": "B3 On/Off",
+        "x": 184,
+        "y": 77,
+        "w": 93,
+        "id": 3235,
+        "options": [
+          "On",
+          "Off"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "B4 ON/OFF",
+        "label": "B4 On/Off",
+        "x": 184,
+        "y": 108,
+        "w": 93,
+        "id": 3236,
+        "options": [
+          "On",
+          "Off"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "B5 ON/OFF",
+        "label": "B5 On/Off",
+        "x": 184,
+        "y": 136,
+        "w": 93,
+        "id": 3237,
+        "options": [
+          "On",
+          "Off"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 182,
+        "y": 12,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 182,
+        "y": 42,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 182,
+        "y": 72,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 182,
+        "y": 103,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 182,
+        "y": 131,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 337,
+        "h": 160,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Distortion",
+    "path": "FM",
+    "width": 343,
+    "height": 163,
+    "reference_dialog": 368,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "BASS CLIP",
+        "label": "Bass Clip Threshold",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3195,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MULTIBAND CLIP",
+        "label": "MB Clipping",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3332,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BASS CLIP SHAPE",
+        "label": "Hard Bass Clip Shape",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 1299,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BASS CLIP MODE",
+        "label": "Bass Clip Mode",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3155,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 CLIP THRSH",
+        "label": "Multiband Limit Threshold",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 1315,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HF CLIPPING",
+        "label": "HF Clipping",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 3156,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HF LIMITER",
+        "label": "High Frequency Limiter",
+        "x": 182,
+        "y": 76,
+        "w": 105,
+        "id": 1303,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 CLIP THRSH",
+        "label": "High Frequency Clip Threshold",
+        "x": 182,
+        "y": 106,
+        "w": 105,
+        "id": 1307,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MAX DIST CONTRL",
+        "label": "Maximum Distortion Control",
+        "x": 182,
+        "y": 136,
+        "w": 105,
+        "id": 1323,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 336,
+        "h": 160,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Final Clipping",
+    "path": "FM",
+    "width": 173,
+    "height": 220,
+    "reference_dialog": 245,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "DRIVE W2",
+        "label": "Overshoot Compensator Drive",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3202,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "FINAL CLIP DRV",
+        "label": "Final Clip Drive",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3206,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP DRIVE",
+        "label": "Composite Limit Drive",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3210,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMPOSITE MODE",
+        "label": "Composite Limit Mode",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3221,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PILOT PROTECT",
+        "label": "Pilot Protect",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3217,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MPX PWR OFFSET",
+        "label": "MPX Power Offset",
+        "x": 13,
+        "y": 166,
+        "w": 105,
+        "id": 1395,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MPX PWR GATE CTRL",
+        "label": "MPX Pwr Ctrlr Gate",
+        "x": 13,
+        "y": 196,
+        "w": 105,
+        "id": 1396,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 217,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Speech Mode",
+    "path": "FM",
+    "width": 518,
+    "height": 252,
+    "reference_dialog": 370,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "SP B1 ATTACK",
+        "label": "B1 Attack",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3154,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP B2 ATTACK",
+        "label": "B2 Attack",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3158,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP B3 ATTACK",
+        "label": "B3 Attack",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3162,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP B4 ATTACK",
+        "label": "B4 Attack",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3166,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP B5 ATTACK",
+        "label": "B5 Attack",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3222,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP B1 COMP THRSH",
+        "label": "B1 Compression Threshold",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 3134,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP B2 COMP THRSH",
+        "label": "B2 Compression Threshold",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 3138,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP B3 COMP THRSH",
+        "label": "B3 Compression Threshold",
+        "x": 182,
+        "y": 76,
+        "w": 105,
+        "id": 3142,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP B4 COMP THRSH",
+        "label": "B4 Compression Threshold",
+        "x": 182,
+        "y": 106,
+        "w": 105,
+        "id": 3146,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP B5 COMP THRSH",
+        "label": "B5 Compression Threshold",
+        "x": 182,
+        "y": 136,
+        "w": 105,
+        "id": 3230,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP MB RELEASE",
+        "label": "Multiband Release",
+        "x": 352,
+        "y": 16,
+        "w": 105,
+        "id": 3086,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SPEECH BC THR",
+        "label": "Speech Bass Clip Threshold",
+        "x": 352,
+        "y": 46,
+        "w": 105,
+        "id": 3191,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SPEECH THR",
+        "label": "Multiband Speech Threshold",
+        "x": 352,
+        "y": 76,
+        "w": 105,
+        "id": 1319,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP LOOKAHEAD SW",
+        "label": "Lookahead",
+        "x": 352,
+        "y": 106,
+        "w": 105,
+        "id": 1395,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP MAX DIST CONTRL",
+        "label": "Maximum Distortion Control",
+        "x": 352,
+        "y": 136,
+        "w": 105,
+        "id": 1323,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SP DET OVERRIDE",
+        "label": "Speech Detect",
+        "x": 352,
+        "y": 166,
+        "w": 105,
+        "id": 3462,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND ATTACK"
+      },
+      {
+        "x": 347,
+        "y": 3,
+        "w": 166,
+        "h": 192,
+        "text": " MULTIBAND LIMITER MISC"
+      },
+      {
+        "x": 177,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND COMPRESSOR THRESH"
+      }
+    ]
+  },
+  {
+    "title": "Equalizer",
+    "path": "HD",
+    "width": 519,
+    "height": 313,
+    "reference_dialog": 393,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "HD LOW BASS GAIN",
+        "label": "Bass Gain",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3078,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD LOW BASS FREQ",
+        "label": "Bass Frequency",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 1382,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD LOW BASS Q",
+        "label": "Bass Slope",
+        "x": 14,
+        "y": 76,
+        "w": 105,
+        "id": 3081,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD DJ BASS BOOST",
+        "label": "DJ Bass Boost",
+        "x": 12,
+        "y": 116,
+        "w": 105,
+        "id": 3084,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD PEQ LOW GAIN",
+        "label": "Low Gain",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 3051,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD PEQ LOW FREQ",
+        "label": "Low Frequency",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 1336,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD PEQ LOW WIDTH",
+        "label": "Low Width",
+        "x": 182,
+        "y": 76,
+        "w": 105,
+        "id": 1361,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD PEQ MID GAIN",
+        "label": "Mid Gain",
+        "x": 182,
+        "y": 116,
+        "w": 105,
+        "id": 3057,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD PEQ MID FREQ",
+        "label": "Mid Frequency",
+        "x": 182,
+        "y": 145,
+        "w": 105,
+        "id": 3054,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD PEQ MID WIDTH",
+        "label": "Mid Width",
+        "x": 182,
+        "y": 176,
+        "w": 105,
+        "id": 3061,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD PEQ HIGH GAIN",
+        "label": "High Gain",
+        "x": 182,
+        "y": 216,
+        "w": 105,
+        "id": 3069,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD PEQ HIGH FREQ",
+        "label": "High Frequency",
+        "x": 182,
+        "y": 246,
+        "w": 105,
+        "id": 3065,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD PEQ HIGH WIDTH",
+        "label": "High Width",
+        "x": 182,
+        "y": 276,
+        "w": 105,
+        "id": 3073,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD BRILLIANCE",
+        "label": "Brilliance",
+        "x": 352,
+        "y": 16,
+        "w": 105,
+        "id": 3082,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD HF ENHANCER",
+        "label": "High Frequency Enhancer",
+        "x": 352,
+        "y": 46,
+        "w": 105,
+        "id": 3083,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 177,
+        "y": 102,
+        "w": 166,
+        "h": 100,
+        "text": " MID BAND EQUALIZER"
+      },
+      {
+        "x": 177,
+        "y": 203,
+        "w": 166,
+        "h": 100,
+        "text": " HIGH BAND EQUALIZER"
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 100,
+        "text": " LF SHELF EQUALIZER"
+      },
+      {
+        "x": 177,
+        "y": 3,
+        "w": 166,
+        "h": 100,
+        "text": " LOW BAND EQUALIZER"
+      },
+      {
+        "x": 347,
+        "y": 3,
+        "w": 166,
+        "h": 70,
+        "text": " HF CONTOUR"
+      },
+      {
+        "x": 7,
+        "y": 102,
+        "w": 166,
+        "h": 40,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Multiband",
+    "path": "HD",
+    "width": 516,
+    "height": 225,
+    "reference_dialog": 235,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "HD MB DRIVE",
+        "label": "Multiband Drive",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3083,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD MB RELEASE",
+        "label": "Multiband Release",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3086,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD DWNWRD EXP",
+        "label": "Down Expander",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3091,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B5 DWNWRD EXP",
+        "label": "B5 Down Expander Delta Thresh",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3130,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD DE STEREO COUPL",
+        "label": "Down Expander Stereo Couple",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3118,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD MB GATE THR",
+        "label": "Multiband Gate Threshold",
+        "x": 13,
+        "y": 166,
+        "w": 105,
+        "id": 3098,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B12 CROSSOVER",
+        "label": "B1/B2 Crossover",
+        "x": 13,
+        "y": 196,
+        "w": 105,
+        "id": 3114,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD BAND 21 COUPL",
+        "label": "Band 2>1 Coupling",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 3103,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD BAND 23 COUPL",
+        "label": "Band 2>3 Coupling",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 3122,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD BAND 32 COUPL",
+        "label": "Band 3>2 Coupling",
+        "x": 182,
+        "y": 76,
+        "w": 105,
+        "id": 3123,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD BAND 34 COUPL",
+        "label": "Band 3>4 Coupling",
+        "x": 182,
+        "y": 106,
+        "w": 105,
+        "id": 3107,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD BAND 45 COUPL",
+        "label": "Band 4>5 Coupling",
+        "x": 182,
+        "y": 136,
+        "w": 105,
+        "id": 3110,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B1 DIFF GR",
+        "label": "B1 Max Delta GR",
+        "x": 352,
+        "y": 16,
+        "w": 105,
+        "id": 3170,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B2 DIFF GR",
+        "label": "B2 Max Delta GR",
+        "x": 352,
+        "y": 46,
+        "w": 105,
+        "id": 3171,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B3 DIFF GR",
+        "label": "B3 Max Delta GR",
+        "x": 352,
+        "y": 76,
+        "w": 105,
+        "id": 3172,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B4 DIFF GR",
+        "label": "B4 Max Delta GR",
+        "x": 352,
+        "y": 106,
+        "w": 105,
+        "id": 3173,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B5 DIFF GR",
+        "label": "B5 Max Delta GR",
+        "x": 351,
+        "y": 136,
+        "w": 105,
+        "id": 3202,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 347,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND MAX DELTA GR "
+      },
+      {
+        "x": 177,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND COUPLING "
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 220,
+        "text": " MULTIBAND "
+      }
+    ]
+  },
+  {
+    "title": "Compressors",
+    "path": "HD",
+    "width": 683,
+    "height": 163,
+    "reference_dialog": 375,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "HD B1 ATTACK",
+        "label": "B1 Attack",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3154,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B2 ATTACK",
+        "label": "B2 Attack",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3158,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B3 ATTACK",
+        "label": "B3 Attack",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3162,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B4 ATTACK",
+        "label": "B4 Attack",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3166,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B5 ATTACK",
+        "label": "B5 Attack",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3222,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B1 DELTA REL",
+        "label": "B1 Delta Release",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 3174,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B2 DELTA REL",
+        "label": "B2 Delta Release",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 3178,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B3 DELTA REL",
+        "label": "B3 Delta Release",
+        "x": 182,
+        "y": 76,
+        "w": 105,
+        "id": 3182,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B4 DELTA REL",
+        "label": "B4 Delta Release",
+        "x": 182,
+        "y": 106,
+        "w": 105,
+        "id": 3186,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B5 DELTA REL",
+        "label": "B5 Delta Release",
+        "x": 182,
+        "y": 136,
+        "w": 105,
+        "id": 3190,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B1 COMP THRSH",
+        "label": "B1 Compression Threshold",
+        "x": 352,
+        "y": 16,
+        "w": 105,
+        "id": 3134,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B2 COMP THRSH",
+        "label": "B2 Compression Threshold",
+        "x": 352,
+        "y": 46,
+        "w": 105,
+        "id": 3138,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B3 COMP THRSH",
+        "label": "B3 Compression Threshold",
+        "x": 352,
+        "y": 76,
+        "w": 105,
+        "id": 3142,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B4 COMP THRSH",
+        "label": "B4 Compression Threshold",
+        "x": 352,
+        "y": 106,
+        "w": 105,
+        "id": 3146,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B5 COMP THRSH",
+        "label": "B5 Compression Threshold",
+        "x": 352,
+        "y": 136,
+        "w": 105,
+        "id": 3230,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B1 LIMIT ATTACK",
+        "label": "B1 Limiter Attack",
+        "x": 522,
+        "y": 16,
+        "w": 105,
+        "id": 3114,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B2 LIMIT ATTACK",
+        "label": "B2 Limiter Attack",
+        "x": 522,
+        "y": 46,
+        "w": 105,
+        "id": 3118,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B3 LIMIT ATTACK",
+        "label": "B3 Limiter Attack",
+        "x": 522,
+        "y": 76,
+        "w": 105,
+        "id": 3122,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B4 LIMIT ATTACK",
+        "label": "B4 Limiter Attack",
+        "x": 522,
+        "y": 106,
+        "w": 105,
+        "id": 3126,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B5 LIMIT ATTACK",
+        "label": "B5 Limiter Attack",
+        "x": 522,
+        "y": 136,
+        "w": 105,
+        "id": 3130,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 517,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND LIMITER ATTACK"
+      },
+      {
+        "x": 347,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND COMPRESSOR THRESH"
+      },
+      {
+        "x": 177,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND DELTA RELEASE"
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND ATTACK"
+      }
+    ]
+  },
+  {
+    "title": "Band Mix",
+    "path": "HD",
+    "width": 345,
+    "height": 163,
+    "reference_dialog": 240,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "HD B1 OUTPUT MIX",
+        "label": "B1 Output Mix",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3213,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B2 OUTPUT MIX",
+        "label": "B2 Output Mix",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3217,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B3 OUTPUT MIX",
+        "label": "B3 Output Mix",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3221,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B4 OUTPUT MIX",
+        "label": "B4 Output Mix",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3225,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD B5 OUTPUT MIX",
+        "label": "B5 Output Mix",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3229,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "HD B1 ON/OFF",
+        "label": "B1 On/Off",
+        "x": 184,
+        "y": 18,
+        "w": 93,
+        "id": 3233,
+        "options": [
+          "On",
+          "Off"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "HD B2 ON/OFF",
+        "label": "B2 On/Off",
+        "x": 184,
+        "y": 47,
+        "w": 93,
+        "id": 3234,
+        "options": [
+          "On",
+          "Off"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "HD B3 ON/OFF",
+        "label": "B3 On/Off",
+        "x": 184,
+        "y": 77,
+        "w": 93,
+        "id": 3235,
+        "options": [
+          "On",
+          "Off"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "HD B4 ON/OFF",
+        "label": "B4 On/Off",
+        "x": 184,
+        "y": 108,
+        "w": 93,
+        "id": 3236,
+        "options": [
+          "On",
+          "Off"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "HD B5 ON/OFF",
+        "label": "B5 On/Off",
+        "x": 184,
+        "y": 136,
+        "w": 93,
+        "id": 3237,
+        "options": [
+          "On",
+          "Off"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 182,
+        "y": 12,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 182,
+        "y": 42,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 182,
+        "y": 72,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 182,
+        "y": 103,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 182,
+        "y": 131,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 337,
+        "h": 160,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "HD Limiting",
+    "path": "HD",
+    "width": 180,
+    "height": 166,
+    "reference_dialog": 362,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "IBOC EQ GAIN",
+        "label": "HD Eq Gain",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3239,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC EQ FREQ",
+        "label": "HD EQ Freq",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3240,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC LIM DR",
+        "label": "HD Limiter Drive",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3241,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD DE ESS",
+        "label": "HD De-Esser",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3242,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD COUPLING",
+        "label": "FM->HD Control Couple",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3243,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Speech Mode",
+    "path": "HD",
+    "width": 513,
+    "height": 164,
+    "reference_dialog": 395,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "HD SP B1 ATTACK",
+        "label": "B1 Attack",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3154,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD SP B2 ATTACK",
+        "label": "B2 Attack",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3158,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD SP B3 ATTACK",
+        "label": "B3 Attack",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3162,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD SP B4 ATTACK",
+        "label": "B4 Attack",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3166,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD SP B5 ATTACK",
+        "label": "B5 Attack",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3222,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD SP B1 COMP THRSH",
+        "label": "B1 Compression Threshold",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 3134,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD SP B2 COMP THRSH",
+        "label": "B2 Compression Threshold",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 3138,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD SP B3 COMP THRSH",
+        "label": "B3 Compression Threshold",
+        "x": 182,
+        "y": 76,
+        "w": 105,
+        "id": 3142,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD SP B4 COMP THRSH",
+        "label": "B4 Compression Threshold",
+        "x": 182,
+        "y": 106,
+        "w": 105,
+        "id": 3146,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD SP B5 COMP THRSH",
+        "label": "B5 Compression Threshold",
+        "x": 182,
+        "y": 136,
+        "w": 105,
+        "id": 3230,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD SP MB RELEASE",
+        "label": "Multiband Release",
+        "x": 352,
+        "y": 16,
+        "w": 105,
+        "id": 3086,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HD COMP LOOKAHEAD SW",
+        "label": "Lookahead",
+        "x": 352,
+        "y": 46,
+        "w": 105,
+        "id": 1395,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND ATTACK"
+      },
+      {
+        "x": 347,
+        "y": 3,
+        "w": 166,
+        "h": 70,
+        "text": " MULTIBAND LIMITER MISC"
+      },
+      {
+        "x": 177,
+        "y": 3,
+        "w": 166,
+        "h": 160,
+        "text": " MULTIBAND COMPRESSOR THRESH"
+      }
+    ]
+  }
+]
