@@ -215,3 +215,42 @@ fn static_profiles_carry_their_own_pages_and_meters() {
     }
     assert!(Profile::embedded().unwrap().layouts.is_none());
 }
+
+#[test]
+fn the_5700i_supplement_adds_structures_without_touching_verified_fields() {
+    let merged = Profile::embedded().unwrap();
+    let verified: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../profiles/5700i/3.0.1.20/parameters.json"
+    ))
+    .unwrap();
+    let verified = verified["fields"].as_array().unwrap();
+    // Every verified field is present, unchanged and marked as hardware-verified.
+    for field in verified {
+        let scope = if field["scope"] == "System" {
+            Scope::System
+        } else {
+            Scope::Processing
+        };
+        let name = field["name"].as_str().unwrap();
+        assert!(!merged.is_static(scope, name), "{name}");
+    }
+    assert!(merged.fields.len() > verified.len());
+    assert_eq!(
+        merged.value(Scope::Processing, "AGC DRIVE", 20).unwrap(),
+        Value::Int(10)
+    );
+    // Two-band processing comes from the statically derived supplement.
+    assert!(merged.is_static(Scope::Processing, "2B DRIVE"));
+    assert_eq!(
+        merged.value(Scope::Processing, "2B DRIVE", 11).unwrap(),
+        Value::Int(1)
+    );
+    let pages = merged
+        .supplement_layouts
+        .as_ref()
+        .unwrap()
+        .as_array()
+        .unwrap();
+    assert!(pages.iter().any(|page| page["title"] == "2 Band"));
+    assert!(merged.layouts.is_none());
+}

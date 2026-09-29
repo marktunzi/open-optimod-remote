@@ -958,9 +958,15 @@ async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), Oper
         .change(body.scope, &body.name, &expected)
         .await
         .map_err(OperationError::safe)?;
+    // Statically derived adapters and statically derived fields of a verified
+    // profile are confirmed by readback; hardware-verified fields keep the fast path.
+    let verified_field = device.session.info.evidence != Evidence::Static
+        && device.profile.as_ref().is_some_and(|profile| {
+            matches!(expected.value, Value::Text(_)) || !profile.is_static(body.scope, &body.name)
+        });
     let boundary = drain(device, app).await;
     let after = match boundary {
-        Ok(()) if device.session.info.evidence != Evidence::Static => {
+        Ok(()) if verified_field => {
             let mut after = before;
             after.fields.insert(body.name.clone(), expected.clone());
             if body.scope == Scope::Processing && !after.name.starts_with("modif ") {
@@ -1738,15 +1744,43 @@ mod tests {
         worker.abort();
     }
 
-    /// Runs one 5500 write against simulated PC Remote and terminal servers.
-    /// The terminal answers the mandatory readback with `readback_index`.
-    async fn static_5500_write(
-        readback_index: u32,
-    ) -> (Result<(), OperationError>, Snapshot, usize) {
+    /// One write against simulated PC Remote and terminal servers.
+    struct WriteCase {
+        banner: &'static str,
+        terminal_banner: &'static str,
+        family: &'static str,
+        name: &'static str,
+        before: Field,
+        target: u32,
+        wire: &'static str,
+        /// What the terminal returns if the app reads the document back.
+        readback: Field,
+    }
+
+    struct WriteOutcome {
+        result: Result<(), OperationError>,
+        state: Snapshot,
+        changes: usize,
+        readbacks: usize,
+        evidence: Evidence,
+    }
+
+    fn wire_value(value: &Value) -> String {
+        match value {
+            Value::Int(v) => format!("Int:{v}"),
+            Value::Cent(v) => format!("Cent:{v}"),
+            Value::Choice(v) => format!("String:<{v}>"),
+            Value::Text(v) => format!("UserString:<{v}>"),
+        }
+    }
+
+    async fn simulated_write(case: WriteCase) -> WriteOutcome {
         let pc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let pc_address = pc_listener.local_addr().unwrap();
         let changes = Arc::new(AtomicUsize::new(0));
         let server_changes = changes.clone();
+        let banner = case.banner;
+        let wire = case.wire;
         let pc_server = tokio::spawn(async move {
             let (mut stream, _) = pc_listener.accept().await.unwrap();
             loop {
@@ -1755,7 +1789,7 @@ mod tests {
                 }
             }
             stream
-                .write_all(b"connect ok\n0\n5500 V 1.2.8.24\n123\n")
+                .write_all(format!("connect ok\n0\n{banner}\n123\n").as_bytes())
                 .await
                 .unwrap();
             let mut decoder = orban_protocol::framing::Decoder::default();
@@ -1768,7 +1802,7 @@ mod tests {
                 for frame in decoder.feed(&buffer[..count]).unwrap() {
                     match orban_protocol::message::decode(&frame).unwrap() {
                         Message::Other { kind: 227, data } => {
-                            assert_eq!(data, b"2B BASS ATTACK;8;Cent:1200;1;");
+                            assert_eq!(data, wire.as_bytes());
                             server_changes.fetch_add(1, Ordering::SeqCst);
                         }
                         Message::Other { kind: 219, .. } => {
@@ -1790,10 +1824,21 @@ mod tests {
         });
         let terminal_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let terminal_address = terminal_listener.local_addr().unwrap();
+        let readbacks = Arc::new(AtomicUsize::new(0));
+        let server_readbacks = readbacks.clone();
+        let document = format!(
+            "OptimodVersion=<{}>\r\nPreset Name=<modif TEST> size=1\r\nC:<{}>{};D:{};\r\nEnd Preset<end>\r\n",
+            case.family,
+            case.name,
+            wire_value(&case.readback.value),
+            case.readback.index
+        );
+        let terminal_banner = case.terminal_banner;
         let terminal_server = tokio::spawn(async move {
             let (mut stream, _) = terminal_listener.accept().await.unwrap();
+            server_readbacks.fetch_add(1, Ordering::SeqCst);
             stream
-                .write_all(b"Orban Optimod 5500 test\r\n")
+                .write_all(format!("{terminal_banner}\r\n").as_bytes())
                 .await
                 .unwrap();
             let mut command = Vec::new();
@@ -1802,33 +1847,20 @@ mod tests {
                 stream.read_exact(&mut byte).await.unwrap();
                 command.push(byte[0]);
             }
-            let value = (readback_index + 4) * 100;
-            stream
-                .write_all(
-                    format!("OptimodVersion=<8300.10>\r\nPreset Name=<modif TEST> size=1\r\nC:<2B BASS ATTACK>Cent:{value};D:{readback_index};\r\nEnd Preset<end>\r\n")
-                        .as_bytes(),
-                )
-                .await
-                .unwrap();
+            stream.write_all(document.as_bytes()).await.unwrap();
         });
         let session = Session::connect(pc_address, "1234", Duration::from_secs(1))
             .await
             .unwrap();
-        assert_eq!(session.info.evidence, Evidence::Static);
+        let evidence = session.info.evidence;
         let (commands, _) = mpsc::channel(1);
         let (meters, _) = watch::channel(json!({"live":false}));
         let storage = tempfile::tempdir().unwrap();
         let before = Document {
             name: "TEST".into(),
-            fields: [(
-                "2B BASS ATTACK".into(),
-                Field {
-                    index: 7,
-                    value: Value::Cent(1100),
-                },
-            )]
-            .into_iter()
-            .collect(),
+            fields: [(case.name.into(), case.before.clone())]
+                .into_iter()
+                .collect(),
             raw: String::new(),
         };
         let profile = Arc::new(
@@ -1870,12 +1902,9 @@ mod tests {
             &app,
             Change {
                 scope: Scope::Processing,
-                name: "2B BASS ATTACK".into(),
-                index: 8,
-                expected: Field {
-                    index: 7,
-                    value: Value::Cent(1100),
-                },
+                name: case.name.into(),
+                index: case.target,
+                expected: case.before,
                 requested: None,
                 expected_host: "127.0.0.1".into(),
                 expected_session: "test-session".into(),
@@ -1883,32 +1912,97 @@ mod tests {
             },
         )
         .await;
-        let snapshot = app.state.read().await.clone();
+        let state = app.state.read().await.clone();
         pc_server.abort();
         terminal_server.abort();
-        (result, snapshot, changes.load(Ordering::SeqCst))
+        WriteOutcome {
+            result,
+            state,
+            changes: changes.load(Ordering::SeqCst),
+            readbacks: readbacks.load(Ordering::SeqCst),
+            evidence,
+        }
+    }
+
+    fn cent(index: u32, value: i32) -> Field {
+        Field {
+            index,
+            value: Value::Cent(value),
+        }
+    }
+
+    fn int(index: u32, value: i32) -> Field {
+        Field {
+            index,
+            value: Value::Int(value),
+        }
+    }
+
+    fn optimod_5500(readback: Field) -> WriteCase {
+        WriteCase {
+            banner: "5500 V 1.2.8.24",
+            terminal_banner: "Orban Optimod 5500 test",
+            family: "8300.10",
+            name: "2B BASS ATTACK",
+            before: cent(7, 1100),
+            target: 8,
+            wire: "2B BASS ATTACK;8;Cent:1200;1;",
+            readback,
+        }
     }
 
     #[tokio::test]
     async fn static_profile_writes_are_confirmed_by_a_full_readback() {
-        let (result, state, changes) = static_5500_write(8).await;
-        assert!(result.is_ok(), "{:?}", result.err());
-        assert_eq!(changes, 1);
-        let field = &state.processing.unwrap().fields["2B BASS ATTACK"];
-        assert_eq!(field.index, 8);
-        assert_eq!(field.value, Value::Cent(1200));
+        let outcome = simulated_write(optimod_5500(cent(8, 1200))).await;
+        assert_eq!(outcome.evidence, Evidence::Static);
+        assert!(outcome.result.is_ok(), "{:?}", outcome.result.err());
+        assert_eq!((outcome.changes, outcome.readbacks), (1, 1));
+        let field = &outcome.state.processing.unwrap().fields["2B BASS ATTACK"];
+        assert_eq!(field, &cent(8, 1200));
     }
 
     #[tokio::test]
     async fn static_profile_mismatch_shows_the_processor_value_and_never_retries() {
-        let (result, state, changes) = static_5500_write(7).await;
+        let outcome = simulated_write(optimod_5500(cent(7, 1100))).await;
         assert_eq!(
-            result.unwrap_err().message,
+            outcome.result.unwrap_err().message,
             "The processor did not confirm the change"
         );
-        assert_eq!(changes, 1);
-        let field = &state.processing.unwrap().fields["2B BASS ATTACK"];
-        assert_eq!(field.index, 7);
-        assert_eq!(field.value, Value::Cent(1100));
+        assert_eq!((outcome.changes, outcome.readbacks), (1, 1));
+        let field = &outcome.state.processing.unwrap().fields["2B BASS ATTACK"];
+        assert_eq!(field, &cent(7, 1100));
+    }
+
+    #[tokio::test]
+    async fn verified_5700i_fields_keep_the_fast_path_and_static_5700i_fields_are_read_back() {
+        let verified = simulated_write(WriteCase {
+            banner: "5700i V 3.0.1.20",
+            terminal_banner: "Orban Optimod 5700i test",
+            family: "5700.51",
+            name: "AGC DRIVE",
+            before: int(20, 10),
+            target: 21,
+            wire: "AGC DRIVE;21;Int:11;1;",
+            readback: int(21, 11),
+        })
+        .await;
+        assert_eq!(verified.evidence, Evidence::Hardware);
+        assert!(verified.result.is_ok(), "{:?}", verified.result.err());
+        assert_eq!((verified.changes, verified.readbacks), (1, 0));
+
+        // A two-band field exists only in the statically derived supplement.
+        let supplement = simulated_write(WriteCase {
+            banner: "5700i V 3.0.1.20",
+            terminal_banner: "Orban Optimod 5700i test",
+            family: "5700.51",
+            name: "2B DRIVE",
+            before: int(10, 0),
+            target: 11,
+            wire: "2B DRIVE;11;Int:1;1;",
+            readback: int(11, 1),
+        })
+        .await;
+        assert!(supplement.result.is_ok(), "{:?}", supplement.result.err());
+        assert_eq!((supplement.changes, supplement.readbacks), (1, 1));
     }
 }

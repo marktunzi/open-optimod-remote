@@ -15,7 +15,7 @@ Use this model skill for the OPTIMOD-FM 8700HD only. The 8700i is a different mo
 
 ## References
 
-- [parameters-1.0.2.161.json](references/parameters-1.0.2.161.json): 409 wire names with scope, value tables and per-field `evidence`. It is identical to `profiles/8700hd/1.0.2.161/parameters.json`.
+- [parameters-1.0.2.161.json](references/parameters-1.0.2.161.json): 524 wire names with scope, value tables and per-field `evidence`. It is identical to `profiles/8700hd/1.0.2.161/parameters.json`.
 - [meters-1.0.2.161.json](references/meters-1.0.2.161.json): meter groups, channels, orientation and curves.
 - Pages: `profiles/8700hd/1.0.2.161/layouts.json`. There are 23 pages, including MX distortion, MX speech and the HD equalizer, multiband, compressors, band mix, 2-band and speech pages.
 
@@ -23,7 +23,7 @@ Use this model skill for the OPTIMOD-FM 8700HD only. The 8700i is a different mo
 
 An FM+HD processor with a separate HD chain. `HD COUPLING` is `FM->HD` or `Indepen.`. Like the 5700i, coupled mode makes the HD counterparts follow FM, while `IBOC EQ GAIN`, `IBOC EQ FREQ`, `HD DE ESS` and `HD COUPLING` stay independent. The FM side also has MX and ULL structure controls (`MX …`, `ULL SWITCH`, `STD SWITCH`). A control whose field is absent from the live document is shown as unavailable.
 
-Not writable, because PC Remote and the factory presets disagree: `B5 DWNWRD EXP`, `B3 CLIP THRSH`, `MX BASS CLIP`, `B12 CROSSOVER`, `HD B12 CROSSOVER` and `MPX PWR OFFSET`.
+Not writable, because PC Remote and the factory presets disagree: `DWNWRD EXP`, `B5 DWNWRD EXP`, `HD DWNWRD EXP`, `B3 CLIP THRSH`, `MX BASS CLIP`, `B12 CROSSOVER`, `HD B12 CROSSOVER`, `IBOC LIM DR` and `MPX PWR OFFSET`.
 
 ## Safety rules for this model
 

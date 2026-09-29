@@ -6,7 +6,7 @@
   "installer_sha256": "8d43f31689ca1278a9682e8715cd1cdb22b431cc574a3cc65753f994d8b8ee59",
   "banner": "5500 V 1.2.8.24",
   "document_family": "8300.",
-  "registrations": 280,
+  "registrations": 295,
   "factory_presets": 294,
   "preset_families": {
     "OptimodVersion=<8300.10>": 292,
@@ -14,15 +14,46 @@
   },
   "preset_fields": 108,
   "field_evidence": {
-    "text": 12,
-    "not-convertible": 1,
-    "confirmed": 89,
-    "unobserved": 152,
-    "conflict": 7,
-    "transform": 10,
-    "ambiguous-duplicate": 1
+    "text": 13,
+    "not-convertible": 9,
+    "confirmed": 90,
+    "unobserved": 157,
+    "conflict": 9,
+    "transform": 9
   },
   "excluded": [
+    {
+      "name": "REMOTE CONTACT 1",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 2",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 3",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 4",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 5",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 6",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 7",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 8",
+      "reason": "not convertible"
+    },
     {
       "name": "TIME SERVER",
       "reason": "not convertible"
@@ -36,8 +67,12 @@
       "reason": "conflicts with factory presets"
     },
     {
+      "name": "DWNWRD EXP",
+      "reason": "conflicts with factory presets"
+    },
+    {
       "name": "B3 CLIP THRSH",
-      "reason": "ambiguous duplicate ids 120,121"
+      "reason": "conflicts with factory presets"
     },
     {
       "name": "PEQ LOW WIDTH",

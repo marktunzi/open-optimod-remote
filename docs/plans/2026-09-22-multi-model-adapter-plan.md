@@ -18,11 +18,11 @@ Ieder model heeft verplicht een eigen `skin_id`, productmarkering, materiaal- en
 - Fail-closed controle tussen opgeslagen modelkeuze en werkelijk gedetecteerde loginbanner.
 - Read-only AP/AS/LP-terminalondersteuning voor de `8300`, `5700`, `6300`, `8500`, `8600`, `8700`, `9300` en `9400`-documentfamilies die door officiële handleidingen, executables en factorypresets zijn onderbouwd.
 - Verbindingsschema versie 2 met automatische migratie van bestaande apparaten naar Auto Detect, zonder wijziging van credentialaccounts.
-- Native macOS-modelkeuze en netwerkdetectie voor de elf Ethernetmodellen.
+- Native macOS-modelkeuze en netwerkdetectie voor de elf Ethernetmodellen (twaalf sinds de 8700HD op 29 september werd toegevoegd).
 - Afzonderlijke skins en originele lokale productmarkeringen voor ieder model, plus een neutrale skin voor onbekende/offline toestand.
 - Per-model capabilitygrenzen: alleen 5700i firmware 3.0.1.20 heeft writes, recall en de 112-byte live-metervoorstelling ingeschakeld.
 
-Nog niet afgetekend zijn model-specifieke writeprofielen, metercaptures en volledige bedieningspagina's voor de tien aanvullende modellen. Zij blijven read-only totdat de hardwarepoort per exact model en firmware is doorlopen.
+Nog niet afgetekend zijn model-specifieke writeprofielen, metercaptures en volledige bedieningspagina's voor de tien aanvullende modellen. Zij blijven read-only totdat de hardwarepoort per exact model en firmware is doorlopen. Stand 29 september: de 5500 (1.2.8.24) en de nieuwe 8700HD (1.0.2.161) hebben statisch afgeleide profielen met writes; de overige modellen wachten op hun PC Remote-installer.
 
 ## Fase 0 — referentiegedrag vastzetten
 

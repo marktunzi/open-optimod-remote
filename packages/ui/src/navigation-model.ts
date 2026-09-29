@@ -47,3 +47,18 @@ export function processingPages(
 export function systemSettingsTarget(hasNativeBridge: boolean): 'native' | 'workspace' {
   return hasNativeBridge ? 'native' : 'workspace';
 }
+
+/**
+ * Adds statically derived pages to a model's built-in pages. A supplementary
+ * page is skipped when a built-in page on the same path has its title, or
+ * already covers every one of its controls.
+ */
+export function mergeSupplementPages(builtin: LayoutPage[], supplement: LayoutPage[]): LayoutPage[] {
+  const added = supplement.filter(page => {
+    const samePath = builtin.filter(existing => existing.path === page.path);
+    if (samePath.some(existing => existing.title === page.title)) return false;
+    const covered = new Set(samePath.flatMap(existing => existing.controls.map(control => control.name)));
+    return page.controls.some(control => !covered.has(control.name));
+  });
+  return [...builtin, ...added];
+}

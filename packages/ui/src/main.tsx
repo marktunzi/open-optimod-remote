@@ -13,7 +13,7 @@ import { Presets } from './Presets';
 import { Outputs } from './Outputs';
 import { Setup } from './Setup';
 import { InstrumentHeader } from './InstrumentHeader';
-import { DEFAULT_METER_VIEW, initialWorkspace, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
+import { DEFAULT_METER_VIEW, initialWorkspace, mergeSupplementPages, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
 import { binaryOnIndex, groupProcessingPage, type LayoutPage } from './processing-layout';
 import { modifiedFieldNames, optimisticLessMoreAvailability, optimisticModifiedFields } from './preset-state';
 import { nextControlIndex } from './control-keyboard';
@@ -227,6 +227,7 @@ function App() {
   const [snapshot, setSnapshot] = useState<Snapshot>(empty);
   const [definitions, setDefinitions] = useState<Definition[]>([]);
   const [modelLayouts, setModelLayouts] = useState<LayoutPage[] | null>(null);
+  const [supplementLayouts, setSupplementLayouts] = useState<LayoutPage[]>([]);
   const [meterModel, setMeterModel] = useState<MeterModel>(REFERENCE_METERS);
   const [path, setPath] = useState<"FM" | "HD">("FM");
   const [area, setArea] = useState<WorkspaceView>(() => initialWorkspace(false, Boolean(window.webkit?.messageHandlers?.openConnections)));
@@ -259,9 +260,10 @@ function App() {
   // the 5700i reference, its own processing pages and meters.
   useEffect(() => {
     void api("profile")
-      .then((p: { fields: Definition[]; layouts?: LayoutPage[]; meters?: ProfileMeters }) => {
+      .then((p: { fields: Definition[]; layouts?: LayoutPage[]; supplement_layouts?: LayoutPage[]; meters?: ProfileMeters }) => {
         setDefinitions(p.fields);
         setModelLayouts(p.layouts ?? null);
+        setSupplementLayouts(p.supplement_layouts ?? []);
         setMeterModel(p.meters ? meterModelFromProfile(p.meters) : REFERENCE_METERS);
       })
       .catch((e) => reportError('Parameter profile', e));
@@ -296,7 +298,7 @@ function App() {
   };
   const coupling = snapshot.processing?.fields["HD COUPLING"];
   const couplingValue = String(coupling?.value.value || '') || undefined;
-  const pages = processingPages(modelLayouts ?? (layouts as LayoutPage[]), path, couplingValue);
+  const pages = processingPages(modelLayouts ?? mergeSupplementPages(layouts as LayoutPage[], supplementLayouts), path, couplingValue);
   const page = pages.find((p) => p.title === tab) || pages[0];
   const processingGroups = groupProcessingPage(page);
   const independentPaths = processingPathSelectorVisible(couplingValue);

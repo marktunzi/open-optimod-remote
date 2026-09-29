@@ -38,6 +38,10 @@ pub struct Profile {
     /// Meter groups and conversions. Absent: the interface uses its built-in meters.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub meters: Option<serde_json::Value>,
+    /// Statically derived pages for a model with built-in pages. The interface
+    /// adds those its built-in set lacks, such as other processing structures.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supplement_layouts: Option<serde_json::Value>,
 }
 
 /// One embedded model profile: adapter id, parameters, optional pages and meters.
@@ -46,6 +50,10 @@ struct Embedded {
     parameters: &'static str,
     layouts: Option<&'static str>,
     meters: Option<&'static str>,
+    /// Statically derived fields added to a hardware-verified profile. A field
+    /// that already exists in `parameters` is never replaced.
+    supplement: Option<&'static str>,
+    supplement_layouts: Option<&'static str>,
 }
 
 /// Every profile the app can write with. A new model adds one entry here and
@@ -56,12 +64,20 @@ const EMBEDDED: [Embedded; 3] = [
         parameters: include_str!("../../../profiles/5700i/3.0.1.20/parameters.json"),
         layouts: None,
         meters: None,
+        supplement: Some(include_str!(
+            "../../../profiles/5700i/3.0.1.20/static-parameters.json"
+        )),
+        supplement_layouts: Some(include_str!(
+            "../../../profiles/5700i/3.0.1.20/static-layouts.json"
+        )),
     },
     Embedded {
         adapter_id: "pc-remote-5500-1.2.8.24",
         parameters: include_str!("../../../profiles/5500/1.2.8.24/parameters.json"),
         layouts: Some(include_str!("../../../profiles/5500/1.2.8.24/layouts.json")),
         meters: Some(include_str!("../../../profiles/5500/1.2.8.24/meters.json")),
+        supplement: None,
+        supplement_layouts: None,
     },
     Embedded {
         adapter_id: "pc-remote-8700hd-1.0.2.161",
@@ -72,6 +88,8 @@ const EMBEDDED: [Embedded; 3] = [
         meters: Some(include_str!(
             "../../../profiles/8700hd/1.0.2.161/meters.json"
         )),
+        supplement: None,
+        supplement_layouts: None,
     },
 ];
 
@@ -88,6 +106,19 @@ impl Profile {
         };
         let mut profile: Self =
             serde_json::from_str(entry.parameters).map_err(|e| e.to_string())?;
+        if let Some(text) = entry.supplement {
+            let supplement: Self = serde_json::from_str(text).map_err(|e| e.to_string())?;
+            for field in supplement.fields {
+                if field.evidence.is_some()
+                    && !profile
+                        .fields
+                        .iter()
+                        .any(|f| f.scope == field.scope && f.name == field.name)
+                {
+                    profile.fields.push(field);
+                }
+            }
+        }
         profile.validate()?;
         let parse = |text: Option<&str>| {
             text.map(serde_json::from_str::<serde_json::Value>)
@@ -96,6 +127,7 @@ impl Profile {
         };
         profile.layouts = parse(entry.layouts)?;
         profile.meters = parse(entry.meters)?;
+        profile.supplement_layouts = parse(entry.supplement_layouts)?;
         Ok(Some(profile))
     }
 
@@ -126,6 +158,15 @@ impl Profile {
             }
         }
         Ok(())
+    }
+
+    /// True when a field's mapping is statically derived rather than verified on
+    /// hardware. Writes to such a field are always confirmed by a full readback.
+    pub fn is_static(&self, scope: Scope, name: &str) -> bool {
+        self.fields
+            .iter()
+            .find(|f| f.scope == scope && f.name == name)
+            .is_none_or(|f| f.evidence.is_some())
     }
 
     pub fn value(&self, scope: Scope, name: &str, index: u32) -> Result<Value, String> {

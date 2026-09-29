@@ -574,17 +574,6 @@
       },
       {
         "kind": "slider",
-        "name": "DWNWRD EXP",
-        "label": "Down Expander",
-        "x": 13,
-        "y": 76,
-        "w": 105,
-        "id": 3091,
-        "reference_id": 73,
-        "options": []
-      },
-      {
-        "kind": "slider",
         "name": "MB GATE THR",
         "label": "Multiband Gate Threshold",
         "x": 13,
@@ -1271,6 +1260,17 @@
         "id": 1319,
         "reference_id": 110,
         "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MAX DIST CONTRL",
+        "label": "Maximum Distortion Control",
+        "x": 13,
+        "y": 196,
+        "w": 105,
+        "id": 1323,
+        "reference_id": 122,
+        "options": []
       }
     ],
     "groups": [
@@ -1365,6 +1365,17 @@
         "w": 105,
         "id": 1319,
         "reference_id": 110,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MAX DIST CONTRL",
+        "label": "Maximum Distortion Control",
+        "x": 13,
+        "y": 256,
+        "w": 105,
+        "id": 1323,
+        "reference_id": 122,
         "options": []
       }
     ],
@@ -1478,6 +1489,17 @@
         "w": 105,
         "id": 3213,
         "reference_id": 136,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "INPUT LEVEL",
+        "label": "Input Level",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3217,
+        "reference_id": 472,
         "options": []
       },
       {

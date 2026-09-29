@@ -46,3 +46,19 @@ test('profile pages have unique titles per path and group without losing control
     }
   }
 });
+
+test('5700i keeps its built-in pages and gains only new structures from the supplement', async () => {
+  const { mergeSupplementPages } = await import('../src/navigation-model.ts');
+  const builtin: LayoutPage[] = JSON.parse(readFileSync(new URL('../src/layouts.json', import.meta.url), 'utf8'));
+  const supplement: LayoutPage[] = profile('5700i/3.0.1.20/static-layouts.json');
+  const merged = mergeSupplementPages(builtin, supplement);
+  assert.deepEqual(merged.slice(0, builtin.length), builtin);
+  const added = merged.slice(builtin.length).map(page => `${page.path} ${page.title}`);
+  assert.ok(added.includes('FM 2 Band'));
+  assert.ok(added.includes('HD 2 Band'));
+  assert.ok(!added.includes('FM Distortion Control'), 'duplicates the built-in Distortion page');
+  for (const view of ['FM', 'HD'] as const) {
+    const titles = processingPages(merged, view, 'Indepen.').map(page => page.title);
+    assert.equal(new Set(titles).size, titles.length, titles.join(', '));
+  }
+});

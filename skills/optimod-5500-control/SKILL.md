@@ -15,7 +15,7 @@ Use this model skill for the OPTIMOD 5500 only. Use `optimod-5700i-control` for 
 
 ## References
 
-- [parameters-1.2.8.24.json](references/parameters-1.2.8.24.json): 251 wire names with scope, index-to-value table and per-field `evidence` (`confirmed`, `transform …` or `unobserved`). It is identical to `profiles/5500/1.2.8.24/parameters.json`.
+- [parameters-1.2.8.24.json](references/parameters-1.2.8.24.json): 256 wire names with scope, index-to-value table and per-field `evidence` (`confirmed`, `transform …` or `unobserved`). It is identical to `profiles/5500/1.2.8.24/parameters.json`.
 - [meters-1.2.8.24.json](references/meters-1.2.8.24.json): meter groups, channel numbers, orientation and raw-to-percent curves.
 - [processing-observed-1.2.8.24.json](references/processing-observed-1.2.8.24.json): the factory-preset observations used for the cross-check.
 - [worksheet-1.2.7.json](references/worksheet-1.2.7.json): worksheet labels, ranges and units. They are presentation labels, not wire names.
@@ -26,9 +26,8 @@ Regenerate the profile with `scripts/extract_pc_remote.py`; never edit values by
 
 The processor documents several values in a different unit than PC Remote shows. Always send the firmware format:
 
-- `B1`–`B4 ATTACK`, `B1`–`B4 LIMIT ATTACK` and `SE RATIO WIDTH`: PC Remote shows `Int n`; the processor writes `Cent n×100`.
-- `DWNWRD EXP`: the firmware value is the PC Remote value + 1200 cents. This is based on two observations.
-- Not writable, because PC Remote and the factory presets disagree: `AGC DIFF GR`, `AGC RATIO`, `B3 CLIP THRSH`, `PEQ LOW/MID/HIGH WIDTH`, `B12 CROSSOVER` and `INPUT EMPH STATUS`.
+- `B1`–`B4 ATTACK`, `B1`–`B4 LIMIT ATTACK` and `SE RATIO WIDTH`: PC Remote shows `Int n`; the factory presets store `Cent n×100`, and the profile uses the preset format. The runtime check refuses a write if the processor reports the other format.
+- Not writable, because PC Remote and the factory presets disagree: `AGC DIFF GR`, `AGC RATIO`, `DWNWRD EXP`, `B3 CLIP THRSH`, `PEQ LOW/MID/HIGH WIDTH`, `B12 CROSSOVER` and `INPUT EMPH STATUS`. Constant offsets between the two are never trusted: on the hardware-verified 5700i such an offset was wrong.
 
 ## Model shape
 
