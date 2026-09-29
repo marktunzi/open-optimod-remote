@@ -7,7 +7,7 @@ description: Use when connecting to, diagnosing, implementing control software f
 
 Use the independently verified 5700i protocol facts in this skill. Keep observed behavior, reference-derived mappings, and hypotheses clearly separated. The verified target is firmware `3.0.1.20`; reject a different model or firmware until it has its own fixtures and profile.
 
-Open Optimod Remote now has read-only adapters for 5500i, 5500, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 and 9400. They may reuse proven login/framing and evidence-backed AP/AS/LP reads, but their writes, recall and meter decoding remain disabled until hardware-specific verification. Every model also owns a separate skin ID and must never inherit the 5700i visual/control profile by fallback.
+Open Optimod Remote now has read-only adapters for 5500i, 5500, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 8700HD, 9300 and 9400. They may reuse proven login/framing and evidence-backed AP/AS/LP reads, but their writes, recall and meter decoding stay disabled until the model has its own profile. The exact banners `5500 V 1.2.8.24` and `8700HD V 1.0.2.161` have statically derived, writable profiles. Use the `optimod-5500-control` and `optimod-8700hd-control` skills for those models, and `docs/adding-a-model.md` to add another. Every model also owns a separate skin ID and must never inherit the 5700i visual/control profile by fallback.
 
 ## Route the task
 

@@ -11,13 +11,13 @@ use axum::{
     routing::{get, post},
 };
 use orban_protocol::{
-    adapter::{Capabilities, DeviceModel, SkinId},
+    adapter::{Capabilities, DeviceModel, Evidence, SkinId},
     control::Scope,
     document::{Document, Field, Value},
     message::Message,
     profile::Profile,
     session::Session,
-    terminal::{read_snapshot, read_snapshot_for_model},
+    terminal::read_snapshot_for_model,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as JsonValue, json};
@@ -61,13 +61,17 @@ struct Snapshot {
     skin_id: Option<SkinId>,
     adapter_id: Option<String>,
     capabilities: Option<Capabilities>,
+    /// Hardware-verified or statically derived profile, for the status display.
+    evidence: Option<Evidence>,
 }
 #[derive(Clone)]
 struct App {
     state: Arc<RwLock<Snapshot>>,
     meters: watch::Sender<JsonValue>,
     commands: mpsc::Sender<Command>,
-    profile: Arc<Profile>,
+    /// Profile of the active session for the interface: its own profile when the
+    /// adapter has one, otherwise the 5700i reference used for read-only display.
+    profile: Arc<std::sync::RwLock<Arc<Profile>>>,
     book: Arc<std::sync::Mutex<devices::Book>>,
 }
 type Reply = oneshot::Sender<Result<(), String>>;
@@ -149,10 +153,18 @@ struct Device {
     terminal: SocketAddr,
     code: Zeroizing<String>,
     processing_baseline: Option<Document>,
+    /// The exact-banner profile writes are validated against. `None` = read-only.
+    profile: Option<Arc<Profile>>,
+}
+fn reference_profile() -> Arc<Profile> {
+    Arc::new(Profile::embedded().expect("Valid bundled profile"))
+}
+fn shared_profile(profile: Arc<Profile>) -> Arc<std::sync::RwLock<Arc<Profile>>> {
+    Arc::new(std::sync::RwLock::new(profile))
 }
 #[tokio::main]
 async fn main() {
-    let profile = Arc::new(Profile::embedded().expect("Valid bundled profile"));
+    let profile = shared_profile(reference_profile());
     let (tx, rx) = mpsc::channel(8);
     let (meters, _) = watch::channel(json!({"live":false}));
     let app = App {
@@ -259,7 +271,12 @@ async fn state(State(app): State<App>) -> Json<Snapshot> {
     Json(app.state.read().await.clone())
 }
 async fn profile_handler(State(app): State<App>) -> Json<Profile> {
-    Json((*app.profile).clone())
+    let active = app
+        .profile
+        .read()
+        .map(|profile| profile.clone())
+        .unwrap_or_else(|_| reference_profile());
+    Json((*active).clone())
 }
 async fn meters_handler(
     State(app): State<App>,
@@ -520,11 +537,13 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
         body.model,
     )
     .await?;
+    let profile = Profile::for_adapter(session.info.adapter_id)?.map(Arc::new);
     let mut device = Device {
         session,
         terminal: SocketAddr::new(ip, body.terminal_port),
         code,
         processing_baseline: None,
+        profile,
     };
     let init = async {
         if device.session.info.capabilities.parameter_reads {
@@ -543,6 +562,9 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
         let _ = device.session.disconnect().await;
         return Err(e);
     }
+    if let Ok(mut active) = app.profile.write() {
+        *active = device.profile.clone().unwrap_or_else(reference_profile);
+    }
     let mut state = app.state.write().await;
     state.connected = true;
     state.write_enabled =
@@ -552,6 +574,7 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
     state.skin_id = Some(device.session.info.skin);
     state.adapter_id = Some(device.session.info.adapter_id.into());
     state.capabilities = Some(device.session.info.capabilities);
+    state.evidence = Some(device.session.info.evidence);
     state.host = body.host;
     state.device_id = body.device_id;
     state.session_id = Some(uuid::Uuid::new_v4().to_string());
@@ -643,11 +666,13 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
     // not overlap the RP/AP transaction with 50 ms meter polls: that made the
     // firmware queue work, visibly stutter, and sometimes trip the heartbeat.
     // The already loaded catalog and processing document provide the guards.
-    let recalled = match orban_protocol::terminal::recall_preset(
+    let model = device.session.info.model;
+    let recalled = match orban_protocol::terminal::recall_preset_for_model(
         address,
         &code,
         &body.name,
         Duration::from_secs(10),
+        model,
     )
     .await
     {
@@ -656,7 +681,15 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
             // The RP command may have succeeded even if its combined response
             // was unusual. Resolve that exceptional case with one direct AP
             // read while meter polling remains paused.
-            match read_snapshot(address, &code, Scope::Processing, Duration::from_secs(6)).await {
+            match read_snapshot_for_model(
+                address,
+                &code,
+                Scope::Processing,
+                Duration::from_secs(6),
+                model,
+            )
+            .await
+            {
                 Ok(document) if document.name == body.name => Ok(document),
                 Ok(_) => Err(OperationError::safe(format!(
                     "The processor did not recall {}. {first_error}",
@@ -719,7 +752,7 @@ fn validate_import_field(
         _ => {
             if profile.value(Scope::Processing, name, requested.index)? != requested.value {
                 return Err(format!(
-                    "Preset field {name} does not match the 5700i profile"
+                    "Preset field {name} does not match this processor's profile"
                 ));
             }
         }
@@ -734,7 +767,12 @@ async fn apply_preset(
     app: &App,
     body: ApplyPreset,
 ) -> Result<(), OperationError> {
-    let imported = Document::parse(body.document.as_bytes()).map_err(OperationError::safe)?;
+    let imported = Document::parse_for_model(body.document.as_bytes(), device.session.info.model)
+        .map_err(OperationError::safe)?;
+    let profile = device.profile.clone().ok_or_else(|| {
+        OperationError::safe("This processor has no parameter profile; it is read-only")
+    })?;
+    let profile = profile.as_ref();
     let state = app.state.read().await;
     ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
     if state.host != body.expected_host {
@@ -768,8 +806,7 @@ async fn apply_preset(
                 "Preset field {name} is not present on this processor"
             ))
         })?;
-        validate_import_field(&app.profile, name, current, requested)
-            .map_err(OperationError::safe)?;
+        validate_import_field(profile, name, current, requested).map_err(OperationError::safe)?;
     }
 
     let current_coupled = before
@@ -885,8 +922,10 @@ async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), Oper
         }
         (Some(_), _) => return Err(OperationError::safe("Unsupported typed setting value")),
         (None, _) => {
-            if app
-                .profile
+            let profile = device.profile.as_ref().ok_or_else(|| {
+                OperationError::safe("This processor has no parameter profile; it is read-only")
+            })?;
+            if profile
                 .value(body.scope, &body.name, body.expected.index)
                 .map_err(OperationError::safe)?
                 != body.expected.value
@@ -895,7 +934,7 @@ async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), Oper
                     "The current value does not match the reference profile",
                 ));
             }
-            app.profile
+            profile
                 .value(body.scope, &body.name, body.index)
                 .map_err(OperationError::safe)?
         }
@@ -922,8 +961,9 @@ async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), Oper
         .change(body.scope, &body.name, &expected)
         .await
         .map_err(OperationError::safe)?;
-    let after = match drain(device, app).await {
-        Ok(()) => {
+    let boundary = drain(device, app).await;
+    let after = match boundary {
+        Ok(()) if device.session.info.evidence != Evidence::Static => {
             let mut after = before;
             after.fields.insert(body.name.clone(), expected.clone());
             if body.scope == Scope::Processing && !after.name.starts_with("modif ") {
@@ -931,18 +971,31 @@ async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), Oper
             }
             after
         }
-        Err(boundary_error) => {
-            // A failed response boundary leaves the write outcome uncertain. Only
-            // that exceptional path uses the slower terminal readback. The 5700i
-            // pauses its meter stream while producing a full AP/AS document.
+        boundary => {
+            // A failed response boundary leaves the write outcome uncertain, and a
+            // statically derived profile is not yet proven on hardware. Both use
+            // the slower exact terminal readback. The 5700i pauses its meter
+            // stream while producing a full AP/AS document.
             let snapshot = live_snapshot(device, app, body.scope)
                 .await
                 .map_err(|read_error| {
-                    OperationError::safe(format!(
-                        "The processor did not confirm the change; the connection remains active. {boundary_error}. {read_error}"
-                    ))
+                    OperationError::safe(match &boundary {
+                        Err(boundary_error) => format!(
+                            "The processor did not confirm the change; the connection remains active. {boundary_error}. {read_error}"
+                        ),
+                        Ok(()) => format!(
+                            "The change could not be read back; the connection remains active. {read_error}"
+                        ),
+                    })
                 })?;
             if snapshot.fields.get(&body.name) != Some(&expected) {
+                // Show what the processor actually holds, never the requested value.
+                let mut state = app.state.write().await;
+                match body.scope {
+                    Scope::System => state.system = Some(snapshot),
+                    Scope::Processing => state.processing = Some(snapshot),
+                }
+                state.revision += 1;
                 return Err(OperationError::safe(
                     "The processor did not confirm the change",
                 ));
@@ -1236,7 +1289,7 @@ mod tests {
             state: Arc::new(RwLock::new(Snapshot::default())),
             meters,
             commands,
-            profile: Arc::new(Profile::embedded().unwrap()),
+            profile: shared_profile(reference_profile()),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     storage.path().join("connections.json"),
@@ -1252,6 +1305,7 @@ mod tests {
             terminal: "127.0.0.1:1".parse().unwrap(),
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
+            profile: Some(reference_profile()),
         };
 
         with_meter_polling(&mut device, &app, async {
@@ -1338,7 +1392,7 @@ mod tests {
             })),
             meters,
             commands,
-            profile: Arc::new(Profile::embedded().unwrap()),
+            profile: shared_profile(reference_profile()),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     storage.path().join("connections.json"),
@@ -1354,6 +1408,7 @@ mod tests {
             terminal: "127.0.0.1:1".parse().unwrap(),
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(processing),
+            profile: Some(reference_profile()),
         };
 
         change(
@@ -1488,7 +1543,7 @@ mod tests {
             })),
             meters,
             commands,
-            profile: Arc::new(Profile::embedded().unwrap()),
+            profile: shared_profile(reference_profile()),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     storage.path().join("connections.json"),
@@ -1504,6 +1559,7 @@ mod tests {
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
+            profile: Some(reference_profile()),
         };
 
         recall(
@@ -1648,7 +1704,7 @@ mod tests {
             state: Arc::new(RwLock::new(Snapshot::default())),
             meters,
             commands: tx,
-            profile: Arc::new(Profile::embedded().unwrap()),
+            profile: shared_profile(reference_profile()),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     tempfile::tempdir().unwrap().path().join("test.json"),
@@ -1683,5 +1739,179 @@ mod tests {
         assert!(!app.state.read().await.connected);
         assert!(app.state.read().await.system.is_none());
         worker.abort();
+    }
+
+    /// Runs one 5500 write against simulated PC Remote and terminal servers.
+    /// The terminal answers the mandatory readback with `readback_index`.
+    async fn static_5500_write(
+        readback_index: u32,
+    ) -> (Result<(), OperationError>, Snapshot, usize) {
+        let pc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let pc_address = pc_listener.local_addr().unwrap();
+        let changes = Arc::new(AtomicUsize::new(0));
+        let server_changes = changes.clone();
+        let pc_server = tokio::spawn(async move {
+            let (mut stream, _) = pc_listener.accept().await.unwrap();
+            loop {
+                if stream.read_u8().await.unwrap() == 0 {
+                    break;
+                }
+            }
+            stream
+                .write_all(b"connect ok\n0\n5500 V 1.2.8.24\n123\n")
+                .await
+                .unwrap();
+            let mut decoder = orban_protocol::framing::Decoder::default();
+            let mut buffer = [0_u8; 4096];
+            loop {
+                let count = match stream.read(&mut buffer).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(count) => count,
+                };
+                for frame in decoder.feed(&buffer[..count]).unwrap() {
+                    match orban_protocol::message::decode(&frame).unwrap() {
+                        Message::Other { kind: 227, data } => {
+                            assert_eq!(data, b"2B BASS ATTACK;8;Cent:1200;1;");
+                            server_changes.fetch_add(1, Ordering::SeqCst);
+                        }
+                        Message::Other { kind: 219, .. } => {
+                            stream
+                                .write_all(&orban_protocol::message::encode(220, b"").unwrap())
+                                .await
+                                .unwrap();
+                        }
+                        Message::Other { kind: 250, .. } => {
+                            stream
+                                .write_all(&orban_protocol::message::encode(251, b"").unwrap())
+                                .await
+                                .unwrap();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        });
+        let terminal_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let terminal_address = terminal_listener.local_addr().unwrap();
+        let terminal_server = tokio::spawn(async move {
+            let (mut stream, _) = terminal_listener.accept().await.unwrap();
+            stream
+                .write_all(b"Orban Optimod 5500 test\r\n")
+                .await
+                .unwrap();
+            let mut command = Vec::new();
+            let mut byte = [0_u8; 1];
+            while !command.ends_with(b"??\r\n") {
+                stream.read_exact(&mut byte).await.unwrap();
+                command.push(byte[0]);
+            }
+            let value = (readback_index + 4) * 100;
+            stream
+                .write_all(
+                    format!("OptimodVersion=<8300.10>\r\nPreset Name=<modif TEST> size=1\r\nC:<2B BASS ATTACK>Cent:{value};D:{readback_index};\r\nEnd Preset<end>\r\n")
+                        .as_bytes(),
+                )
+                .await
+                .unwrap();
+        });
+        let session = Session::connect(pc_address, "1234", Duration::from_secs(1))
+            .await
+            .unwrap();
+        assert_eq!(session.info.evidence, Evidence::Static);
+        let (commands, _) = mpsc::channel(1);
+        let (meters, _) = watch::channel(json!({"live":false}));
+        let storage = tempfile::tempdir().unwrap();
+        let before = Document {
+            name: "TEST".into(),
+            fields: [(
+                "2B BASS ATTACK".into(),
+                Field {
+                    index: 7,
+                    value: Value::Cent(1100),
+                },
+            )]
+            .into_iter()
+            .collect(),
+            raw: String::new(),
+        };
+        let profile = Arc::new(
+            Profile::for_adapter(session.info.adapter_id)
+                .unwrap()
+                .unwrap(),
+        );
+        let app = App {
+            state: Arc::new(RwLock::new(Snapshot {
+                connected: true,
+                host: "127.0.0.1".into(),
+                processing: Some(before.clone()),
+                write_enabled: true,
+                session_id: Some("test-session".into()),
+                ..Snapshot::default()
+            })),
+            meters,
+            commands,
+            profile: shared_profile(profile.clone()),
+            book: Arc::new(std::sync::Mutex::new(
+                devices::Book::open(
+                    storage.path().join("connections.json"),
+                    Box::new(devices::FileVault::new(
+                        storage.path().join("credentials.json"),
+                    )),
+                )
+                .unwrap(),
+            )),
+        };
+        let mut device = Device {
+            session,
+            terminal: terminal_address,
+            code: Zeroizing::new("1234".to_owned()),
+            processing_baseline: Some(before),
+            profile: Some(profile),
+        };
+        let result = change(
+            &mut device,
+            &app,
+            Change {
+                scope: Scope::Processing,
+                name: "2B BASS ATTACK".into(),
+                index: 8,
+                expected: Field {
+                    index: 7,
+                    value: Value::Cent(1100),
+                },
+                requested: None,
+                expected_host: "127.0.0.1".into(),
+                expected_session: "test-session".into(),
+                expected_preset: Some("TEST".into()),
+            },
+        )
+        .await;
+        let snapshot = app.state.read().await.clone();
+        pc_server.abort();
+        terminal_server.abort();
+        (result, snapshot, changes.load(Ordering::SeqCst))
+    }
+
+    #[tokio::test]
+    async fn static_profile_writes_are_confirmed_by_a_full_readback() {
+        let (result, state, changes) = static_5500_write(8).await;
+        assert!(result.is_ok(), "{:?}", result.err());
+        assert_eq!(changes, 1);
+        let field = &state.processing.unwrap().fields["2B BASS ATTACK"];
+        assert_eq!(field.index, 8);
+        assert_eq!(field.value, Value::Cent(1200));
+    }
+
+    #[tokio::test]
+    async fn static_profile_mismatch_shows_the_processor_value_and_never_retries() {
+        let (result, state, changes) = static_5500_write(7).await;
+        assert_eq!(
+            result.unwrap_err().message,
+            "The processor did not confirm the change"
+        );
+        assert_eq!(changes, 1);
+        let field = &state.processing.unwrap().fields["2B BASS ATTACK"];
+        assert_eq!(field.index, 7);
+        assert_eq!(field.value, Value::Cent(1100));
     }
 }

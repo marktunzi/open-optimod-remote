@@ -1,0 +1,3 @@
+interface:
+  display_name: "Optimod 8700HD Control"
+  short_description: "Statically derived OPTIMOD-FM 8700HD protocol, parameters and meters"

@@ -46,7 +46,8 @@ pub fn decode(bytes: &[u8]) -> Result<Message, String> {
         bytes,
         Some(crate::adapter::MeterProfile {
             banks: &[1, 2],
-            values_per_bank: 112,
+            min_values: 112,
+            max_values: 112,
         }),
     )
 }
@@ -89,7 +90,7 @@ pub fn decode_for(
             }
             data = &data[1..];
             let count = decimal(line(&mut data)?)? as usize;
-            if count != profile.values_per_bank || data.len() != count {
+            if !(profile.min_values..=profile.max_values).contains(&count) || data.len() != count {
                 return Err("Invalid meter count".into());
             }
             Ok(Message::Meters {

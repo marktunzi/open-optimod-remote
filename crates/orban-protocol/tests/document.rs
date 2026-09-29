@@ -26,6 +26,7 @@ fn document_families_are_parsed_only_for_the_detected_processor() {
         (DeviceModel::Optimod6300, "6300.50"),
         (DeviceModel::Optimod8600, "8600.40"),
         (DeviceModel::Optimod8700i, "8700.51"),
+        (DeviceModel::Optimod8700Hd, "8700.51"),
         (DeviceModel::Optimod9300, "9300.30"),
         (DeviceModel::Optimod9400, "9400.30"),
     ] {

@@ -82,6 +82,13 @@ main[data-skin="optimod-8700i"] {
   --skin-lcd-text: #f19aa9; --skin-accent-top: #cb415b; --skin-accent-bottom: #812337;
 }
 
+main[data-skin="optimod-8700hd"] {
+  --skin-bg: #34322c; --skin-bg-top: #433f35; --skin-bg-bottom: #322f29;
+  --skin-panel-top: #26221a; --skin-panel-bottom: #302b21;
+  --skin-lcd-top: #1f1707; --skin-lcd-mid: #3f2f10; --skin-lcd-bottom: #251b08;
+  --skin-lcd-text: #e8c885; --skin-accent-top: #b8913f; --skin-accent-bottom: #735722;
+}
+
 main[data-skin="optimod-9300"] {
   --skin-bg: #373128; --skin-bg-top: #463d31; --skin-bg-bottom: #342e27;
   --skin-panel-top: #281f15; --skin-panel-bottom: #33271a;

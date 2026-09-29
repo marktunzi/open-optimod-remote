@@ -145,10 +145,20 @@ pub async fn recall_preset(
     name: &str,
     deadline: Duration,
 ) -> Result<Document, String> {
+    recall_preset_for_model(address, code, name, deadline, DeviceModel::Optimod5700i).await
+}
+
+pub async fn recall_preset_for_model(
+    address: SocketAddr,
+    code: &str,
+    name: &str,
+    deadline: Duration,
+    model: DeviceModel,
+) -> Result<Document, String> {
     let mut command = recall_command(name, code)?;
     command.push_str(&format!("AP [{}]??\r\n", code.to_ascii_uppercase()));
-    let text = exchange(address, command, deadline, DeviceModel::Optimod5700i).await?;
-    let (reply, document) = split_document(&text, DeviceModel::Optimod5700i)?;
+    let text = exchange(address, command, deadline, model).await?;
+    let (reply, document) = split_document(&text, model)?;
     if !reply.lines().any(|l| {
         l.trim()
             .strip_prefix("ON AIR:")

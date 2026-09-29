@@ -5,8 +5,10 @@ import {
   meterCanvasWidth,
   meterChannelLayout,
   meterGroupWidth,
+  REFERENCE_METERS,
   visibleGroups,
   type MeterGroup,
+  type MeterModel,
   type MeterView,
 } from './meters';
 
@@ -24,8 +26,8 @@ function titleFor(group: MeterGroup): string {
 
 function ticksFor(group: MeterGroup): [number,string][] {
   if(group.name==='Input')return ['0','3','6','9','12','15','18','24','30','36'].map((label,index)=>[index/9,label]);
-  if(group.name==='FM Output'||group.name==='HD Output')return ['3','0','3','6','9','12','15','18','24','30'].map((label,index)=>[index/9,label]);
-  if(group.name==='Composite')return ['125','100','75','50','25','0'].map((label,index)=>[index/5,label]);
+  if(group.kind==='level'&&group.name.endsWith('Output'))return ['3','0','3','6','9','12','15','18','24','30'].map((label,index)=>[index/9,label]);
+  if(group.kind==='composite')return ['125','100','75','50','25','0'].map((label,index)=>[index/5,label]);
   if(group.name.includes('HF Enhance'))return ['10','9','8','7','6','5','4','3','2','1'].map((label,index)=>[index/9,label]);
   if(group.name==='HD Limiting')return ['0','2','4','6','8','10','12'].map((label,index)=>[index/6,label]);
   if(group.name==='Loudness GR')return ['0','1','2','3','4','5','6','7','8','9','10'].map((label,index)=>[index/10,label]);
@@ -45,16 +47,18 @@ function levelColor(percent:number): string {
   return METER_PALETTE.green;
 }
 
-export function MeterStrip({connected,identity,view,onLiveChange}:{
+export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE_METERS}:{
   connected:boolean;
   identity:string;
   view:MeterView;
   onLiveChange?:(live:boolean)=>void;
+  model?:MeterModel;
 }) {
- const groups=useMemo(()=>visibleGroups(view),[view]);
+ const groups=useMemo(()=>visibleGroups(view,model),[view,model]);
  const minimumCanvasWidth=meterCanvasWidth(groups);
  const canvas=useRef<HTMLCanvasElement>(null);
- const motion=useRef(new MeterMotion());
+ const motion=useRef(new MeterMotion(model));
+ useEffect(()=>{motion.current.setModel(model);},[model]);
  useEffect(()=>{
   motion.current.clear();onLiveChange?.(false);
   if(!connected)return;
@@ -100,7 +104,7 @@ export function MeterStrip({connected,identity,view,onLiveChange}:{
     context.textAlign='right';context.fillStyle=METER_PALETTE.ticks;
     ticksFor(group).forEach(([position,label],tickIndex)=>{
      const y=top+2.5+position*(meterHeight-5);
-     const signedOutput=(group.name==='FM Output'||group.name==='HD Output')&&tickIndex===0;
+     const signedOutput=group.kind==='level'&&group.name.endsWith('Output')&&tickIndex===0;
      context.fillText(signedOutput?`+${label}`:label,firstWell-5,y+2);
      context.fillStyle=METER_PALETTE.ticks;context.fillRect(firstWell-3,y,2,.55);
     });
@@ -114,7 +118,7 @@ export function MeterStrip({connected,identity,view,onLiveChange}:{
      channel.lanes.forEach(lane=>{
       const laneX=contentStart+lane.left;
       if(values){
-       const value=Math.max(0,Math.min(100,values[lane.id]));
+       const value=Math.max(0,Math.min(100,values[lane.id]??0));
        const peak=Math.max(value,Math.min(100,peaks[lane.id]??value));
        const reduction=group.kind==='reduction';
        const activeTop=top+2.5,activeBottom=bottom-2.5,activeHeight=activeBottom-activeTop;
@@ -143,7 +147,7 @@ export function MeterStrip({connected,identity,view,onLiveChange}:{
       context.fillText(channel.label,contentStart+channel.center,224.5);
      }
     });
-    if(group.name==='AGC'){
+    if(group.name==='AGC'&&model.reference){
      context.font='600 9px "SF Compact Text", -apple-system, sans-serif';context.fillStyle=METER_PALETTE.ticks;context.textAlign='center';
      ['G','A','T','E','D'].forEach((letter,letterIndex)=>context.fillText(letter,x+54.75,105+letterIndex*12));
     }
