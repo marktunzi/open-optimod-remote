@@ -37,7 +37,8 @@ impl Document {
             crate::adapter::DeviceModel::Optimod8500 => "OptimodVersion=<8500.",
             crate::adapter::DeviceModel::Optimod6300 => "OptimodVersion=<6300.",
             crate::adapter::DeviceModel::Optimod8600 => "OptimodVersion=<8600.",
-            crate::adapter::DeviceModel::Optimod8700i => "OptimodVersion=<8700.",
+            crate::adapter::DeviceModel::Optimod8700i
+            | crate::adapter::DeviceModel::Optimod8700Hd => "OptimodVersion=<8700.",
             crate::adapter::DeviceModel::Optimod9300 => "OptimodVersion=<9300.",
             crate::adapter::DeviceModel::Optimod9400 => "OptimodVersion=<9400.",
             crate::adapter::DeviceModel::Auto => {

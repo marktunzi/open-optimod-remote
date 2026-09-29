@@ -17,7 +17,7 @@ export type Device = {
   model: ProcessorModel;
 };
 
-type ProcessorModel = 'auto' | 'optimod-5700i' | 'optimod-5500i' | 'optimod-5500' | 'optimod-5700-fm' | 'optimod-5700-hd' | 'optimod-8500' | 'optimod-6300' | 'optimod-8600' | 'optimod-8700i' | 'optimod-9300' | 'optimod-9400';
+type ProcessorModel = 'auto' | 'optimod-5700i' | 'optimod-5500i' | 'optimod-5500' | 'optimod-5700-fm' | 'optimod-5700-hd' | 'optimod-8500' | 'optimod-6300' | 'optimod-8600' | 'optimod-8700i' | 'optimod-8700hd' | 'optimod-9300' | 'optimod-9400';
 
 const PROCESSOR_MODELS: { value: ProcessorModel; label: string }[] = [
   { value: 'auto', label: 'Auto Detect' },
@@ -30,6 +30,7 @@ const PROCESSOR_MODELS: { value: ProcessorModel; label: string }[] = [
   { value: 'optimod-6300', label: 'OPTIMOD 6300' },
   { value: 'optimod-8600', label: 'OPTIMOD 8600' },
   { value: 'optimod-8700i', label: 'OPTIMOD 8700i' },
+  { value: 'optimod-8700hd', label: 'OPTIMOD-FM 8700HD' },
   { value: 'optimod-9300', label: 'OPTIMOD 9300' },
   { value: 'optimod-9400', label: 'OPTIMOD 9400' },
 ];

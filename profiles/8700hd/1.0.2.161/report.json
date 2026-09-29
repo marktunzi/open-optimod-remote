@@ -1,0 +1,102 @@
+{
+  "model": "8700hd",
+  "firmware": "1.0.2.161",
+  "reference_sha256": "6ff1f203b45345553459e70f043ae681514c98ba130058d677e70170a72ee5b5",
+  "firmware_sha256": "7237681ead460387d9332b30bbe1acfc22681a69ba363a2c64cc87c64f91bfc6",
+  "installer_sha256": "46a170fe1f545ced9f058e99c17a0d12307d4eab01b1d1e2858917738ab039ea",
+  "banner": "8700HD V 1.0.2.161",
+  "document_family": "8700.",
+  "registrations": 460,
+  "factory_presets": 712,
+  "preset_families": {
+    "OptimodVersion=<8600.40>": 534,
+    "OptimodVersion=<8600.10>": 178
+  },
+  "preset_fields": 236,
+  "field_evidence": {
+    "text": 20,
+    "not-convertible": 2,
+    "confirmed": 225,
+    "unobserved": 182,
+    "transform": 2,
+    "conflict": 5,
+    "ambiguous-duplicate": 1
+  },
+  "excluded": [
+    {
+      "name": "CURRENT PASSCODES",
+      "reason": "not convertible"
+    },
+    {
+      "name": "TIME SERVER",
+      "reason": "not convertible"
+    },
+    {
+      "name": "B5 DWNWRD EXP",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "B3 CLIP THRSH",
+      "reason": "ambiguous duplicate ids 119,120"
+    },
+    {
+      "name": "MX BASS CLIP",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "B12 CROSSOVER",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "HD B12 CROSSOVER",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "MPX PWR OFFSET",
+      "reason": "conflicts with factory presets"
+    }
+  ],
+  "pages": [
+    "Less More (Shared)",
+    "AGC (Shared)",
+    "Stereo Enhancer (FM)",
+    "Equalizer (FM)",
+    "Multiband (FM)",
+    "Compressors (FM)",
+    "Compressors (B4/5 Linked) (FM)",
+    "Band Mix (FM)",
+    "2 Band (FM)",
+    "2 Band Distortion (FM)",
+    "Distortion Control (FM)",
+    "MX Distortion Control (FM)",
+    "MX 2 Band Distortion (FM)",
+    "Final Clipping (FM)",
+    "MX Speech Mode (FM)",
+    "Speech Mode (FM)",
+    "Equalizer (HD)",
+    "Multiband (HD)",
+    "Compressors (HD)",
+    "Band Mix (HD)",
+    "2 Band (HD)",
+    "Speech Mode (HD)",
+    "HD Limiting (HD)"
+  ],
+  "meter_groups": [
+    "Input",
+    "AGC",
+    "HF Enhance",
+    "Gain Reduction",
+    "Loudness",
+    "Output",
+    "Comp.",
+    "HD HF Enhance",
+    "HD Gain Reduction",
+    "HD Limiting",
+    "Loudness GR",
+    "Loudness Level",
+    "HD Output",
+    "2-Band Gain Reduction",
+    "HF Limiting",
+    "2-Band HD Gain Reduction"
+  ]
+}

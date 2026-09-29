@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import { api } from "./api";
 import { MeterStrip } from "./MeterStrip";
+import { REFERENCE_METERS, meterModelFromProfile, type MeterModel, type ProfileMeters } from "./meters";
 import { Devices } from "./Devices";
 import layouts from "./layouts.json";
 import "./style.css";
@@ -13,7 +14,7 @@ import { Outputs } from './Outputs';
 import { Setup } from './Setup';
 import { InstrumentHeader } from './InstrumentHeader';
 import { DEFAULT_METER_VIEW, initialWorkspace, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
-import { binaryOnIndex, groupProcessingPage } from './processing-layout';
+import { binaryOnIndex, groupProcessingPage, type LayoutPage } from './processing-layout';
 import { modifiedFieldNames, optimisticLessMoreAvailability, optimisticModifiedFields } from './preset-state';
 import { nextControlIndex } from './control-keyboard';
 import { resolveProcessorSkin } from './skin-registry';
@@ -225,6 +226,8 @@ function BinaryToggle({ name, label, options, field, disabled, pending, modified
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot>(empty);
   const [definitions, setDefinitions] = useState<Definition[]>([]);
+  const [modelLayouts, setModelLayouts] = useState<LayoutPage[] | null>(null);
+  const [meterModel, setMeterModel] = useState<MeterModel>(REFERENCE_METERS);
   const [path, setPath] = useState<"FM" | "HD">("FM");
   const [area, setArea] = useState<WorkspaceView>(() => initialWorkspace(false, Boolean(window.webkit?.messageHandlers?.openConnections)));
   const [tab, setTab] = useState("AGC");
@@ -239,9 +242,6 @@ function App() {
   }, []);
   useEffect(() => {
     void load().catch(e => reportError('Interface', e));
-    void api("profile")
-      .then((p) => setDefinitions(p.fields))
-      .catch((e) => reportError('Parameter profile', e));
     const timer = setInterval(
       () =>
         !mutationInFlight.current && void load().catch(() =>
@@ -255,6 +255,17 @@ function App() {
     );
     return () => clearInterval(timer);
   }, [load]);
+  // Each processor profile carries its own parameters and, for models beyond
+  // the 5700i reference, its own processing pages and meters.
+  useEffect(() => {
+    void api("profile")
+      .then((p: { fields: Definition[]; layouts?: LayoutPage[]; meters?: ProfileMeters }) => {
+        setDefinitions(p.fields);
+        setModelLayouts(p.layouts ?? null);
+        setMeterModel(p.meters ? meterModelFromProfile(p.meters) : REFERENCE_METERS);
+      })
+      .catch((e) => reportError('Parameter profile', e));
+  }, [snapshot.adapter_id]);
   useEffect(() => {
     if (snapshot.error && snapshot.error !== lastReportedDeviceError.current) {
       lastReportedDeviceError.current = snapshot.error;
@@ -285,7 +296,7 @@ function App() {
   };
   const coupling = snapshot.processing?.fields["HD COUPLING"];
   const couplingValue = String(coupling?.value.value || '') || undefined;
-  const pages = processingPages(layouts, path, couplingValue);
+  const pages = processingPages(modelLayouts ?? (layouts as LayoutPage[]), path, couplingValue);
   const page = pages.find((p) => p.title === tab) || pages[0];
   const processingGroups = groupProcessingPage(page);
   const independentPaths = processingPathSelectorVisible(couplingValue);
@@ -328,7 +339,9 @@ function App() {
   }, [lessMoreAvailable, tab]);
   const openSystemSettings = () => {
     const handler = window.webkit?.messageHandlers?.openSystemSettings;
-    if (systemSettingsTarget(Boolean(handler)) === 'native') handler!.postMessage({ source: '5700i-interface' });
+    // The native Settings window follows the 5700i worksheet; models with their
+    // own profile use the generic Setup workspace that lists every system field.
+    if (systemSettingsTarget(Boolean(handler) && modelLayouts === null) === 'native') handler!.postMessage({ source: '5700i-interface' });
     else setArea('Setup');
   };
   const openConnections = () => {
@@ -357,10 +370,11 @@ function App() {
       {snapshot.connected && snapshot.capabilities?.live_meters === false
         ? <ModelMeterPanel skin={skin}/>
         : <MeterStrip connected={snapshot.connected} identity={snapshot.session_id || snapshot.device_id || snapshot.host}
-            view={DEFAULT_METER_VIEW} onLiveChange={setMeterLive}/>}
+            view={DEFAULT_METER_VIEW} onLiveChange={setMeterLive} model={meterModel}/>}
       <div className="app-body">
       <div className="workspace" id="main-workspace" tabIndex={-1}>
       {snapshot.connected && !snapshot.write_enabled && <div className="development">Read-only access: this connection does not allow changes.</div>}
+      {snapshot.connected && snapshot.write_enabled && snapshot.evidence === 'static' && <div className="development">Statically derived profile, not yet verified on this processor. Every change is confirmed by reading the processor back.</div>}
       {area === "Presets" ? <Presets key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} busy={busy} action={action} /> : area === "Outputs" ? <Outputs key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} definitions={definitions} busy={busy} action={action} /> : area === "Processing" ? (
         <>
           <nav

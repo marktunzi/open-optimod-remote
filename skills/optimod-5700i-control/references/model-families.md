@@ -8,7 +8,7 @@ Use this boundary when extending the 5700i implementation. These are research fi
 |---|---|---|---|
 | Serial legacy | 8200 | Direct RS-232 null modem or compatible modem | New serial adapter |
 | Legacy TCP/UDP | 8400 | TCP 51200 control; UDP 16540 metering | New session and meter adapter |
-| PC Remote TCP | 8500, 5500/5500i, 5700 FM/HD, 5700i, 6300, 8600, 8700i, 9300, 9400 | Official binaries share login/document markers and expose 6201; some manuals also document terminal 23 | Share only fixture-proven codecs; keep model/firmware profiles separate |
+| PC Remote TCP | 8500, 5500/5500i, 5700 FM/HD, 5700i, 6300, 8600, 8700i, 8700HD, 9300, 9400 | Official binaries share login/document markers and expose 6201; some manuals also document terminal 23 | Share only fixture-proven codecs; keep model/firmware profiles separate |
 | HTML5 Web UI | 5750/5750 HD, 5950, Trio | Browser control; model-dependent SNMP and other protocols | New HTTP/WebSocket adapter after authorized capture or official API docs |
 
 ## Non-negotiable boundary
@@ -33,7 +33,9 @@ The official 3.0.5 manual explicitly assigns TCP 51200 and UDP 16540, with UDP u
 
 Official main executables contain `connect ok`, known password-failure text, `connected 12345678`, `OptimodVersion=<`, `End Preset<end>` and `6201`. This is evidence for a shared broad lineage only. Build a reusable `pc-remote-v2` core after packet fixtures prove each component. Keep every model's parameters, meters, presets, capabilities and supported firmware separate.
 
-The official executables expose these concrete login prefixes: `5500i V`, `5500 V`, `5700FM V`, `5700HD V`, `5700i V`, `6300 V`, `8500 V`, `8600 V`, `8700i V`, `9300 V` and `9400 V`. The official manuals for 5500, 5500i, 5700, 6300, 8500, 8600 and 8700i document read-only `AP [PASSCODE]??`, `AS [PASSCODE]??` and `LP [PASSCODE]` queries; the official 9300/9400 executables contain the same command strings. Official factory presets establish document families `8300.10` for 5500/5500i, `5700.50` for 5700 FM/HD, `6300.50`, `8500.40`, `8600.40`, `8700.51`, `9300.30` and `9400.30`. These facts justify bounded read-only adapters; they do not justify writes or meter reuse.
+The official executables expose these concrete login prefixes: `5500i V`, `5500 V`, `5700FM V`, `5700HD V`, `5700i V`, `6300 V`, `8500 V`, `8600 V`, `8700i V`, `8700HD V`, `9300 V` and `9400 V`. The official manuals for 5500, 5500i, 5700, 6300, 8500, 8600 and 8700i document read-only `AP [PASSCODE]??`, `AS [PASSCODE]??` and `LP [PASSCODE]` queries; the official 9300/9400 executables contain the same command strings. Official factory presets establish document families `8300.10` for 5500/5500i, `5700.50` for 5700 FM/HD, `6300.50`, `8500.40`, `8600.40`, `8700.51`, `9300.30` and `9400.30`. These facts justify bounded read-only adapters; they do not justify writes or meter reuse.
+
+The 5500 (firmware 1.2.8.24) and the original OPTIMOD-FM 8700HD (firmware 1.0.2.161, banner `8700HD V`, document family `8700.51`, a different model from the 8700i) have statically derived profiles with writes, recall and meters, built from their PC Remote and firmware. See `docs/research/2026-09-29-5500-8700hd-static-analysis.md`. Their PC Remote conversions differ from the firmware wire format for some fields, so never reuse a PC Remote display conversion as a write value without the factory-preset cross-check.
 
 The 5500/5500i are FM processors with stereo encoder functions. Diversity delay on 5500i is not a second HD processing chain. The 8500 has FM/HD capabilities. The 5700 archive has separate FM and HD Remote packages. The 9300/9400 are AM processors and require a different UI capability set.
 

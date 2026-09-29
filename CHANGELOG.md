@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased — 23 September 2026
+## 0.2.0 — 29 September 2026
+
+- Added full control for the OPTIMOD 5500 (firmware 1.2.8.24) and the original OPTIMOD-FM 8700HD (firmware 1.0.2.161): parameter writes, preset recall, live meters and their own processing pages and meter layouts. Both profiles are statically derived from the official PC Remote and firmware and are not yet hardware-verified. The interface says so, and every write is confirmed by a full AP/AS readback that shows the processor's actual value on a mismatch.
+- Added the 8700HD as a separate model with its own adapter, skin, discovery banner and connection choice. It is not the 8700i.
+- Added `scripts/extract_pc_remote.py`, which derives parameters (emulated conversion routines cross-checked against factory presets), pages (dialog resources and control bindings) and meters (bar channels, curves and orientation) from an official installer. `docs/adding-a-model.md` describes how to add the next model.
+- Made profiles, pages and meters per adapter: `Profile::for_adapter`, an exact-banner registry with `Evidence::{Hardware, Static}`, and variable-length meter records for non-5700i models.
+- Fixed preset recall and preset-file application, which were hard-coded to the 5700i terminal and document family.
+
+## 0.1.0 — 23 September 2026
 
 - Added safe read-only adapters for 5500i, 5500, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 and 9400 using their official login banners, terminal AP/AS/LP commands and model-specific document families. Writes, recall and live meters remain enabled only for the verified 5700i 3.0.1.20 profile.
 - Migrated saved connections to schema version 2 with Auto Detect or explicit processor selection, added multi-model native network discovery, and reject any mismatch between the saved model, PC Remote banner and terminal identity.

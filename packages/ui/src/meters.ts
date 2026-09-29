@@ -42,11 +42,57 @@ export const groups: MeterGroup[] = [
 ];
 
 export type MeterView = 'FM' | 'HD' | 'Both';
-export function visibleGroups(view: MeterView): MeterGroup[] {
- return groups.filter(g => view === 'Both' || (!g.name.startsWith(view === 'FM' ? 'HD ' : 'FM ') && !(view === 'HD' && g.name === 'Composite')))
-  .map(g => g.name === 'Loudness GR' && view === 'FM'
+/** Meter groups, raw-value conversion and accepted record length for one processor profile. */
+export type MeterModel = {
+ groups: MeterGroup[];
+ percent: (id: number, raw: number) => number;
+ minValues: number;
+ maxValues: number;
+ reference: boolean;
+};
+/** Meters as delivered in a model profile (see scripts/extract_pc_remote.py). */
+export type ProfileMeters = {
+ max_values: number;
+ groups: {name: string; kind: MeterGroup['kind']; channels: MeterChannel[]}[];
+ curves?: Record<string, number[]>;
+};
+export function visibleGroups(view: MeterView, model: MeterModel = REFERENCE_METERS): MeterGroup[] {
+ return model.groups.filter(g => view === 'Both' || (!g.name.startsWith(view === 'FM' ? 'HD ' : 'FM ') && !(view === 'HD' && g.kind === 'composite')))
+  .map(g => model.reference && g.name === 'Loudness GR' && view === 'FM'
    ? {...g,channels:[mono('',60)]}
    : g);
+}
+const PROFILE_CONTENT_OFFSET = 25;
+const PROFILE_GROUP_PADDING = 12;
+function profileGroupWidth(group: Omit<MeterGroup,'referenceWidth'|'contentOffset'>): number {
+ const wells = group.channels.map(c => c.ids.length === 1 ? METER_MONO_WELL_WIDTH : METER_WELL_WIDTH);
+ const gap = group.name === 'AGC' ? 13.5 : 4;
+ return PROFILE_CONTENT_OFFSET + wells.reduce((a, b) => a + b, 0) + gap * Math.max(0, wells.length - 1) + PROFILE_GROUP_PADDING;
+}
+function interpolate(curve: readonly number[], raw: number): number {
+ const x=Math.max(0,Math.min(curve.length-1,raw)),low=Math.floor(x),high=Math.ceil(x);
+ return curve[low]+(curve[high]-curve[low])*(x-low);
+}
+/** Builds a meter model from a profile; channels without a curve are linear 0–100. */
+export function meterModelFromProfile(meters: ProfileMeters): MeterModel {
+ const groups = meters.groups.map(group => {
+  const channels = group.channels.map(c => ({label: c.label, ids: [...c.ids], laneLabels: c.laneLabels}));
+  const base = {name: group.name, kind: group.kind, channels};
+  return {...base, contentOffset: PROFILE_CONTENT_OFFSET, referenceWidth: profileGroupWidth(base)};
+ });
+ const curves = meters.curves || {};
+ return {
+  groups,
+  percent: (id, raw) => {
+   if (!Number.isFinite(raw)) return 0;
+   const curve = curves[String(id)];
+   return curve ? interpolate(curve, raw) : Math.max(0, Math.min(100, raw));
+  },
+  minValues: 1,
+  // The service accepts up to 512 values; channels beyond a record are shown empty.
+  maxValues: 512,
+  reference: false,
+ };
 }
 export function meterChannelLayout(group: MeterGroup): MeterChannelLayout[] {
  let left=0;
@@ -73,11 +119,15 @@ export function meterPercent(id: number, raw: number): number {
   : [55,56,58,59].includes(id) ? 'loudness' : null;
  if(!Number.isFinite(raw))return 0;
  if(!key)return Math.max(0,Math.min(100,raw));
- const curve=curves[key], x=Math.max(0,Math.min(curve.length-1,raw)), low=Math.floor(x),high=Math.ceil(x);
- return curve[low]+(curve[high]-curve[low])*(x-low);
+ return interpolate(curves[key],raw);
 }
+/** The hardware-verified 5700i meters. */
+export const REFERENCE_METERS: MeterModel = {groups, percent: meterPercent, minValues: 112, maxValues: 112, reference: true};
 /** Smooth display percentages, preserving the incoming wire values separately. */
 export class MeterMotion {
+ private model: MeterModel;
+ constructor(model: MeterModel = REFERENCE_METERS) {this.model=model;}
+ setModel(model: MeterModel) {this.model=model;this.clear();}
  private values: number[] = [];
  private shown: number[] = [];
  private velocities: number[] = [];
@@ -87,15 +137,16 @@ export class MeterMotion {
  private drawn = 0;
  clear() {this.values=[];this.shown=[];this.velocities=[];this.peaks=[];this.peakHeldAt=[];this.received=-Infinity;this.drawn=0;}
  push(values: unknown, at: number) {
-  if (!Array.isArray(values)||values.length!==112||values.some(v=>!Number.isInteger(v)||v<0||v>255)) {this.clear();return;}
-  if(at-this.received>1200){this.shown=Array(112).fill(0);this.drawn=at;}
+  const {minValues,maxValues}=this.model;
+  if (!Array.isArray(values)||values.length<minValues||values.length>maxValues||values.some(v=>!Number.isInteger(v)||v<0||v>255)) {this.clear();return;}
+  if(at-this.received>1200){this.shown=Array(values.length).fill(0);this.drawn=at;}
   this.values=[...values];this.received=at;
  }
  sample(at: number, reducedMotion=false): number[] | null {
   if(!this.values.length||at-this.received>1200){this.clear();return null;}
   const dt=Math.max(0,Math.min(50,at-this.drawn))/1000;this.drawn=at;
   this.shown=this.values.map((raw,i)=>{
-   const target=meterPercent(i,raw);
+   const target=this.model.percent(i,raw);
    const old=this.shown[i]??target;
    if(reducedMotion){this.velocities[i]=0;return target;}
    const smoothTime=target>old?.04:.07;

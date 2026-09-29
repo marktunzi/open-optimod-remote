@@ -16,11 +16,13 @@ export type Snapshot = {
   revision: number; device_id?: string | null; session_id?: string | null; presets: Preset[]; write_enabled: boolean;
   preset_base_name?: string | null; modified_fields: string[]; less_more_available?: boolean;
   model?: string; skin_id?: string | null; adapter_id?: string | null; capabilities?: Capabilities | null;
+  evidence?: 'hardware' | 'static' | 'none' | null;
 };
 export type Definition = {
   scope: 'Processing' | 'System'; name: string; values: Value[]; unit?: string;
   sample_delay?: { max_index: number; offset: number; rate: number };
   integer_range?: { min: number; max: number };
+  evidence?: string;
 };
 export type Action = (name: string, body: unknown) => Promise<boolean>;
 export const display = (v?: Value, unit?: string) => {

@@ -6,7 +6,7 @@ product
 
 ## Users
 
-OPTIMOD operators who need local control from macOS or a browser. Complete verified control currently targets the 5700i; the read-only PC Remote expansion covers 5500i, 5500, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 and 9400. Other operators should be able to build and contribute to an independent open-source implementation.
+OPTIMOD operators who need local control from macOS or a browser. Complete hardware-verified control currently targets the 5700i. The 5500 (1.2.8.24) and OPTIMOD-FM 8700HD (1.0.2.161) have full control from statically derived profiles that are labelled as such. The read-only PC Remote expansion covers 5500i, 5500, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 and 9400. Other operators should be able to build and contribute to an independent open-source implementation.
 
 ## Product Purpose
 

@@ -7,29 +7,38 @@ description: Use when implementing, diagnosing, or verifying control of an Orban
 
 Use this model skill for the OPTIMOD 5500 only. Use `optimod-5700i-control` for the shared PC Remote framing and safety rules, then apply the narrower facts here. Never show or send 5700i HD controls to a 5500.
 
-## Evidence target
+## Target
 
-- Official PC Remote package: `1.2.8.24`; executable banner prefix: `5500 V `.
-- The package-aligned `5500 V 1.2.8.24` target is a candidate until captured from hardware; do not turn that package association into a write claim.
-- Official worksheet: `1.2.7`; processing document family: `8300.10`.
-- Default PC Remote port: `6201`; terminal/status port: `23`.
-- Read [evidence.md](references/evidence.md) before changing compatibility status.
+- Exact login banner `5500 V 1.2.8.24`: firmware 1.2.8.24 with PC Remote 1.2.8.24 from the same installer. Any other 5500 firmware is read-only.
+- Terminal banner `Orban Optimod 5500`; document family `8300.10`; PC Remote TCP 6201; terminal TCP 23.
+- The profile is **statically derived, not hardware-verified**. Read [evidence.md](references/evidence.md) before changing compatibility status.
 
-## Parameter references
+## References
 
-- Read [processing-observed-1.2.8.24.json](references/processing-observed-1.2.8.24.json) for the 108 processing wire names and the values/indexes observed across 294 official factory presets.
-- Read [worksheet-1.2.7.json](references/worksheet-1.2.7.json) for 322 worksheet labels, ranges, units, sections, and setup functions.
+- [parameters-1.2.8.24.json](references/parameters-1.2.8.24.json): 251 wire names with scope, index-to-value table and per-field `evidence` (`confirmed`, `transform …` or `unobserved`). It is identical to `profiles/5500/1.2.8.24/parameters.json`.
+- [meters-1.2.8.24.json](references/meters-1.2.8.24.json): meter groups, channel numbers, orientation and raw-to-percent curves.
+- [processing-observed-1.2.8.24.json](references/processing-observed-1.2.8.24.json): the factory-preset observations used for the cross-check.
+- [worksheet-1.2.7.json](references/worksheet-1.2.7.json): worksheet labels, ranges and units. They are presentation labels, not wire names.
 
-The preset reference proves only observed processing values. It is not a complete enumeration of every value the processor accepts. Worksheet labels are presentation labels and must not be treated as wire field names until matched to a live AP/AS document or an independent protocol fixture.
+Regenerate the profile with `scripts/extract_pc_remote.py`; never edit values by hand.
+
+## Wire facts that differ from what PC Remote displays
+
+The processor documents several values in a different unit than PC Remote shows. Always send the firmware format:
+
+- `B1`–`B4 ATTACK`, `B1`–`B4 LIMIT ATTACK` and `SE RATIO WIDTH`: PC Remote shows `Int n`; the processor writes `Cent n×100`.
+- `DWNWRD EXP`: the firmware value is the PC Remote value + 1200 cents. This is based on two observations.
+- Not writable, because PC Remote and the factory presets disagree: `AGC DIFF GR`, `AGC RATIO`, `B3 CLIP THRSH`, `PEQ LOW/MID/HIGH WIDTH`, `B12 CROSSOVER` and `INPUT EMPH STATUS`.
 
 ## Model shape
 
-The 5500 is an FM processor. Its interface needs FM processing, two-band and five-band structures, stereo enhancement, AGC, equalizer, multiband/compressors, band mix, distortion/final clipping, stereo encoder, composite output, I/O calibration, test, network/remote, silence/fallback, tally/GPI and diversity-delay setup where the connected hardware exposes it. It has no independent 5700i-style HD processing chain or FM-to-HD coupling control.
+An FM processor with two-band and five-band structures, stereo enhancer, AGC, equalizer, multiband compressors, band mix, distortion control, final clipping, clipper options, speech mode, stereo encoder, composite output and diversity delay. There is no independent HD chain and no FM→HD coupling.
 
-Only show a control when all of these match the active session: detected 5500 model, supported firmware profile, document scope, exact field name, field type, current `D` index, and an allowed value/index mapping. Build pages from the 5500 profile and the fields present in the connected processor.
+Meters: input 1/2, AGC B/M 3/4, HF enhance 25, five-band gain reduction 5–9, MPX limiter G/R 26, MPX power 77, output 27/28, composite 29, two-band gain reduction 38/39, HF limiting 21/22, overshoot limit 23/24. Records may carry up to 79 values.
 
-## Current implementation boundary
+## Safety rules for this model
 
-Open Optimod Remote can identify the 5500, validate `8300.10` AP/AS documents, list LP presets, select its own skin, and reject a model mismatch. Parameter writes, recall, and live-meter decoding remain disabled until an exact hardware fixture proves the write acknowledgement, complete value ranges, meter records, and reconnect behavior.
-
-Do not enable writes from factory-preset observations alone. Before enabling them for one exact firmware, capture a live AP and AS document, verify one reversible system write, verify one processing write, recall and restore a preset, map every meter lane, and confirm that control/meter sessions remain alive.
+1. Write only after the live AP/AS document contains the field and its current value matches the profile at the current index.
+2. After every write, read the full AP or AS document back. If the value differs, show the processor's value and never retry.
+3. Recall uses `RP NAME[CODE]` plus AP and requires `ON AIR: NAME`.
+4. Only a hardware check on one exact firmware can turn this into a verified profile. Start with one reversible system setting, then one processing setting, then recall.

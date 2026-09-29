@@ -128,3 +128,90 @@ fn bass_coupling_loudness_thresholds_and_sample_delay_are_exact() {
             .is_err()
     );
 }
+
+fn static_profile(adapter: &str) -> Profile {
+    Profile::for_adapter(adapter).unwrap().unwrap()
+}
+
+#[test]
+fn optimod_5500_values_follow_the_firmware_wire_format() {
+    let p = static_profile("pc-remote-5500-1.2.8.24");
+    // Confirmed by factory presets: index 7 is Cent 1100, the last index is Off.
+    assert_eq!(
+        p.value(Scope::Processing, "2B BASS ATTACK", 7).unwrap(),
+        Value::Cent(1100)
+    );
+    assert_eq!(
+        p.value(Scope::Processing, "2B BASS ATTACK", 47).unwrap(),
+        Value::Choice("Off".into())
+    );
+    // PC Remote shows Int 4; the processor documents Cent 400.
+    assert_eq!(
+        p.value(Scope::Processing, "B1 ATTACK", 0).unwrap(),
+        Value::Cent(400)
+    );
+    assert_eq!(
+        p.value(Scope::Processing, "AGC BASS COUPLE", 13).unwrap(),
+        Value::Int(0)
+    );
+    assert_eq!(
+        p.value(Scope::System, "DIVERSITY DELAY ADJ", 0).unwrap(),
+        Value::Choice("0.011890625".into())
+    );
+    assert_eq!(
+        p.value(Scope::System, "NETWORK PORT", 6201).unwrap(),
+        Value::Int(6201)
+    );
+    // Conflicting with the factory presets: never writable.
+    assert!(p.value(Scope::Processing, "PEQ MID WIDTH", 0).is_err());
+    // A 5700i-only HD field does not exist on the 5500.
+    assert!(p.value(Scope::Processing, "HD COUPLING", 0).is_err());
+}
+
+#[test]
+fn optimod_8700hd_values_follow_the_firmware_wire_format() {
+    let p = static_profile("pc-remote-8700hd-1.0.2.161");
+    assert_eq!(
+        p.value(Scope::Processing, "HD COUPLING", 0).unwrap(),
+        Value::Choice("FM->HD".into())
+    );
+    assert_eq!(
+        p.value(Scope::Processing, "AGC BASS COUPLE", 10).unwrap(),
+        Value::Int(3)
+    );
+    assert_eq!(
+        p.value(Scope::System, "BS1770 LDNES CTRL THR", 0).unwrap(),
+        Value::Cent(-3100)
+    );
+    assert_eq!(
+        p.value(Scope::System, "DIVERSITY DELAY ADJ", 0).unwrap(),
+        Value::Choice("0.000015625".into())
+    );
+    assert!(
+        p.value(Scope::System, "DIVERSITY DELAY ADJ", 524_288)
+            .is_err()
+    );
+    assert!(p.value(Scope::Processing, "MPX PWR OFFSET", 0).is_err());
+}
+
+#[test]
+fn static_profiles_carry_their_own_pages_and_meters() {
+    for adapter in ["pc-remote-5500-1.2.8.24", "pc-remote-8700hd-1.0.2.161"] {
+        let p = static_profile(adapter);
+        let pages = p.layouts.as_ref().unwrap().as_array().unwrap();
+        assert!(pages.len() >= 10, "{adapter}");
+        for page in pages {
+            for control in page["controls"].as_array().unwrap() {
+                let name = control["name"].as_str().unwrap();
+                assert!(
+                    p.fields.iter().any(|f| f.name == name),
+                    "{adapter}: page control {name} has no profile entry"
+                );
+            }
+        }
+        let meters = p.meters.as_ref().unwrap();
+        assert!(meters["groups"].as_array().unwrap().len() >= 7, "{adapter}");
+        assert!(p.fields.iter().all(|f| f.evidence.is_some()), "{adapter}");
+    }
+    assert!(Profile::embedded().unwrap().layouts.is_none());
+}

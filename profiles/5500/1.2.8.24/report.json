@@ -1,0 +1,90 @@
+{
+  "model": "5500",
+  "firmware": "1.2.8.24",
+  "reference_sha256": "c8f138357e9b8758af16e1c756e88258cecb41b762b9daf7112b66649565a6a1",
+  "firmware_sha256": "a3c7d67a000bdf16d1317e9bfa86354175f12c6283b35de066d7c9b868bf5e6d",
+  "installer_sha256": "8d43f31689ca1278a9682e8715cd1cdb22b431cc574a3cc65753f994d8b8ee59",
+  "banner": "5500 V 1.2.8.24",
+  "document_family": "8300.",
+  "registrations": 280,
+  "factory_presets": 294,
+  "preset_families": {
+    "OptimodVersion=<8300.10>": 292,
+    "OptimodVersion=<5500.10>": 2
+  },
+  "preset_fields": 108,
+  "field_evidence": {
+    "text": 12,
+    "not-convertible": 1,
+    "confirmed": 89,
+    "unobserved": 152,
+    "conflict": 7,
+    "transform": 10,
+    "ambiguous-duplicate": 1
+  },
+  "excluded": [
+    {
+      "name": "TIME SERVER",
+      "reason": "not convertible"
+    },
+    {
+      "name": "AGC DIFF GR",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "AGC RATIO",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "B3 CLIP THRSH",
+      "reason": "ambiguous duplicate ids 120,121"
+    },
+    {
+      "name": "PEQ LOW WIDTH",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "PEQ MID WIDTH",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "PEQ HIGH WIDTH",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "B12 CROSSOVER",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "INPUT EMPH STATUS",
+      "reason": "conflicts with factory presets"
+    }
+  ],
+  "pages": [
+    "Less More (Shared)",
+    "AGC (Shared)",
+    "Stereo Enhancer (FM)",
+    "Equalizer (FM)",
+    "Multiband (FM)",
+    "Compressors (FM)",
+    "Band Mix (FM)",
+    "2 Band (FM)",
+    "2 Band Distortion (FM)",
+    "Distortion Control (FM)",
+    "Final Clipping (FM)",
+    "Clipper Options (FM)",
+    "Speech Mode (FM)"
+  ],
+  "meter_groups": [
+    "Input",
+    "AGC",
+    "HF Enhance",
+    "Gain Reduction",
+    "MPX",
+    "Output",
+    "Comp.",
+    "2-Band Gain Reduction",
+    "HF Limiting",
+    "Overshoot Limit"
+  ]
+}

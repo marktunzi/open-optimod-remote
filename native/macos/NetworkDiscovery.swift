@@ -46,6 +46,7 @@ enum OptimodDiscoveryLogic {
             ("orban optimod 6300", "OPTIMOD 6300", "optimod-6300"),
             ("orban optimod 8600", "OPTIMOD 8600", "optimod-8600"),
             ("orban optimod 8700i", "OPTIMOD 8700i", "optimod-8700i"),
+            ("orban optimod-fm 8700hd", "OPTIMOD-FM 8700HD", "optimod-8700hd"),
             ("orban optimod 9300", "OPTIMOD 9300", "optimod-9300"),
             ("orban optimod 9400", "OPTIMOD 9400", "optimod-9400"),
         ] where normalized.contains(needle) {

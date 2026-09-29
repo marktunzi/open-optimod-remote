@@ -11,6 +11,7 @@ enum ProcessorModel: String, Codable, CaseIterable, Sendable {
     case optimod6300 = "optimod-6300"
     case optimod8600 = "optimod-8600"
     case optimod8700i = "optimod-8700i"
+    case optimod8700HD = "optimod-8700hd"
     case optimod9300 = "optimod-9300"
     case optimod9400 = "optimod-9400"
 
@@ -26,6 +27,7 @@ enum ProcessorModel: String, Codable, CaseIterable, Sendable {
         case .optimod6300: "OPTIMOD 6300"
         case .optimod8600: "OPTIMOD 8600"
         case .optimod8700i: "OPTIMOD 8700i"
+        case .optimod8700HD: "OPTIMOD-FM 8700HD"
         case .optimod9300: "OPTIMOD 9300"
         case .optimod9400: "OPTIMOD 9400"
         }

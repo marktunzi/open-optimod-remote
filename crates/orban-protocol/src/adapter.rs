@@ -2,7 +2,13 @@
 //!
 //! A family resemblance is not write compatibility. Every login banner maps to
 //! its own adapter and visual skin. Capabilities become writable only for an
-//! exact firmware/profile combination that has been verified against hardware.
+//! exact firmware/profile combination with its own parameter profile. The
+//! `evidence` field records whether that profile was verified on hardware or
+//! derived statically from the matching official PC Remote and firmware.
+//!
+//! Adding a model: add a `DeviceModel`/`SkinId`, a read-only family adapter for
+//! its banner prefix and, once a profile exists, an exact-banner entry in
+//! `EXACT` plus its files in `crate::profile::EMBEDDED`.
 
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +35,8 @@ pub enum DeviceModel {
     Optimod8600,
     #[serde(rename = "optimod-8700i")]
     Optimod8700i,
+    #[serde(rename = "optimod-8700hd")]
+    Optimod8700Hd,
     #[serde(rename = "optimod-9300")]
     Optimod9300,
     #[serde(rename = "optimod-9400")]
@@ -36,7 +44,7 @@ pub enum DeviceModel {
 }
 
 impl DeviceModel {
-    pub const SELECTABLE: [Self; 12] = [
+    pub const SELECTABLE: [Self; 13] = [
         Self::Auto,
         Self::Optimod5700i,
         Self::Optimod5500i,
@@ -47,6 +55,7 @@ impl DeviceModel {
         Self::Optimod6300,
         Self::Optimod8600,
         Self::Optimod8700i,
+        Self::Optimod8700Hd,
         Self::Optimod9300,
         Self::Optimod9400,
     ];
@@ -63,6 +72,7 @@ impl DeviceModel {
             Self::Optimod6300 => "OPTIMOD 6300",
             Self::Optimod8600 => "OPTIMOD 8600",
             Self::Optimod8700i => "OPTIMOD 8700i",
+            Self::Optimod8700Hd => "OPTIMOD-FM 8700HD",
             Self::Optimod9300 => "OPTIMOD 9300",
             Self::Optimod9400 => "OPTIMOD 9400",
         }
@@ -90,10 +100,25 @@ pub enum SkinId {
     Optimod8600,
     #[serde(rename = "optimod-8700i")]
     Optimod8700i,
+    #[serde(rename = "optimod-8700hd")]
+    Optimod8700Hd,
     #[serde(rename = "optimod-9300")]
     Optimod9300,
     #[serde(rename = "optimod-9400")]
     Optimod9400,
+}
+
+/// How the parameter profile of an adapter was established.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Evidence {
+    /// Mappings cross-checked against a real processor with this firmware.
+    Hardware,
+    /// Derived from the official PC Remote and firmware of this exact version,
+    /// not yet confirmed on hardware. Every write is confirmed by a full readback.
+    Static,
+    /// Identification only; no parameter profile.
+    None,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -115,7 +140,10 @@ pub struct Capabilities {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct MeterProfile {
     pub banks: &'static [u8],
-    pub values_per_bank: usize,
+    /// Accepted number of values in one meter record. The 5700i sends exactly
+    /// 112; PC Remote for other models reads a variable count.
+    pub min_values: usize,
+    pub max_values: usize,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -130,6 +158,7 @@ pub struct AdapterDescriptor {
     pub firmware_prefix: &'static str,
     pub capabilities: Capabilities,
     pub meter_profile: Option<MeterProfile>,
+    pub evidence: Evidence,
 }
 
 const READ_ONLY: Capabilities = Capabilities {
@@ -160,11 +189,67 @@ const VERIFIED_5700I: AdapterDescriptor = AdapterDescriptor {
     },
     meter_profile: Some(MeterProfile {
         banks: &[1, 2],
-        values_per_bank: 112,
+        min_values: 112,
+        max_values: 112,
     }),
+    evidence: Evidence::Hardware,
 };
 
-const ADAPTERS: [AdapterDescriptor; 11] = [
+const STATIC_FULL: Capabilities = Capabilities {
+    connect: true,
+    parameter_reads: true,
+    parameter_writes: true,
+    live_meters: true,
+    preset_catalog: true,
+    preset_recall: true,
+};
+
+/// Static meter records: PC Remote accepts any count and ignores channels it
+/// does not store, so the decoder only enforces a sane upper bound.
+const STATIC_METERS: MeterProfile = MeterProfile {
+    banks: &[1, 2],
+    min_values: 1,
+    max_values: 512,
+};
+
+/// Exact banners with a parameter profile. Only these can write.
+const EXACT: [(&str, AdapterDescriptor); 3] = [
+    ("5700i V 3.0.1.20", VERIFIED_5700I),
+    (
+        "5500 V 1.2.8.24",
+        AdapterDescriptor {
+            id: "pc-remote-5500-1.2.8.24",
+            model: DeviceModel::Optimod5500,
+            skin: SkinId::Optimod5500,
+            transport: TransportKind::PcRemoteTcp,
+            default_port: 6201,
+            default_terminal_port: 23,
+            product_mark: "5500 DIGITAL",
+            firmware_prefix: "5500 V ",
+            capabilities: STATIC_FULL,
+            meter_profile: Some(STATIC_METERS),
+            evidence: Evidence::Static,
+        },
+    ),
+    (
+        "8700HD V 1.0.2.161",
+        AdapterDescriptor {
+            id: "pc-remote-8700hd-1.0.2.161",
+            model: DeviceModel::Optimod8700Hd,
+            skin: SkinId::Optimod8700Hd,
+            transport: TransportKind::PcRemoteTcp,
+            default_port: 6201,
+            default_terminal_port: 23,
+            product_mark: "8700HD FM+HD",
+            firmware_prefix: "8700HD V ",
+            capabilities: STATIC_FULL,
+            meter_profile: Some(STATIC_METERS),
+            evidence: Evidence::Static,
+        },
+    ),
+];
+
+const ADAPTERS: [AdapterDescriptor; 12] = [
     AdapterDescriptor {
         id: "pc-remote-5700i-family",
         model: DeviceModel::Optimod5700i,
@@ -176,6 +261,7 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "5700i V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
     },
     AdapterDescriptor {
         id: "pc-remote-5500i-family",
@@ -188,6 +274,7 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "5500i V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
     },
     AdapterDescriptor {
         id: "pc-remote-5500-family",
@@ -200,6 +287,7 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "5500 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
     },
     AdapterDescriptor {
         id: "pc-remote-5700fm-family",
@@ -212,6 +300,7 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "5700FM V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
     },
     AdapterDescriptor {
         id: "pc-remote-5700hd-family",
@@ -224,6 +313,7 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "5700HD V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
     },
     AdapterDescriptor {
         id: "pc-remote-8500-family",
@@ -236,6 +326,7 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "8500 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
     },
     AdapterDescriptor {
         id: "pc-remote-6300-family",
@@ -248,6 +339,7 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "6300 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
     },
     AdapterDescriptor {
         id: "pc-remote-8600-family",
@@ -260,6 +352,7 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "8600 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
     },
     AdapterDescriptor {
         id: "pc-remote-8700i-family",
@@ -272,6 +365,20 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "8700i V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
+    },
+    AdapterDescriptor {
+        id: "pc-remote-8700hd-family",
+        model: DeviceModel::Optimod8700Hd,
+        skin: SkinId::Optimod8700Hd,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8700HD FM+HD",
+        firmware_prefix: "8700HD V ",
+        capabilities: READ_ONLY,
+        meter_profile: None,
+        evidence: Evidence::None,
     },
     AdapterDescriptor {
         id: "pc-remote-9300-family",
@@ -284,6 +391,7 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "9300 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
     },
     AdapterDescriptor {
         id: "pc-remote-9400-family",
@@ -296,6 +404,7 @@ const ADAPTERS: [AdapterDescriptor; 11] = [
         firmware_prefix: "9400 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        evidence: Evidence::None,
     },
 ];
 
@@ -303,8 +412,8 @@ pub struct AdapterRegistry;
 
 impl AdapterRegistry {
     pub fn identify_banner(banner: &str) -> Result<&'static AdapterDescriptor, String> {
-        if banner == "5700i V 3.0.1.20" {
-            return Ok(&VERIFIED_5700I);
+        if let Some((_, adapter)) = EXACT.iter().find(|(exact, _)| *exact == banner) {
+            return Ok(adapter);
         }
         ADAPTERS
             .iter()
@@ -332,6 +441,7 @@ impl AdapterRegistry {
             ("orban optimod 6300", DeviceModel::Optimod6300),
             ("orban optimod 8600", DeviceModel::Optimod8600),
             ("orban optimod 8700i", DeviceModel::Optimod8700i),
+            ("orban optimod-fm 8700hd", DeviceModel::Optimod8700Hd),
             ("orban optimod 9300", DeviceModel::Optimod9300),
             ("orban optimod 9400", DeviceModel::Optimod9400),
         ] {
@@ -344,5 +454,10 @@ impl AdapterRegistry {
 
     pub fn all() -> &'static [AdapterDescriptor] {
         &ADAPTERS
+    }
+
+    /// Adapters that carry a parameter profile, keyed by their exact banner.
+    pub fn exact() -> impl Iterator<Item = (&'static str, &'static AdapterDescriptor)> {
+        EXACT.iter().map(|(banner, adapter)| (*banner, adapter))
     }
 }

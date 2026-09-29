@@ -95,8 +95,8 @@ cat > "$stage_app/Contents/Info.plist" <<'PLIST'
 <key>CFBundleIconFile</key><string>OpenOptimod</string>
 <key>CFBundleName</key><string>Open Optimod Remote</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
-<key>CFBundleVersion</key><string>2</string>
+<key>CFBundleShortVersionString</key><string>0.2.0</string>
+<key>CFBundleVersion</key><string>3</string>
 <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>

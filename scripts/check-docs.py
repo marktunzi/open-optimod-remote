@@ -59,7 +59,8 @@ def main() -> int:
 
     require("PRODUCT.md", "owner-only Application Support credential file", errors)
     forbid("PRODUCT.md", "belong in the macOS Keychain", errors)
-    require("CHANGELOG.md", "Unreleased — 23 September 2026", errors)
+    require("CHANGELOG.md", "0.1.0 — 23 September 2026", errors)
+    require("CHANGELOG.md", "0.2.0 — 29 September 2026", errors)
     require("README.md", "6300, 8500, 8600, 8700i, 9300 and 9400", errors)
     require("PRODUCT.md", "Every processor model has its own skin", errors)
     require("CHANGELOG.md", "134 specification-backed controls", errors)
@@ -72,6 +73,9 @@ def main() -> int:
     require("skills/optimod-5700i-control/references/model-families.md", "`9400.30`", errors)
     require("skills/optimod-5500-control/SKILL.md", "5500 V 1.2.8.24", errors)
     require("skills/optimod-5500-control/references/evidence.md", "8300.10", errors)
+    require("skills/optimod-8700hd-control/SKILL.md", "8700HD V 1.0.2.161", errors)
+    require("docs/adding-a-model.md", "scripts/extract_pc_remote.py", errors)
+    require("README.md", "not yet been verified on hardware", errors)
 
     for path in sorted((ROOT / "docs/plans").glob("*.md")):
         if "> **Status:**" not in path.read_text(encoding="utf-8"):

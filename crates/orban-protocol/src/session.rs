@@ -1,5 +1,5 @@
 use crate::{
-    adapter::{AdapterDescriptor, AdapterRegistry, Capabilities, DeviceModel, SkinId},
+    adapter::{AdapterDescriptor, AdapterRegistry, Capabilities, DeviceModel, Evidence, SkinId},
     auth,
     framing::Decoder,
     message::{self, Message},
@@ -19,6 +19,7 @@ pub struct Info {
     pub model: DeviceModel,
     pub skin: SkinId,
     pub capabilities: Capabilities,
+    pub evidence: Evidence,
 }
 pub struct Session {
     pub info: Info,
@@ -104,6 +105,7 @@ impl Session {
                 model: adapter.model,
                 skin: adapter.skin,
                 capabilities: adapter.capabilities,
+                evidence: adapter.evidence,
             },
             adapter,
             stream,

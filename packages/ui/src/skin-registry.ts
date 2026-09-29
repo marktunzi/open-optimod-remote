@@ -8,6 +8,7 @@ export type ProcessorSkinId =
   | 'optimod-6300'
   | 'optimod-8600'
   | 'optimod-8700i'
+  | 'optimod-8700hd'
   | 'optimod-9300'
   | 'optimod-9400';
 
@@ -92,6 +93,14 @@ export const PROCESSOR_SKINS: Record<ProcessorSkinId, ProcessorSkin> = {
     material: 'premium-graphite-red',
     pathLabel: 'FM + Digital',
     meterGroups: ['Input', 'AGC', 'FM Gain Reduction', 'MX Limiting', 'Digital Gain Reduction', 'Output'],
+  },
+  'optimod-8700hd': {
+    id: 'optimod-8700hd',
+    productName: 'OPTIMOD-FM 8700HD',
+    logo: '/assets/optimod-8700hd.svg',
+    material: 'brushed-gold-graphite',
+    pathLabel: 'FM + HD',
+    meterGroups: ['Input', 'AGC', 'Gain Reduction', 'Output', 'HD Gain Reduction', 'HD Output'],
   },
   'optimod-9300': {
     id: 'optimod-9300',

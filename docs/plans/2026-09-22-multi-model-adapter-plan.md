@@ -1,6 +1,6 @@
 # Implementatieplan: multi-model OPTIMOD-adapters
 
-> **Status:** In uitvoering. Fase 0–2, de read-only basis van fase 3–4 en de read-only PC Remote-modellen uit fase 8 zijn op 23 september 2026 geïmplementeerd.
+> **Status:** In uitvoering. Fase 0–2, de read-only basis van fase 3–4 en de read-only PC Remote-modellen uit fase 8 zijn op 23 september 2026 geïmplementeerd. Op 29 september 2026 kregen de 5500 (1.2.8.24) en de 8700HD (1.0.2.161) een statisch afgeleid volledig profiel; zie [de statische analyse](../research/2026-09-29-5500-8700hd-static-analysis.md).
 
 Datum: 22 september 2026
 Brononderzoek: [multi-model support](../research/2026-09-22-multi-model-optimod-support.md)
@@ -74,7 +74,7 @@ Nog niet afgetekend zijn model-specifieke writeprofielen, metercaptures en volle
 
 ## Fase 4 — 5500, 5700 FM/HD en 8500
 
-**Status: dezelfde read-only basis als 5500i is gereed; eigen parameter-, meter- en writeprofielen volgen.**
+**Status: dezelfde read-only basis als 5500i is gereed. De 5500 met firmware 1.2.8.24 heeft een statisch afgeleid profiel met writes, recall, meters en eigen pagina's (evidence `Static`); hardwareverificatie volgt. 5700 FM/HD en 8500 volgen via [een model toevoegen](../adding-a-model.md).**
 
 - Voeg per model een afzonderlijk profiel en firmwarematcher toe.
 - Deel alleen framing, login, archive en terminalcode die door fixtures identiek blijkt.
@@ -116,7 +116,7 @@ Nog niet afgetekend zijn model-specifieke writeprofielen, metercaptures en volle
 
 ## Fase 8 — overige PC Remote- en Web UI-modellen
 
-- **Status:** 6300, 8600, 8700i, 9300 en 9400 hebben read-only identificatie, AP/AS/LP-documenten, presetlijsten, native selectie en ieder een eigen skin. Writes en live meters wachten op hardwarefixtures.
+- **Status:** 6300, 8600, 8700i, 9300 en 9400 hebben read-only identificatie, AP/AS/LP-documenten, presetlijsten, native selectie en ieder een eigen skin. Writes en live meters wachten op hardwarefixtures. De oorspronkelijke 8700HD (banner `8700HD V`) is als apart model toegevoegd; firmware 1.0.2.161 heeft een statisch afgeleid volledig profiel.
 - Doorloop voor 6300, 8600, 8700i, 9300 en 9400 dezelfde resterende verificatiepoort voor writes, meters en volledige bedieningspagina's.
 - Bouw aparte AM- en TV/digital-audiocapabilities.
 - Onderzoek 5750/5950/Trio via officiële API-documentatie of geschoonde captures van eigen hardware.

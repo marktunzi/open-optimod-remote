@@ -18,6 +18,7 @@ enum NetworkDiscoveryTests {
             ("Orban Optimod 6300 V 4.1", "OPTIMOD 6300"),
             ("Orban Optimod 8600 V 4.5", "OPTIMOD 8600"),
             ("Orban Optimod 8700i V 1.5", "OPTIMOD 8700i"),
+            ("Welcome to the Orban Optimod-FM 8700HD.", "OPTIMOD-FM 8700HD"),
             ("Orban Optimod 9300 V 2.1", "OPTIMOD 9300"),
             ("Orban Optimod 9400 V 2.0", "OPTIMOD 9400"),
         ] {
