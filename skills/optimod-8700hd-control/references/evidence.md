@@ -21,8 +21,8 @@ It shares the `8700.51` document family with the 8700i, but it is a separate mod
 ## Extracted facts
 
 - Login obfuscation and framing constants are identical to the 5700i. The firmware implements `AP`, `AS`, `LP` and `RP` with `ON AIR:`.
-- 460 parameter registrations; four use register-pushed arguments that were resolved from their call sites.
-- The factory presets are 8600 documents (`8600.40` and `8600.10`). Of 236 preset fields, 225 match exactly, 2 are explained by a transform and 8 are excluded. This is weaker evidence than for the 5500, because the 8600 and 8700HD firmware may differ.
+- 594 parameter registrations; four use register-pushed arguments that were resolved from their call sites.
+- The factory presets are 8600 documents (`8600.40` and `8600.10`). 227 preset fields match PC Remote exactly and 9 conflict and are excluded. This is weaker evidence than for the 5500, because the 8600 and 8700HD firmware may differ.
 - Meter store: channels 0–104, banks 1 and 2. The channel layout follows the 5700i scheme (AGC 3/10 and 4/11, FM bands 5–9/14–18, HD bands 39–43/44–48, HD limiting 19/20, HD output 51/52).
 
 Evidence levels and the runtime checks are the same as for the [5500](../../optimod-5500-control/references/evidence.md#evidence-levels).

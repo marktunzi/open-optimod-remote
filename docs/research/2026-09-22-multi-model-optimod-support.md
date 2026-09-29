@@ -1,7 +1,7 @@
 # Onderzoek: ondersteuning voor meerdere OPTIMOD-modellen
 
 Datum: 22 september 2026
-Status: technisch onderzoek en architectuurbesluit, bijgewerkt 23 september 2026. De 5500i, 5500, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 en 9400 hebben nu veilige read-only identificatie, AP/AS/LP-documentlezing, native verbindingen en eigen skins. Alleen de 5700i met firmware 3.0.1.20 heeft geverifieerde writes en live meters.
+Status: technisch onderzoek en architectuurbesluit, bijgewerkt 23 september 2026. De 5500i, 5500, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 en 9400 hebben nu veilige read-only identificatie, AP/AS/LP-documentlezing, native verbindingen en eigen skins. Alleen de 5700i met firmware 3.0.1.20 heeft geverifieerde writes en live meters. Bijgewerkt 29 september 2026: de 5500 (1.2.8.24) en de 8700HD (1.0.2.161) hebben statisch afgeleide profielen met writes, recall en meters; zie [de statische analyse](2026-09-29-5500-8700hd-static-analysis.md).
 
 ## Conclusie
 

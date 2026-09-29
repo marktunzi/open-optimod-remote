@@ -46,3 +46,24 @@ test('the complete committed system inventory is retained and representative fie
  assert.equal(category('BS1770 LDNES CTRL THR'),'HD & Diversity');
  assert.equal(section('FM BS1770 SAFETY LIMITER'),'Loudness Protection');
 });
+
+test('every system field of the 5500, 5700i and 8700HD profiles has a real category', async ()=>{
+ const {unrecognizedSetupFields}=await import('../src/setup-groups.ts');
+ for (const path of ['5700i/3.0.1.20','5500/1.2.8.24','8700hd/1.0.2.161']) {
+  const files=path.startsWith('5700i')?['parameters.json','static-parameters.json']:['parameters.json'];
+  const fields=files.flatMap(file=>JSON.parse(readFileSync(new URL(`../../../profiles/${path}/${file}`,import.meta.url),'utf8')).fields);
+  const names=[...new Set(fields.filter((f:{scope:string})=>f.scope==='System').map((f:{name:string})=>f.name))] as string[];
+  assert.deepEqual(unrecognizedSetupFields(names),[],path);
+  const groups=groupSetupFields(Object.fromEntries(names.map(name=>[name,0])));
+  assert.equal(groups.flatMap(group=>group.sections.flatMap(section=>section.fields)).length,names.length,path);
+ }
+ const groups=groupSetupFields({'TEST TONE':0,'SET HOUR':0,'AUTO SET HOUR':0,'EI1 REF LEVEL':0,'EO1 LEVEL':0,'2B SWITCH':0,'PASSCODE ACCESS LEVEL':0});
+ const section=(field:string)=>groups.flatMap(group=>group.sections).find(item=>item.fields.some(([name])=>name===field))?.name;
+ assert.equal(section('TEST TONE'),'Test & Bypass');
+ assert.equal(section('SET HOUR'),'Clock & Calendar');
+ assert.equal(section('AUTO SET HOUR'),'Automatic Clock Set');
+ assert.equal(section('EI1 REF LEVEL'),'AES67 Input');
+ assert.equal(section('EO1 LEVEL'),'AES67 Output');
+ assert.equal(section('2B SWITCH'),'Processing Structure');
+ assert.equal(section('PASSCODE ACCESS LEVEL'),'Security');
+});

@@ -31,7 +31,7 @@ Before sending:
 5. Resolve the requested index through the firmware-specific profile. For text, permit only a validated text value at the unchanged index.
 6. Require verified write access.
 
-After an interactive single-field send, issue opcode 250 and drain events until 251. On success, update only that field in the guarded document and preserve the immutable preset comparison baseline. If the boundary fails, take one exact AP/AS readback to determine whether the write applied; do not queue or replay it. Manual refresh, export, preset application and explicit hardware verification still require exact documents.
+After an interactive single-field send, issue opcode 250 and drain events until 251. On success, update only that field in the guarded document and preserve the immutable preset comparison baseline. If the boundary fails, take one exact AP/AS readback to determine whether the write applied; do not queue or replay it. A field that is only statically derived (the 5700i supplement, or any field of a static adapter such as the 5500 and 8700HD) always takes that readback, and a mismatch publishes the processor's value. Manual refresh, export, preset application and explicit hardware verification still require exact documents.
 
 Do not take full terminal snapshots on both sides of every successful single-field write. The reference 5700i suspends PC Remote meter replies for roughly 570 ms while producing each AP/AS document, even though the sockets are independent. In hardware measurement, removing those two routine snapshots reduced write-related meter gaps to 103–189 ms from the processor's own change handling. Continue rendering only interpolated real meter values during that interval; never synthesize new signal.
 

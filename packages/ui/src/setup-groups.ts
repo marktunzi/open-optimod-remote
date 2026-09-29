@@ -35,11 +35,11 @@ const groupDescriptions: Record<SetupGroupName, string> = {
 };
 
 const sectionOrder: Record<SetupGroupName, string[]> = {
-  'Audio Input': ['Source Selection', 'Analog Input', 'Digital Input', 'Failover & Silence Detection'],
-  'Audio Outputs': ['Analog Output', 'Digital Output 1', 'Digital Output 2', 'Monitoring & Composite'],
-  'FM Transmission': ['Operating Mode', 'Stereo Generator', 'Modulation & Carrier', 'Loudness Protection'],
-  'HD & Diversity': ['HD Output', 'Diversity Delay', 'Loudness Protection'],
-  'Network & Time': ['IP Configuration', 'Service Ports', 'Clock & Calendar'],
+  'Audio Input': ['Source Selection', 'Analog Input', 'Digital Input', 'AES67 Input', 'Failover & Silence Detection'],
+  'Audio Outputs': ['Analog Output', 'Digital Output 1', 'Digital Output 2', 'AES67 Output', 'Monitoring & Composite'],
+  'FM Transmission': ['Operating Mode', 'Test & Bypass', 'Stereo Generator', 'Modulation & Carrier', 'Loudness Protection', 'Processing Structure'],
+  'HD & Diversity': ['HD Output', 'Diversity Delay', 'Loudness Protection', 'HD Processing'],
+  'Network & Time': ['IP Configuration', 'Service Ports', 'Clock & Calendar', 'Automatic Clock Set'],
   'Remote Control': ['Automation & Tallies', 'Remote Contacts', 'Security', 'External Interfaces'],
   'RDS': ['Programme Service', 'Dynamic Text', 'Alternate Frequencies', 'UECP & Network', 'Emergency Alerting'],
   'SNMP': ['Service', 'Manager Destinations', 'Community Access'],
@@ -47,7 +47,38 @@ const sectionOrder: Record<SetupGroupName, string[]> = {
   'Identification & Ratings': ['Station & Hardware', 'Kantar', 'Ratings Encoder'],
 };
 
+// Model-specific fields of the 5500 and 8700HD. Checked first so the rules
+// below keep placing every 5700i field exactly as before.
+const TEST_AND_BYPASS = /^(TEST (MODE|TONE|BYPASS|CLIP DEFEAT|MODULATION|400HZ TONE)|XTALK TEST|MUTE|OPERATE)$/;
+const PROCESSING_STRUCTURE = /^(2B SWITCH|5B SWITCH|2B\/5B SWITCH|STD SWITCH|ULL SWITCH|MX SWITCH|PASSTHRU SW|DRIVE W\d|MIX W\d|CLIP W\d|CLIP DENS THR|AGC MASTER TH|PHASE CORRECT(OR| DEFEAT| XOVER)|SUBHARMONIC|MAG PHASE COMP|B4\/5 DELTA REL)$/;
+const MODULATION_EXTRAS = /^(DIGITAL SCA[12] LEVEL|COMPOSITE OSCOMP|MAIN OSCOMP|MPX PWR B5CTRL)$/;
+const LOUDNESS_EXTRAS = /^(MPX PWR (REL|SP) CTRL|RESET ITU412)$/;
+// Lower-case "hd" names are PC Remote's internal copies of the HD processing chain.
+const HD_PROCESSING_COPY = /^hd /;
+const AUTOMATIC_CLOCK = /^(AUTO SET |SET BY |(SUN|MON|TUES|WEDNES|THURS|FRI|SATUR)DAY$|CLOCK CONTROL$)/;
+const MANUAL_CLOCK = /^SET (HOUR|MINUTE|SECOND|DAY|MONTH|YEAR)$/;
+
+function modelSpecificGroup(name: string): SetupGroupName | null {
+  if (/^(EI[12] |INPUT LEVEL$)/.test(name)) return 'Audio Input';
+  if (/^(EO[12] |EO LR SWAP|DO LR SWAP|DIGITAL COMP LEVEL$)/.test(name)) return 'Audio Outputs';
+  if (TEST_AND_BYPASS.test(name) || PROCESSING_STRUCTURE.test(name) || MODULATION_EXTRAS.test(name) || LOUDNESS_EXTRAS.test(name)) return 'FM Transmission';
+  if (HD_PROCESSING_COPY.test(name)) return 'HD & Diversity';
+  if (AUTOMATIC_CLOCK.test(name) || MANUAL_CLOCK.test(name)) return 'Network & Time';
+  if (/^(PASSCODE ACCESS LEVEL|CURRENT PASSCODES)$/.test(name)) return 'Remote Control';
+  if (/^(METER OPTION|AGC METER)$/.test(name)) return 'Display';
+  return null;
+}
+
+const IDENTIFICATION = /^(STATION ID|KANTAR|ACTUAL KANTAR|RATINGS|SERIAL|HARDWARE|FIRMWARE|VERSION)/;
+
+/** Fields no rule recognizes; they fall back to Identification & Ratings. */
+export function unrecognizedSetupFields(names: string[]): string[] {
+  return names.filter(name => setupGroup(name) === 'Identification & Ratings' && !IDENTIFICATION.test(name));
+}
+
 function setupGroup(name: string): SetupGroupName {
+  const specific = modelSpecificGroup(name);
+  if (specific) return specific;
   if (/^RDS /.test(name)) return 'RDS';
   if (/SNMP/.test(name)) return 'SNMP';
   if (/^(INPUT A OR D|ACTUAL A OR D|AI |DI |ANALOG FALLBACK|DIGITAL FALLBACK|SILENCE )/.test(name)) return 'Audio Input';
@@ -63,32 +94,39 @@ function setupGroup(name: string): SetupGroupName {
 function setupSection(group: SetupGroupName, name: string): string {
   switch (group) {
     case 'Audio Input':
+      if (/^EI[12] /.test(name)) return 'AES67 Input';
       if (/^AI /.test(name)) return 'Analog Input';
       if (/^DI /.test(name)) return 'Digital Input';
       if (/FALLBACK|SILENCE/.test(name)) return 'Failover & Silence Detection';
       return 'Source Selection';
     case 'Audio Outputs':
-      if (/^DO1 /.test(name)) return 'Digital Output 1';
+      if (/^(EO[12] |EO LR SWAP)/.test(name)) return 'AES67 Output';
+      if (/^(DO1 |DO LR SWAP)/.test(name)) return 'Digital Output 1';
       if (/^DO2 /.test(name)) return 'Digital Output 2';
-      if (/^(PHONES|OUT METER|Monitor|COMP)/.test(name)) return 'Monitoring & Composite';
+      if (/^(PHONES|OUT METER|Monitor|COMP|DIGITAL COMP)/.test(name)) return 'Monitoring & Composite';
       return 'Analog Output';
     case 'FM Transmission':
+      if (TEST_AND_BYPASS.test(name)) return 'Test & Bypass';
+      if (PROCESSING_STRUCTURE.test(name)) return 'Processing Structure';
+      if (LOUDNESS_EXTRAS.test(name)) return 'Loudness Protection';
       if (/^(ALGORITHM|BYPASS)/.test(name)) return 'Operating Mode';
       if (/^(PILOT|PRE-E|FM POLARITY)/.test(name)) return 'Stereo Generator';
       if (/FM BS1770|ITU412/.test(name)) return 'Loudness Protection';
       return 'Modulation & Carrier';
     case 'HD & Diversity':
+      if (HD_PROCESSING_COPY.test(name)) return 'HD Processing';
       if (/DIVERSITY/.test(name)) return 'Diversity Delay';
       if (/BS1770|ITU412/.test(name)) return 'Loudness Protection';
       return 'HD Output';
     case 'Network & Time':
       if (/^NETWORK (?!PORT)/.test(name)) return 'IP Configuration';
       if (/PORT$/.test(name)) return 'Service Ports';
+      if (AUTOMATIC_CLOCK.test(name)) return 'Automatic Clock Set';
       return 'Clock & Calendar';
     case 'Remote Control':
       if (/^REMOTE CONTACT/.test(name)) return 'Remote Contacts';
       if (/^(AUTOMATION|TALLY)/.test(name)) return 'Automation & Tallies';
-      if (/^SECURITY/.test(name)) return 'Security';
+      if (/^(SECURITY|PASSCODE|CURRENT PASSCODES)/.test(name)) return 'Security';
       return 'External Interfaces';
     case 'RDS':
       if (/ALTERNATE FREQUENCY/.test(name)) return 'Alternate Frequencies';

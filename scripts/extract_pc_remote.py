@@ -68,6 +68,28 @@ CONFIGS = {
                    dialogs=[247, 373, 399], primary=247, max_values=79),
         overrides={},
     ),
+    "63def9bbe3ea4cc5714b958a330f511e9f8540b973f0cedaf596dd7956054b43": dict(
+        model="5700i", adapter="pc-remote-5700i-3.0.1.20", firmware="3.0.1.20",
+        # A hardware-verified profile exists: write static-*.json supplements
+        # next to it instead of replacing parameters.json.
+        supplement=True,
+        banner="5700i V 3.0.1.20", document_family="5700.",
+        ctor=0x4B2E20, assign=0x47C400, sprintf=0x52A3D8, itoa=0x530481,
+        binders={0x4293D0: ("slider", 5), 0x429580: ("radio", 7), 0x429750: ("combo", 3)},
+        processing_dialogs=[232, 233, 234, 235, 240, 244, 245, 246, 362, 368, 370, 375, 377, 380,
+                            387, 388, 393, 394, 395, 396, 399, 400],
+        meter=dict(subclass=0x546767, init=0x442810, chan=0x4447F0, curve=0x442EB0,
+                   getbyte=0x4B8EB0, setvalue=0x442D70,
+                   dialogs=[247, 373, 378], primary=247, max_values=112),
+        # Register-pushed constructor arguments. DIVERSITY DELAY ADJ uses model
+        # branch 2 (0x4ab0ff), the 5700i count; BS1770 counts are 0xc9 (0x608340).
+        overrides={
+            ("AGC BASS COUPLE", 17): dict(count=14, default=13, conv=0x490650),
+            ("DIVERSITY DELAY ADJ", 266): dict(count=0xF833E, default=0x797B6, conv=0x4986D0),
+            ("BS1770 LDNES CTRL THR", 426): dict(count=201, default=0x82, conv=0x498070),
+            ("FM BS1770 LDNES CTRL THR", 428): dict(count=201, default=0x82, conv=0x498070),
+        },
+    ),
     "6ff1f203b45345553459e70f043ae681514c98ba130058d677e70170a72ee5b5": dict(
         model="8700hd", adapter="pc-remote-8700hd-1.0.2.161", firmware="1.0.2.161",
         banner="8700HD V 1.0.2.161", document_family="8700.",
@@ -147,19 +169,21 @@ def sha256(path: Path) -> str:
 
 
 # --------------------------------------------------------------------------- parameters
-NAME = re.compile(r"[A-Z0-9][A-Z0-9 +\-/&.#%()_<>:]{1,30}")
+NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9 +\-/&.#%()_<>:]{1,30}")
 
 
 def registrations(image: Image, ctor: int):
     """Yield (name, reference_id, count, default, conversion) for every constructor call."""
     found = []
-    for match in re.finditer(rb"\x68(....)(\x68(....)|\x6a(.))", image.text, re.S):
+    # Lookahead: "push count; push name; push id" must not hide the name push.
+    for match in re.finditer(rb"(?=\x68(....)(\x68(....)|\x6a(.)))", image.text, re.S):
         name = image.cstr(struct.unpack("<I", match.group(1))[0], 40)
         if not name or not NAME.fullmatch(name):
             continue
         reference = struct.unpack("<I", match.group(3))[0] if match.group(3) else match.group(4)[0]
         site = image.text_start + match.start()
-        following = image.dis(site + match.end() - match.start(), 3)
+        width = 5 + (5 if match.group(3) is not None else 2)
+        following = image.dis(site + width, 3)
         call = next((i for i in following if i.mnemonic == "call"), None)
         if not call or call.op_str != hex(ctor):
             continue
@@ -396,6 +420,12 @@ def build_parameters(raw, observed, reference_scopes):
                 registration = shortest  # every allowed index means the same in all variants
             else:
                 matching = [r for r in ordered if records and fits(r["values"], records, 1, 0)]
+                if len(matching) != 1 and records:
+                    # Otherwise the variant that explains the most factory-preset records.
+                    scores = sorted(((sum(1 for rec in records if fits(r["values"], [rec], 1, 0)), r) for r in ordered),
+                                    key=lambda item: -item[0])
+                    if scores[0][0] > 0 and scores[0][0] > scores[1][0]:
+                        matching = [scores[0][1]]
                 if len(matching) != 1:
                     report["ambiguous-duplicate"] += 1
                     notes.append((name, "ambiguous duplicate ids " + ",".join(str(r["id"]) for r in ordered)))
@@ -418,19 +448,12 @@ def build_parameters(raw, observed, reference_scopes):
             elif numeric_nonzero and fits(values, records, 100, 0):
                 values, evidence = transform(values, 100, 0), "transform x100"
             else:
-                explained = False
-                numeric = sorted((r for r in records if r[0] in ("Int", "Cent")), key=lambda r: r[2])
-                if len({r[2] for r in numeric}) >= 2:
-                    kind, value, index = numeric[0]
-                    entry = values[index] if index < len(values) else None
-                    if entry and entry["type"] in ("Int", "Cent"):
-                        offset = int(value) - entry["value"]
-                        if fits(values, records, 1, offset):
-                            values, evidence, explained = transform(values, 1, offset), f"transform +{offset}", True
-                if not explained:
-                    report["conflict"] += 1
-                    notes.append((name, "conflicts with factory presets"))
-                    continue
+                # A constant offset between PC Remote and presets is not trusted: on the
+                # hardware-verified 5700i the presets came from older firmware and such
+                # an offset was wrong (MPX PWR OFFSET).
+                report["conflict"] += 1
+                notes.append((name, "conflicts with factory presets"))
+                continue
         report[evidence.split(" ")[0]] += 1
         field = {"reference_id": registration["id"], "name": name, "evidence": evidence}
         units = collections.Counter(v.get("unit") for v in registration["values"][:len(values)] if v["type"] in ("Int", "Cent") and v.get("unit"))
@@ -438,10 +461,14 @@ def build_parameters(raw, observed, reference_scopes):
         if name == "DIVERSITY DELAY ADJ":
             first, second = float(registration["values"][0]["value"]), float(registration["values"][1]["value"])
             rate = round(1 / (second - first))
+            # Formatting to nine decimals blurs the step; snap to a real sample rate.
+            rate = min((32000, 44100, 48000, 64000, 96000, 192000), key=lambda known: abs(known - rate))
             field.update(values=[], unit="s", sample_delay={"max_index": registration["count"] - 1, "offset": round(first * rate), "rate": rate})
         elif len(clean) > 1000:
             if len(clean) == registration["count"] and all(v == {"type": "Int", "value": i} for i, v in enumerate(clean)):
-                field.update(values=[], integer_range={"min": 0, "max": registration["count"] - 1})
+                # Port 0 is not accepted by the hardware-verified 5700i.
+                low = 1 if name.upper().endswith("PORT") else 0
+                field.update(values=[], integer_range={"min": low, "max": registration["count"] - 1})
             else:
                 report["large-unmapped"] += 1
                 notes.append((name, "large range not representable"))
@@ -891,16 +918,17 @@ def main():
         fields, counts, notes = build_parameters(raw, observed, reference_scopes(repository))
         header = {"model": config["model"], "firmware": config["firmware"], "reference_sha256": digest, "firmware_sha256": firmware_hash}
         args.output.mkdir(parents=True, exist_ok=True)
-        (args.output / "parameters.json").write_text(json.dumps({
+        prefix = "static-" if config.get("supplement") else ""
+        (args.output / f"{prefix}parameters.json").write_text(json.dumps({
             **header,
             "status": "Statically derived from the official PC Remote conversion routines and cross-checked against the "
                       "factory presets in the same installer. Not verified on hardware.",
             "fields": fields}, indent=2) + "\n")
         layouts = build_layouts(image, config, fields, raw)
-        (args.output / "layouts.json").write_text(json.dumps(layouts, indent=2) + "\n")
+        (args.output / f"{prefix}layouts.json").write_text(json.dumps(layouts, indent=2) + "\n")
         meters = build_meters(image, config["meter"])
-        (args.output / "meters.json").write_text(json.dumps({**header, **meters}, indent=1) + "\n")
-        (args.output / "report.json").write_text(json.dumps({
+        (args.output / f"{prefix}meters.json").write_text(json.dumps({**header, **meters}, indent=1) + "\n")
+        (args.output / f"{prefix}report.json").write_text(json.dumps({
             **header, "installer_sha256": sha256(args.installer), "banner": config["banner"],
             "document_family": config["document_family"], "registrations": len(raw),
             "factory_presets": preset_files, "preset_families": families,

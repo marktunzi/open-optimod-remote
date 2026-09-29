@@ -17,8 +17,8 @@ The package contains PC Remote 1.2.8.24, firmware 1.2.8.24, worksheet 1.2.7, the
 - Terminal banner `Orban Optimod 5500`. The firmware implements `AP`, `AS`, `LP` and `RP` and answers recall with `ON AIR:`.
 - Login obfuscation and framing constants are identical to the 5700i.
 - Factory preset document family: `OptimodVersion=<8300.10>` (292 files) and `<5500.10>` (2 files).
-- 280 parameter registrations. Their conversion routines were emulated for every index.
-- Of 108 preset fields: 89 match exactly, 10 are explained by one consistent transform, and 9 are excluded.
+- 295 parameter registrations. Their conversion routines were emulated for every index.
+- Of the preset fields: 90 match PC Remote exactly, 9 are explained by a consistent ×100 unit transform, and 9 conflict and are excluded.
 - Meter store: channels 0–78, banks 1 and 2 with variable length.
 
 ## Evidence levels

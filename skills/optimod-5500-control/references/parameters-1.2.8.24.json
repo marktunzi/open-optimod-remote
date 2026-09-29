@@ -7178,263 +7178,6 @@
     },
     {
       "scope": "Processing",
-      "reference_id": 73,
-      "name": "DWNWRD EXP",
-      "evidence": "transform +1200",
-      "values": [
-        {
-          "type": "Choice",
-          "value": "Off"
-        },
-        {
-          "type": "Cent",
-          "value": -600
-        },
-        {
-          "type": "Cent",
-          "value": -550
-        },
-        {
-          "type": "Cent",
-          "value": -500
-        },
-        {
-          "type": "Cent",
-          "value": -450
-        },
-        {
-          "type": "Cent",
-          "value": -400
-        },
-        {
-          "type": "Cent",
-          "value": -350
-        },
-        {
-          "type": "Cent",
-          "value": -300
-        },
-        {
-          "type": "Cent",
-          "value": -250
-        },
-        {
-          "type": "Cent",
-          "value": -200
-        },
-        {
-          "type": "Cent",
-          "value": -150
-        },
-        {
-          "type": "Cent",
-          "value": -100
-        },
-        {
-          "type": "Cent",
-          "value": -50
-        },
-        {
-          "type": "Cent",
-          "value": 0
-        },
-        {
-          "type": "Cent",
-          "value": 50
-        },
-        {
-          "type": "Cent",
-          "value": 100
-        },
-        {
-          "type": "Cent",
-          "value": 150
-        },
-        {
-          "type": "Cent",
-          "value": 200
-        },
-        {
-          "type": "Cent",
-          "value": 250
-        },
-        {
-          "type": "Cent",
-          "value": 300
-        },
-        {
-          "type": "Cent",
-          "value": 350
-        },
-        {
-          "type": "Cent",
-          "value": 400
-        },
-        {
-          "type": "Cent",
-          "value": 450
-        },
-        {
-          "type": "Cent",
-          "value": 500
-        },
-        {
-          "type": "Cent",
-          "value": 550
-        },
-        {
-          "type": "Cent",
-          "value": 600
-        },
-        {
-          "type": "Cent",
-          "value": 650
-        },
-        {
-          "type": "Cent",
-          "value": 700
-        },
-        {
-          "type": "Cent",
-          "value": 750
-        },
-        {
-          "type": "Cent",
-          "value": 800
-        },
-        {
-          "type": "Cent",
-          "value": 850
-        },
-        {
-          "type": "Cent",
-          "value": 900
-        },
-        {
-          "type": "Cent",
-          "value": 950
-        },
-        {
-          "type": "Cent",
-          "value": 1000
-        },
-        {
-          "type": "Cent",
-          "value": 1050
-        },
-        {
-          "type": "Cent",
-          "value": 1100
-        },
-        {
-          "type": "Cent",
-          "value": 1150
-        },
-        {
-          "type": "Cent",
-          "value": 1200
-        },
-        {
-          "type": "Cent",
-          "value": 1250
-        },
-        {
-          "type": "Cent",
-          "value": 1300
-        },
-        {
-          "type": "Cent",
-          "value": 1350
-        },
-        {
-          "type": "Cent",
-          "value": 1400
-        },
-        {
-          "type": "Cent",
-          "value": 1450
-        },
-        {
-          "type": "Cent",
-          "value": 1500
-        },
-        {
-          "type": "Cent",
-          "value": 1550
-        },
-        {
-          "type": "Cent",
-          "value": 1600
-        },
-        {
-          "type": "Cent",
-          "value": 1650
-        },
-        {
-          "type": "Cent",
-          "value": 1700
-        },
-        {
-          "type": "Cent",
-          "value": 1750
-        },
-        {
-          "type": "Cent",
-          "value": 1800
-        },
-        {
-          "type": "Cent",
-          "value": 1850
-        },
-        {
-          "type": "Cent",
-          "value": 1900
-        },
-        {
-          "type": "Cent",
-          "value": 1950
-        },
-        {
-          "type": "Cent",
-          "value": 2000
-        },
-        {
-          "type": "Cent",
-          "value": 2050
-        },
-        {
-          "type": "Cent",
-          "value": 2100
-        },
-        {
-          "type": "Cent",
-          "value": 2150
-        },
-        {
-          "type": "Cent",
-          "value": 2200
-        },
-        {
-          "type": "Cent",
-          "value": 2250
-        },
-        {
-          "type": "Cent",
-          "value": 2300
-        },
-        {
-          "type": "Cent",
-          "value": 2350
-        },
-        {
-          "type": "Cent",
-          "value": 2400
-        }
-      ],
-      "unit": "dB"
-    },
-    {
-      "scope": "Processing",
       "reference_id": 74,
       "name": "B5 DWNWRD EXP",
       "evidence": "unobserved",
@@ -11290,6 +11033,739 @@
         {
           "type": "Cent",
           "value": 500
+        }
+      ],
+      "unit": "dB"
+    },
+    {
+      "scope": "Processing",
+      "reference_id": 122,
+      "name": "MAX DIST CONTRL",
+      "evidence": "confirmed",
+      "values": [
+        {
+          "type": "Cent",
+          "value": 0
+        },
+        {
+          "type": "Cent",
+          "value": 10
+        },
+        {
+          "type": "Cent",
+          "value": 20
+        },
+        {
+          "type": "Cent",
+          "value": 30
+        },
+        {
+          "type": "Cent",
+          "value": 40
+        },
+        {
+          "type": "Cent",
+          "value": 50
+        },
+        {
+          "type": "Cent",
+          "value": 60
+        },
+        {
+          "type": "Cent",
+          "value": 70
+        },
+        {
+          "type": "Cent",
+          "value": 80
+        },
+        {
+          "type": "Cent",
+          "value": 90
+        },
+        {
+          "type": "Cent",
+          "value": 100
+        },
+        {
+          "type": "Cent",
+          "value": 110
+        },
+        {
+          "type": "Cent",
+          "value": 120
+        },
+        {
+          "type": "Cent",
+          "value": 130
+        },
+        {
+          "type": "Cent",
+          "value": 140
+        },
+        {
+          "type": "Cent",
+          "value": 150
+        },
+        {
+          "type": "Cent",
+          "value": 160
+        },
+        {
+          "type": "Cent",
+          "value": 170
+        },
+        {
+          "type": "Cent",
+          "value": 180
+        },
+        {
+          "type": "Cent",
+          "value": 190
+        },
+        {
+          "type": "Cent",
+          "value": 200
+        },
+        {
+          "type": "Cent",
+          "value": 210
+        },
+        {
+          "type": "Cent",
+          "value": 220
+        },
+        {
+          "type": "Cent",
+          "value": 230
+        },
+        {
+          "type": "Cent",
+          "value": 240
+        },
+        {
+          "type": "Cent",
+          "value": 250
+        },
+        {
+          "type": "Cent",
+          "value": 260
+        },
+        {
+          "type": "Cent",
+          "value": 270
+        },
+        {
+          "type": "Cent",
+          "value": 280
+        },
+        {
+          "type": "Cent",
+          "value": 290
+        },
+        {
+          "type": "Cent",
+          "value": 300
+        },
+        {
+          "type": "Cent",
+          "value": 310
+        },
+        {
+          "type": "Cent",
+          "value": 320
+        },
+        {
+          "type": "Cent",
+          "value": 330
+        },
+        {
+          "type": "Cent",
+          "value": 340
+        },
+        {
+          "type": "Cent",
+          "value": 350
+        },
+        {
+          "type": "Cent",
+          "value": 360
+        },
+        {
+          "type": "Cent",
+          "value": 370
+        },
+        {
+          "type": "Cent",
+          "value": 380
+        },
+        {
+          "type": "Cent",
+          "value": 390
+        },
+        {
+          "type": "Cent",
+          "value": 400
+        },
+        {
+          "type": "Cent",
+          "value": 410
+        },
+        {
+          "type": "Cent",
+          "value": 420
+        },
+        {
+          "type": "Cent",
+          "value": 430
+        },
+        {
+          "type": "Cent",
+          "value": 440
+        },
+        {
+          "type": "Cent",
+          "value": 450
+        },
+        {
+          "type": "Cent",
+          "value": 460
+        },
+        {
+          "type": "Cent",
+          "value": 470
+        },
+        {
+          "type": "Cent",
+          "value": 480
+        },
+        {
+          "type": "Cent",
+          "value": 490
+        },
+        {
+          "type": "Cent",
+          "value": 500
+        },
+        {
+          "type": "Cent",
+          "value": 510
+        },
+        {
+          "type": "Cent",
+          "value": 520
+        },
+        {
+          "type": "Cent",
+          "value": 530
+        },
+        {
+          "type": "Cent",
+          "value": 540
+        },
+        {
+          "type": "Cent",
+          "value": 550
+        },
+        {
+          "type": "Cent",
+          "value": 560
+        },
+        {
+          "type": "Cent",
+          "value": 570
+        },
+        {
+          "type": "Cent",
+          "value": 580
+        },
+        {
+          "type": "Cent",
+          "value": 590
+        },
+        {
+          "type": "Cent",
+          "value": 600
+        },
+        {
+          "type": "Cent",
+          "value": 610
+        },
+        {
+          "type": "Cent",
+          "value": 620
+        },
+        {
+          "type": "Cent",
+          "value": 630
+        },
+        {
+          "type": "Cent",
+          "value": 640
+        },
+        {
+          "type": "Cent",
+          "value": 650
+        },
+        {
+          "type": "Cent",
+          "value": 660
+        },
+        {
+          "type": "Cent",
+          "value": 670
+        },
+        {
+          "type": "Cent",
+          "value": 680
+        },
+        {
+          "type": "Cent",
+          "value": 690
+        },
+        {
+          "type": "Cent",
+          "value": 700
+        },
+        {
+          "type": "Cent",
+          "value": 710
+        },
+        {
+          "type": "Cent",
+          "value": 720
+        },
+        {
+          "type": "Cent",
+          "value": 730
+        },
+        {
+          "type": "Cent",
+          "value": 740
+        },
+        {
+          "type": "Cent",
+          "value": 750
+        },
+        {
+          "type": "Cent",
+          "value": 760
+        },
+        {
+          "type": "Cent",
+          "value": 770
+        },
+        {
+          "type": "Cent",
+          "value": 780
+        },
+        {
+          "type": "Cent",
+          "value": 790
+        },
+        {
+          "type": "Cent",
+          "value": 800
+        },
+        {
+          "type": "Cent",
+          "value": 810
+        },
+        {
+          "type": "Cent",
+          "value": 820
+        },
+        {
+          "type": "Cent",
+          "value": 830
+        },
+        {
+          "type": "Cent",
+          "value": 840
+        },
+        {
+          "type": "Cent",
+          "value": 850
+        },
+        {
+          "type": "Cent",
+          "value": 860
+        },
+        {
+          "type": "Cent",
+          "value": 870
+        },
+        {
+          "type": "Cent",
+          "value": 880
+        },
+        {
+          "type": "Cent",
+          "value": 890
+        },
+        {
+          "type": "Cent",
+          "value": 900
+        },
+        {
+          "type": "Cent",
+          "value": 910
+        },
+        {
+          "type": "Cent",
+          "value": 920
+        },
+        {
+          "type": "Cent",
+          "value": 930
+        },
+        {
+          "type": "Cent",
+          "value": 940
+        },
+        {
+          "type": "Cent",
+          "value": 950
+        },
+        {
+          "type": "Cent",
+          "value": 960
+        },
+        {
+          "type": "Cent",
+          "value": 970
+        },
+        {
+          "type": "Cent",
+          "value": 980
+        },
+        {
+          "type": "Cent",
+          "value": 990
+        },
+        {
+          "type": "Cent",
+          "value": 1000
+        },
+        {
+          "type": "Cent",
+          "value": 1010
+        },
+        {
+          "type": "Cent",
+          "value": 1020
+        },
+        {
+          "type": "Cent",
+          "value": 1030
+        },
+        {
+          "type": "Cent",
+          "value": 1040
+        },
+        {
+          "type": "Cent",
+          "value": 1050
+        },
+        {
+          "type": "Cent",
+          "value": 1060
+        },
+        {
+          "type": "Cent",
+          "value": 1070
+        },
+        {
+          "type": "Cent",
+          "value": 1080
+        },
+        {
+          "type": "Cent",
+          "value": 1090
+        },
+        {
+          "type": "Cent",
+          "value": 1100
+        },
+        {
+          "type": "Cent",
+          "value": 1110
+        },
+        {
+          "type": "Cent",
+          "value": 1120
+        },
+        {
+          "type": "Cent",
+          "value": 1130
+        },
+        {
+          "type": "Cent",
+          "value": 1140
+        },
+        {
+          "type": "Cent",
+          "value": 1150
+        },
+        {
+          "type": "Cent",
+          "value": 1160
+        },
+        {
+          "type": "Cent",
+          "value": 1170
+        },
+        {
+          "type": "Cent",
+          "value": 1180
+        },
+        {
+          "type": "Cent",
+          "value": 1190
+        },
+        {
+          "type": "Cent",
+          "value": 1200
+        },
+        {
+          "type": "Cent",
+          "value": 1210
+        },
+        {
+          "type": "Cent",
+          "value": 1220
+        },
+        {
+          "type": "Cent",
+          "value": 1230
+        },
+        {
+          "type": "Cent",
+          "value": 1240
+        },
+        {
+          "type": "Cent",
+          "value": 1250
+        },
+        {
+          "type": "Cent",
+          "value": 1260
+        },
+        {
+          "type": "Cent",
+          "value": 1270
+        },
+        {
+          "type": "Cent",
+          "value": 1280
+        },
+        {
+          "type": "Cent",
+          "value": 1290
+        },
+        {
+          "type": "Cent",
+          "value": 1300
+        },
+        {
+          "type": "Cent",
+          "value": 1310
+        },
+        {
+          "type": "Cent",
+          "value": 1320
+        },
+        {
+          "type": "Cent",
+          "value": 1330
+        },
+        {
+          "type": "Cent",
+          "value": 1340
+        },
+        {
+          "type": "Cent",
+          "value": 1350
+        },
+        {
+          "type": "Cent",
+          "value": 1360
+        },
+        {
+          "type": "Cent",
+          "value": 1370
+        },
+        {
+          "type": "Cent",
+          "value": 1380
+        },
+        {
+          "type": "Cent",
+          "value": 1390
+        },
+        {
+          "type": "Cent",
+          "value": 1400
+        },
+        {
+          "type": "Cent",
+          "value": 1410
+        },
+        {
+          "type": "Cent",
+          "value": 1420
+        },
+        {
+          "type": "Cent",
+          "value": 1430
+        },
+        {
+          "type": "Cent",
+          "value": 1440
+        },
+        {
+          "type": "Cent",
+          "value": 1450
+        },
+        {
+          "type": "Cent",
+          "value": 1460
+        },
+        {
+          "type": "Cent",
+          "value": 1470
+        },
+        {
+          "type": "Cent",
+          "value": 1480
+        },
+        {
+          "type": "Cent",
+          "value": 1490
+        },
+        {
+          "type": "Cent",
+          "value": 1500
+        },
+        {
+          "type": "Cent",
+          "value": 1510
+        },
+        {
+          "type": "Cent",
+          "value": 1520
+        },
+        {
+          "type": "Cent",
+          "value": 1530
+        },
+        {
+          "type": "Cent",
+          "value": 1540
+        },
+        {
+          "type": "Cent",
+          "value": 1550
+        },
+        {
+          "type": "Cent",
+          "value": 1560
+        },
+        {
+          "type": "Cent",
+          "value": 1570
+        },
+        {
+          "type": "Cent",
+          "value": 1580
+        },
+        {
+          "type": "Cent",
+          "value": 1590
+        },
+        {
+          "type": "Cent",
+          "value": 1600
+        },
+        {
+          "type": "Cent",
+          "value": 1610
+        },
+        {
+          "type": "Cent",
+          "value": 1620
+        },
+        {
+          "type": "Cent",
+          "value": 1630
+        },
+        {
+          "type": "Cent",
+          "value": 1640
+        },
+        {
+          "type": "Cent",
+          "value": 1650
+        },
+        {
+          "type": "Cent",
+          "value": 1660
+        },
+        {
+          "type": "Cent",
+          "value": 1670
+        },
+        {
+          "type": "Cent",
+          "value": 1680
+        },
+        {
+          "type": "Cent",
+          "value": 1690
+        },
+        {
+          "type": "Cent",
+          "value": 1700
+        },
+        {
+          "type": "Cent",
+          "value": 1710
+        },
+        {
+          "type": "Cent",
+          "value": 1720
+        },
+        {
+          "type": "Cent",
+          "value": 1730
+        },
+        {
+          "type": "Cent",
+          "value": 1740
+        },
+        {
+          "type": "Cent",
+          "value": 1750
+        },
+        {
+          "type": "Cent",
+          "value": 1760
+        },
+        {
+          "type": "Cent",
+          "value": 1770
+        },
+        {
+          "type": "Cent",
+          "value": 1780
+        },
+        {
+          "type": "Cent",
+          "value": 1790
+        },
+        {
+          "type": "Cent",
+          "value": 1800
         }
       ],
       "unit": "dB"
@@ -16265,6 +16741,739 @@
           "value": "Fast"
         }
       ]
+    },
+    {
+      "scope": "Processing",
+      "reference_id": 209,
+      "name": "SP MAX DIST CONTRL",
+      "evidence": "unobserved",
+      "values": [
+        {
+          "type": "Cent",
+          "value": 0
+        },
+        {
+          "type": "Cent",
+          "value": 10
+        },
+        {
+          "type": "Cent",
+          "value": 20
+        },
+        {
+          "type": "Cent",
+          "value": 30
+        },
+        {
+          "type": "Cent",
+          "value": 40
+        },
+        {
+          "type": "Cent",
+          "value": 50
+        },
+        {
+          "type": "Cent",
+          "value": 60
+        },
+        {
+          "type": "Cent",
+          "value": 70
+        },
+        {
+          "type": "Cent",
+          "value": 80
+        },
+        {
+          "type": "Cent",
+          "value": 90
+        },
+        {
+          "type": "Cent",
+          "value": 100
+        },
+        {
+          "type": "Cent",
+          "value": 110
+        },
+        {
+          "type": "Cent",
+          "value": 120
+        },
+        {
+          "type": "Cent",
+          "value": 130
+        },
+        {
+          "type": "Cent",
+          "value": 140
+        },
+        {
+          "type": "Cent",
+          "value": 150
+        },
+        {
+          "type": "Cent",
+          "value": 160
+        },
+        {
+          "type": "Cent",
+          "value": 170
+        },
+        {
+          "type": "Cent",
+          "value": 180
+        },
+        {
+          "type": "Cent",
+          "value": 190
+        },
+        {
+          "type": "Cent",
+          "value": 200
+        },
+        {
+          "type": "Cent",
+          "value": 210
+        },
+        {
+          "type": "Cent",
+          "value": 220
+        },
+        {
+          "type": "Cent",
+          "value": 230
+        },
+        {
+          "type": "Cent",
+          "value": 240
+        },
+        {
+          "type": "Cent",
+          "value": 250
+        },
+        {
+          "type": "Cent",
+          "value": 260
+        },
+        {
+          "type": "Cent",
+          "value": 270
+        },
+        {
+          "type": "Cent",
+          "value": 280
+        },
+        {
+          "type": "Cent",
+          "value": 290
+        },
+        {
+          "type": "Cent",
+          "value": 300
+        },
+        {
+          "type": "Cent",
+          "value": 310
+        },
+        {
+          "type": "Cent",
+          "value": 320
+        },
+        {
+          "type": "Cent",
+          "value": 330
+        },
+        {
+          "type": "Cent",
+          "value": 340
+        },
+        {
+          "type": "Cent",
+          "value": 350
+        },
+        {
+          "type": "Cent",
+          "value": 360
+        },
+        {
+          "type": "Cent",
+          "value": 370
+        },
+        {
+          "type": "Cent",
+          "value": 380
+        },
+        {
+          "type": "Cent",
+          "value": 390
+        },
+        {
+          "type": "Cent",
+          "value": 400
+        },
+        {
+          "type": "Cent",
+          "value": 410
+        },
+        {
+          "type": "Cent",
+          "value": 420
+        },
+        {
+          "type": "Cent",
+          "value": 430
+        },
+        {
+          "type": "Cent",
+          "value": 440
+        },
+        {
+          "type": "Cent",
+          "value": 450
+        },
+        {
+          "type": "Cent",
+          "value": 460
+        },
+        {
+          "type": "Cent",
+          "value": 470
+        },
+        {
+          "type": "Cent",
+          "value": 480
+        },
+        {
+          "type": "Cent",
+          "value": 490
+        },
+        {
+          "type": "Cent",
+          "value": 500
+        },
+        {
+          "type": "Cent",
+          "value": 510
+        },
+        {
+          "type": "Cent",
+          "value": 520
+        },
+        {
+          "type": "Cent",
+          "value": 530
+        },
+        {
+          "type": "Cent",
+          "value": 540
+        },
+        {
+          "type": "Cent",
+          "value": 550
+        },
+        {
+          "type": "Cent",
+          "value": 560
+        },
+        {
+          "type": "Cent",
+          "value": 570
+        },
+        {
+          "type": "Cent",
+          "value": 580
+        },
+        {
+          "type": "Cent",
+          "value": 590
+        },
+        {
+          "type": "Cent",
+          "value": 600
+        },
+        {
+          "type": "Cent",
+          "value": 610
+        },
+        {
+          "type": "Cent",
+          "value": 620
+        },
+        {
+          "type": "Cent",
+          "value": 630
+        },
+        {
+          "type": "Cent",
+          "value": 640
+        },
+        {
+          "type": "Cent",
+          "value": 650
+        },
+        {
+          "type": "Cent",
+          "value": 660
+        },
+        {
+          "type": "Cent",
+          "value": 670
+        },
+        {
+          "type": "Cent",
+          "value": 680
+        },
+        {
+          "type": "Cent",
+          "value": 690
+        },
+        {
+          "type": "Cent",
+          "value": 700
+        },
+        {
+          "type": "Cent",
+          "value": 710
+        },
+        {
+          "type": "Cent",
+          "value": 720
+        },
+        {
+          "type": "Cent",
+          "value": 730
+        },
+        {
+          "type": "Cent",
+          "value": 740
+        },
+        {
+          "type": "Cent",
+          "value": 750
+        },
+        {
+          "type": "Cent",
+          "value": 760
+        },
+        {
+          "type": "Cent",
+          "value": 770
+        },
+        {
+          "type": "Cent",
+          "value": 780
+        },
+        {
+          "type": "Cent",
+          "value": 790
+        },
+        {
+          "type": "Cent",
+          "value": 800
+        },
+        {
+          "type": "Cent",
+          "value": 810
+        },
+        {
+          "type": "Cent",
+          "value": 820
+        },
+        {
+          "type": "Cent",
+          "value": 830
+        },
+        {
+          "type": "Cent",
+          "value": 840
+        },
+        {
+          "type": "Cent",
+          "value": 850
+        },
+        {
+          "type": "Cent",
+          "value": 860
+        },
+        {
+          "type": "Cent",
+          "value": 870
+        },
+        {
+          "type": "Cent",
+          "value": 880
+        },
+        {
+          "type": "Cent",
+          "value": 890
+        },
+        {
+          "type": "Cent",
+          "value": 900
+        },
+        {
+          "type": "Cent",
+          "value": 910
+        },
+        {
+          "type": "Cent",
+          "value": 920
+        },
+        {
+          "type": "Cent",
+          "value": 930
+        },
+        {
+          "type": "Cent",
+          "value": 940
+        },
+        {
+          "type": "Cent",
+          "value": 950
+        },
+        {
+          "type": "Cent",
+          "value": 960
+        },
+        {
+          "type": "Cent",
+          "value": 970
+        },
+        {
+          "type": "Cent",
+          "value": 980
+        },
+        {
+          "type": "Cent",
+          "value": 990
+        },
+        {
+          "type": "Cent",
+          "value": 1000
+        },
+        {
+          "type": "Cent",
+          "value": 1010
+        },
+        {
+          "type": "Cent",
+          "value": 1020
+        },
+        {
+          "type": "Cent",
+          "value": 1030
+        },
+        {
+          "type": "Cent",
+          "value": 1040
+        },
+        {
+          "type": "Cent",
+          "value": 1050
+        },
+        {
+          "type": "Cent",
+          "value": 1060
+        },
+        {
+          "type": "Cent",
+          "value": 1070
+        },
+        {
+          "type": "Cent",
+          "value": 1080
+        },
+        {
+          "type": "Cent",
+          "value": 1090
+        },
+        {
+          "type": "Cent",
+          "value": 1100
+        },
+        {
+          "type": "Cent",
+          "value": 1110
+        },
+        {
+          "type": "Cent",
+          "value": 1120
+        },
+        {
+          "type": "Cent",
+          "value": 1130
+        },
+        {
+          "type": "Cent",
+          "value": 1140
+        },
+        {
+          "type": "Cent",
+          "value": 1150
+        },
+        {
+          "type": "Cent",
+          "value": 1160
+        },
+        {
+          "type": "Cent",
+          "value": 1170
+        },
+        {
+          "type": "Cent",
+          "value": 1180
+        },
+        {
+          "type": "Cent",
+          "value": 1190
+        },
+        {
+          "type": "Cent",
+          "value": 1200
+        },
+        {
+          "type": "Cent",
+          "value": 1210
+        },
+        {
+          "type": "Cent",
+          "value": 1220
+        },
+        {
+          "type": "Cent",
+          "value": 1230
+        },
+        {
+          "type": "Cent",
+          "value": 1240
+        },
+        {
+          "type": "Cent",
+          "value": 1250
+        },
+        {
+          "type": "Cent",
+          "value": 1260
+        },
+        {
+          "type": "Cent",
+          "value": 1270
+        },
+        {
+          "type": "Cent",
+          "value": 1280
+        },
+        {
+          "type": "Cent",
+          "value": 1290
+        },
+        {
+          "type": "Cent",
+          "value": 1300
+        },
+        {
+          "type": "Cent",
+          "value": 1310
+        },
+        {
+          "type": "Cent",
+          "value": 1320
+        },
+        {
+          "type": "Cent",
+          "value": 1330
+        },
+        {
+          "type": "Cent",
+          "value": 1340
+        },
+        {
+          "type": "Cent",
+          "value": 1350
+        },
+        {
+          "type": "Cent",
+          "value": 1360
+        },
+        {
+          "type": "Cent",
+          "value": 1370
+        },
+        {
+          "type": "Cent",
+          "value": 1380
+        },
+        {
+          "type": "Cent",
+          "value": 1390
+        },
+        {
+          "type": "Cent",
+          "value": 1400
+        },
+        {
+          "type": "Cent",
+          "value": 1410
+        },
+        {
+          "type": "Cent",
+          "value": 1420
+        },
+        {
+          "type": "Cent",
+          "value": 1430
+        },
+        {
+          "type": "Cent",
+          "value": 1440
+        },
+        {
+          "type": "Cent",
+          "value": 1450
+        },
+        {
+          "type": "Cent",
+          "value": 1460
+        },
+        {
+          "type": "Cent",
+          "value": 1470
+        },
+        {
+          "type": "Cent",
+          "value": 1480
+        },
+        {
+          "type": "Cent",
+          "value": 1490
+        },
+        {
+          "type": "Cent",
+          "value": 1500
+        },
+        {
+          "type": "Cent",
+          "value": 1510
+        },
+        {
+          "type": "Cent",
+          "value": 1520
+        },
+        {
+          "type": "Cent",
+          "value": 1530
+        },
+        {
+          "type": "Cent",
+          "value": 1540
+        },
+        {
+          "type": "Cent",
+          "value": 1550
+        },
+        {
+          "type": "Cent",
+          "value": 1560
+        },
+        {
+          "type": "Cent",
+          "value": 1570
+        },
+        {
+          "type": "Cent",
+          "value": 1580
+        },
+        {
+          "type": "Cent",
+          "value": 1590
+        },
+        {
+          "type": "Cent",
+          "value": 1600
+        },
+        {
+          "type": "Cent",
+          "value": 1610
+        },
+        {
+          "type": "Cent",
+          "value": 1620
+        },
+        {
+          "type": "Cent",
+          "value": 1630
+        },
+        {
+          "type": "Cent",
+          "value": 1640
+        },
+        {
+          "type": "Cent",
+          "value": 1650
+        },
+        {
+          "type": "Cent",
+          "value": 1660
+        },
+        {
+          "type": "Cent",
+          "value": 1670
+        },
+        {
+          "type": "Cent",
+          "value": 1680
+        },
+        {
+          "type": "Cent",
+          "value": 1690
+        },
+        {
+          "type": "Cent",
+          "value": 1700
+        },
+        {
+          "type": "Cent",
+          "value": 1710
+        },
+        {
+          "type": "Cent",
+          "value": 1720
+        },
+        {
+          "type": "Cent",
+          "value": 1730
+        },
+        {
+          "type": "Cent",
+          "value": 1740
+        },
+        {
+          "type": "Cent",
+          "value": 1750
+        },
+        {
+          "type": "Cent",
+          "value": 1760
+        },
+        {
+          "type": "Cent",
+          "value": 1770
+        },
+        {
+          "type": "Cent",
+          "value": 1780
+        },
+        {
+          "type": "Cent",
+          "value": 1790
+        },
+        {
+          "type": "Cent",
+          "value": 1800
+        }
+      ],
+      "unit": "dB"
     },
     {
       "scope": "Processing",
@@ -22136,6 +23345,17 @@
     },
     {
       "scope": "Processing",
+      "reference_id": 440,
+      "name": "SET YEAR",
+      "evidence": "unobserved",
+      "values": [],
+      "integer_range": {
+        "min": 0,
+        "max": 2037
+      }
+    },
+    {
+      "scope": "Processing",
       "reference_id": 441,
       "name": "TIME ZONE",
       "evidence": "unobserved",
@@ -23181,6 +24401,819 @@
           "value": "Out"
         }
       ]
+    },
+    {
+      "scope": "Processing",
+      "reference_id": 472,
+      "name": "INPUT LEVEL",
+      "evidence": "unobserved",
+      "values": [
+        {
+          "type": "Cent",
+          "value": -1000
+        },
+        {
+          "type": "Cent",
+          "value": -990
+        },
+        {
+          "type": "Cent",
+          "value": -980
+        },
+        {
+          "type": "Cent",
+          "value": -970
+        },
+        {
+          "type": "Cent",
+          "value": -960
+        },
+        {
+          "type": "Cent",
+          "value": -950
+        },
+        {
+          "type": "Cent",
+          "value": -940
+        },
+        {
+          "type": "Cent",
+          "value": -930
+        },
+        {
+          "type": "Cent",
+          "value": -920
+        },
+        {
+          "type": "Cent",
+          "value": -910
+        },
+        {
+          "type": "Cent",
+          "value": -900
+        },
+        {
+          "type": "Cent",
+          "value": -890
+        },
+        {
+          "type": "Cent",
+          "value": -880
+        },
+        {
+          "type": "Cent",
+          "value": -870
+        },
+        {
+          "type": "Cent",
+          "value": -860
+        },
+        {
+          "type": "Cent",
+          "value": -850
+        },
+        {
+          "type": "Cent",
+          "value": -840
+        },
+        {
+          "type": "Cent",
+          "value": -830
+        },
+        {
+          "type": "Cent",
+          "value": -820
+        },
+        {
+          "type": "Cent",
+          "value": -810
+        },
+        {
+          "type": "Cent",
+          "value": -800
+        },
+        {
+          "type": "Cent",
+          "value": -790
+        },
+        {
+          "type": "Cent",
+          "value": -780
+        },
+        {
+          "type": "Cent",
+          "value": -770
+        },
+        {
+          "type": "Cent",
+          "value": -760
+        },
+        {
+          "type": "Cent",
+          "value": -750
+        },
+        {
+          "type": "Cent",
+          "value": -740
+        },
+        {
+          "type": "Cent",
+          "value": -730
+        },
+        {
+          "type": "Cent",
+          "value": -720
+        },
+        {
+          "type": "Cent",
+          "value": -710
+        },
+        {
+          "type": "Cent",
+          "value": -700
+        },
+        {
+          "type": "Cent",
+          "value": -690
+        },
+        {
+          "type": "Cent",
+          "value": -680
+        },
+        {
+          "type": "Cent",
+          "value": -670
+        },
+        {
+          "type": "Cent",
+          "value": -660
+        },
+        {
+          "type": "Cent",
+          "value": -650
+        },
+        {
+          "type": "Cent",
+          "value": -640
+        },
+        {
+          "type": "Cent",
+          "value": -630
+        },
+        {
+          "type": "Cent",
+          "value": -620
+        },
+        {
+          "type": "Cent",
+          "value": -610
+        },
+        {
+          "type": "Cent",
+          "value": -600
+        },
+        {
+          "type": "Cent",
+          "value": -590
+        },
+        {
+          "type": "Cent",
+          "value": -580
+        },
+        {
+          "type": "Cent",
+          "value": -570
+        },
+        {
+          "type": "Cent",
+          "value": -560
+        },
+        {
+          "type": "Cent",
+          "value": -550
+        },
+        {
+          "type": "Cent",
+          "value": -540
+        },
+        {
+          "type": "Cent",
+          "value": -530
+        },
+        {
+          "type": "Cent",
+          "value": -520
+        },
+        {
+          "type": "Cent",
+          "value": -510
+        },
+        {
+          "type": "Cent",
+          "value": -500
+        },
+        {
+          "type": "Cent",
+          "value": -490
+        },
+        {
+          "type": "Cent",
+          "value": -480
+        },
+        {
+          "type": "Cent",
+          "value": -470
+        },
+        {
+          "type": "Cent",
+          "value": -460
+        },
+        {
+          "type": "Cent",
+          "value": -450
+        },
+        {
+          "type": "Cent",
+          "value": -440
+        },
+        {
+          "type": "Cent",
+          "value": -430
+        },
+        {
+          "type": "Cent",
+          "value": -420
+        },
+        {
+          "type": "Cent",
+          "value": -410
+        },
+        {
+          "type": "Cent",
+          "value": -400
+        },
+        {
+          "type": "Cent",
+          "value": -390
+        },
+        {
+          "type": "Cent",
+          "value": -380
+        },
+        {
+          "type": "Cent",
+          "value": -370
+        },
+        {
+          "type": "Cent",
+          "value": -360
+        },
+        {
+          "type": "Cent",
+          "value": -350
+        },
+        {
+          "type": "Cent",
+          "value": -340
+        },
+        {
+          "type": "Cent",
+          "value": -330
+        },
+        {
+          "type": "Cent",
+          "value": -320
+        },
+        {
+          "type": "Cent",
+          "value": -310
+        },
+        {
+          "type": "Cent",
+          "value": -300
+        },
+        {
+          "type": "Cent",
+          "value": -290
+        },
+        {
+          "type": "Cent",
+          "value": -280
+        },
+        {
+          "type": "Cent",
+          "value": -270
+        },
+        {
+          "type": "Cent",
+          "value": -260
+        },
+        {
+          "type": "Cent",
+          "value": -250
+        },
+        {
+          "type": "Cent",
+          "value": -240
+        },
+        {
+          "type": "Cent",
+          "value": -230
+        },
+        {
+          "type": "Cent",
+          "value": -220
+        },
+        {
+          "type": "Cent",
+          "value": -210
+        },
+        {
+          "type": "Cent",
+          "value": -200
+        },
+        {
+          "type": "Cent",
+          "value": -190
+        },
+        {
+          "type": "Cent",
+          "value": -180
+        },
+        {
+          "type": "Cent",
+          "value": -170
+        },
+        {
+          "type": "Cent",
+          "value": -160
+        },
+        {
+          "type": "Cent",
+          "value": -150
+        },
+        {
+          "type": "Cent",
+          "value": -140
+        },
+        {
+          "type": "Cent",
+          "value": -130
+        },
+        {
+          "type": "Cent",
+          "value": -120
+        },
+        {
+          "type": "Cent",
+          "value": -110
+        },
+        {
+          "type": "Cent",
+          "value": -100
+        },
+        {
+          "type": "Cent",
+          "value": -90
+        },
+        {
+          "type": "Cent",
+          "value": -80
+        },
+        {
+          "type": "Cent",
+          "value": -70
+        },
+        {
+          "type": "Cent",
+          "value": -60
+        },
+        {
+          "type": "Cent",
+          "value": -50
+        },
+        {
+          "type": "Cent",
+          "value": -40
+        },
+        {
+          "type": "Cent",
+          "value": -30
+        },
+        {
+          "type": "Cent",
+          "value": -20
+        },
+        {
+          "type": "Cent",
+          "value": -10
+        },
+        {
+          "type": "Cent",
+          "value": 0
+        },
+        {
+          "type": "Cent",
+          "value": 10
+        },
+        {
+          "type": "Cent",
+          "value": 20
+        },
+        {
+          "type": "Cent",
+          "value": 30
+        },
+        {
+          "type": "Cent",
+          "value": 40
+        },
+        {
+          "type": "Cent",
+          "value": 50
+        },
+        {
+          "type": "Cent",
+          "value": 60
+        },
+        {
+          "type": "Cent",
+          "value": 70
+        },
+        {
+          "type": "Cent",
+          "value": 80
+        },
+        {
+          "type": "Cent",
+          "value": 90
+        },
+        {
+          "type": "Cent",
+          "value": 100
+        },
+        {
+          "type": "Cent",
+          "value": 110
+        },
+        {
+          "type": "Cent",
+          "value": 120
+        },
+        {
+          "type": "Cent",
+          "value": 130
+        },
+        {
+          "type": "Cent",
+          "value": 140
+        },
+        {
+          "type": "Cent",
+          "value": 150
+        },
+        {
+          "type": "Cent",
+          "value": 160
+        },
+        {
+          "type": "Cent",
+          "value": 170
+        },
+        {
+          "type": "Cent",
+          "value": 180
+        },
+        {
+          "type": "Cent",
+          "value": 190
+        },
+        {
+          "type": "Cent",
+          "value": 200
+        },
+        {
+          "type": "Cent",
+          "value": 210
+        },
+        {
+          "type": "Cent",
+          "value": 220
+        },
+        {
+          "type": "Cent",
+          "value": 230
+        },
+        {
+          "type": "Cent",
+          "value": 240
+        },
+        {
+          "type": "Cent",
+          "value": 250
+        },
+        {
+          "type": "Cent",
+          "value": 260
+        },
+        {
+          "type": "Cent",
+          "value": 270
+        },
+        {
+          "type": "Cent",
+          "value": 280
+        },
+        {
+          "type": "Cent",
+          "value": 290
+        },
+        {
+          "type": "Cent",
+          "value": 300
+        },
+        {
+          "type": "Cent",
+          "value": 310
+        },
+        {
+          "type": "Cent",
+          "value": 320
+        },
+        {
+          "type": "Cent",
+          "value": 330
+        },
+        {
+          "type": "Cent",
+          "value": 340
+        },
+        {
+          "type": "Cent",
+          "value": 350
+        },
+        {
+          "type": "Cent",
+          "value": 360
+        },
+        {
+          "type": "Cent",
+          "value": 370
+        },
+        {
+          "type": "Cent",
+          "value": 380
+        },
+        {
+          "type": "Cent",
+          "value": 390
+        },
+        {
+          "type": "Cent",
+          "value": 400
+        },
+        {
+          "type": "Cent",
+          "value": 410
+        },
+        {
+          "type": "Cent",
+          "value": 420
+        },
+        {
+          "type": "Cent",
+          "value": 430
+        },
+        {
+          "type": "Cent",
+          "value": 440
+        },
+        {
+          "type": "Cent",
+          "value": 450
+        },
+        {
+          "type": "Cent",
+          "value": 460
+        },
+        {
+          "type": "Cent",
+          "value": 470
+        },
+        {
+          "type": "Cent",
+          "value": 480
+        },
+        {
+          "type": "Cent",
+          "value": 490
+        },
+        {
+          "type": "Cent",
+          "value": 500
+        },
+        {
+          "type": "Cent",
+          "value": 510
+        },
+        {
+          "type": "Cent",
+          "value": 520
+        },
+        {
+          "type": "Cent",
+          "value": 530
+        },
+        {
+          "type": "Cent",
+          "value": 540
+        },
+        {
+          "type": "Cent",
+          "value": 550
+        },
+        {
+          "type": "Cent",
+          "value": 560
+        },
+        {
+          "type": "Cent",
+          "value": 570
+        },
+        {
+          "type": "Cent",
+          "value": 580
+        },
+        {
+          "type": "Cent",
+          "value": 590
+        },
+        {
+          "type": "Cent",
+          "value": 600
+        },
+        {
+          "type": "Cent",
+          "value": 610
+        },
+        {
+          "type": "Cent",
+          "value": 620
+        },
+        {
+          "type": "Cent",
+          "value": 630
+        },
+        {
+          "type": "Cent",
+          "value": 640
+        },
+        {
+          "type": "Cent",
+          "value": 650
+        },
+        {
+          "type": "Cent",
+          "value": 660
+        },
+        {
+          "type": "Cent",
+          "value": 670
+        },
+        {
+          "type": "Cent",
+          "value": 680
+        },
+        {
+          "type": "Cent",
+          "value": 690
+        },
+        {
+          "type": "Cent",
+          "value": 700
+        },
+        {
+          "type": "Cent",
+          "value": 710
+        },
+        {
+          "type": "Cent",
+          "value": 720
+        },
+        {
+          "type": "Cent",
+          "value": 730
+        },
+        {
+          "type": "Cent",
+          "value": 740
+        },
+        {
+          "type": "Cent",
+          "value": 750
+        },
+        {
+          "type": "Cent",
+          "value": 760
+        },
+        {
+          "type": "Cent",
+          "value": 770
+        },
+        {
+          "type": "Cent",
+          "value": 780
+        },
+        {
+          "type": "Cent",
+          "value": 790
+        },
+        {
+          "type": "Cent",
+          "value": 800
+        },
+        {
+          "type": "Cent",
+          "value": 810
+        },
+        {
+          "type": "Cent",
+          "value": 820
+        },
+        {
+          "type": "Cent",
+          "value": 830
+        },
+        {
+          "type": "Cent",
+          "value": 840
+        },
+        {
+          "type": "Cent",
+          "value": 850
+        },
+        {
+          "type": "Cent",
+          "value": 860
+        },
+        {
+          "type": "Cent",
+          "value": 870
+        },
+        {
+          "type": "Cent",
+          "value": 880
+        },
+        {
+          "type": "Cent",
+          "value": 890
+        },
+        {
+          "type": "Cent",
+          "value": 900
+        },
+        {
+          "type": "Cent",
+          "value": 910
+        },
+        {
+          "type": "Cent",
+          "value": 920
+        },
+        {
+          "type": "Cent",
+          "value": 930
+        },
+        {
+          "type": "Cent",
+          "value": 940
+        },
+        {
+          "type": "Cent",
+          "value": 950
+        },
+        {
+          "type": "Cent",
+          "value": 960
+        },
+        {
+          "type": "Cent",
+          "value": 970
+        },
+        {
+          "type": "Cent",
+          "value": 980
+        },
+        {
+          "type": "Cent",
+          "value": 990
+        },
+        {
+          "type": "Cent",
+          "value": 1000
+        }
+      ],
+      "unit": "dB"
     },
     {
       "scope": "System",
@@ -36623,6 +38656,22 @@
     },
     {
       "scope": "System",
+      "reference_id": 337,
+      "name": "Monitor Mute",
+      "evidence": "unobserved",
+      "values": [
+        {
+          "type": "Choice",
+          "value": "Monitor Mute"
+        },
+        {
+          "type": "Choice",
+          "value": "Monitor Mute"
+        }
+      ]
+    },
+    {
+      "scope": "System",
       "reference_id": 341,
       "name": "TEST PILOT",
       "evidence": "unobserved",
@@ -36964,7 +39013,18 @@
       "evidence": "unobserved",
       "values": [],
       "integer_range": {
-        "min": 0,
+        "min": 1,
+        "max": 65534
+      }
+    },
+    {
+      "scope": "System",
+      "reference_id": 363,
+      "name": "TERMINAL PORT",
+      "evidence": "unobserved",
+      "values": [],
+      "integer_range": {
+        "min": 1,
         "max": 65534
       }
     },
@@ -37063,7 +39123,7 @@
       "evidence": "unobserved",
       "values": [],
       "integer_range": {
-        "min": 0,
+        "min": 1,
         "max": 65534
       }
     },
@@ -37074,7 +39134,7 @@
       "evidence": "unobserved",
       "values": [],
       "integer_range": {
-        "min": 0,
+        "min": 1,
         "max": 65534
       }
     },
@@ -38282,6 +40342,17 @@
     },
     {
       "scope": "System",
+      "reference_id": 440,
+      "name": "SET YEAR",
+      "evidence": "unobserved",
+      "values": [],
+      "integer_range": {
+        "min": 0,
+        "max": 2037
+      }
+    },
+    {
+      "scope": "System",
       "reference_id": 441,
       "name": "TIME ZONE",
       "evidence": "unobserved",
@@ -39327,6 +41398,819 @@
           "value": "Out"
         }
       ]
+    },
+    {
+      "scope": "System",
+      "reference_id": 472,
+      "name": "INPUT LEVEL",
+      "evidence": "unobserved",
+      "values": [
+        {
+          "type": "Cent",
+          "value": -1000
+        },
+        {
+          "type": "Cent",
+          "value": -990
+        },
+        {
+          "type": "Cent",
+          "value": -980
+        },
+        {
+          "type": "Cent",
+          "value": -970
+        },
+        {
+          "type": "Cent",
+          "value": -960
+        },
+        {
+          "type": "Cent",
+          "value": -950
+        },
+        {
+          "type": "Cent",
+          "value": -940
+        },
+        {
+          "type": "Cent",
+          "value": -930
+        },
+        {
+          "type": "Cent",
+          "value": -920
+        },
+        {
+          "type": "Cent",
+          "value": -910
+        },
+        {
+          "type": "Cent",
+          "value": -900
+        },
+        {
+          "type": "Cent",
+          "value": -890
+        },
+        {
+          "type": "Cent",
+          "value": -880
+        },
+        {
+          "type": "Cent",
+          "value": -870
+        },
+        {
+          "type": "Cent",
+          "value": -860
+        },
+        {
+          "type": "Cent",
+          "value": -850
+        },
+        {
+          "type": "Cent",
+          "value": -840
+        },
+        {
+          "type": "Cent",
+          "value": -830
+        },
+        {
+          "type": "Cent",
+          "value": -820
+        },
+        {
+          "type": "Cent",
+          "value": -810
+        },
+        {
+          "type": "Cent",
+          "value": -800
+        },
+        {
+          "type": "Cent",
+          "value": -790
+        },
+        {
+          "type": "Cent",
+          "value": -780
+        },
+        {
+          "type": "Cent",
+          "value": -770
+        },
+        {
+          "type": "Cent",
+          "value": -760
+        },
+        {
+          "type": "Cent",
+          "value": -750
+        },
+        {
+          "type": "Cent",
+          "value": -740
+        },
+        {
+          "type": "Cent",
+          "value": -730
+        },
+        {
+          "type": "Cent",
+          "value": -720
+        },
+        {
+          "type": "Cent",
+          "value": -710
+        },
+        {
+          "type": "Cent",
+          "value": -700
+        },
+        {
+          "type": "Cent",
+          "value": -690
+        },
+        {
+          "type": "Cent",
+          "value": -680
+        },
+        {
+          "type": "Cent",
+          "value": -670
+        },
+        {
+          "type": "Cent",
+          "value": -660
+        },
+        {
+          "type": "Cent",
+          "value": -650
+        },
+        {
+          "type": "Cent",
+          "value": -640
+        },
+        {
+          "type": "Cent",
+          "value": -630
+        },
+        {
+          "type": "Cent",
+          "value": -620
+        },
+        {
+          "type": "Cent",
+          "value": -610
+        },
+        {
+          "type": "Cent",
+          "value": -600
+        },
+        {
+          "type": "Cent",
+          "value": -590
+        },
+        {
+          "type": "Cent",
+          "value": -580
+        },
+        {
+          "type": "Cent",
+          "value": -570
+        },
+        {
+          "type": "Cent",
+          "value": -560
+        },
+        {
+          "type": "Cent",
+          "value": -550
+        },
+        {
+          "type": "Cent",
+          "value": -540
+        },
+        {
+          "type": "Cent",
+          "value": -530
+        },
+        {
+          "type": "Cent",
+          "value": -520
+        },
+        {
+          "type": "Cent",
+          "value": -510
+        },
+        {
+          "type": "Cent",
+          "value": -500
+        },
+        {
+          "type": "Cent",
+          "value": -490
+        },
+        {
+          "type": "Cent",
+          "value": -480
+        },
+        {
+          "type": "Cent",
+          "value": -470
+        },
+        {
+          "type": "Cent",
+          "value": -460
+        },
+        {
+          "type": "Cent",
+          "value": -450
+        },
+        {
+          "type": "Cent",
+          "value": -440
+        },
+        {
+          "type": "Cent",
+          "value": -430
+        },
+        {
+          "type": "Cent",
+          "value": -420
+        },
+        {
+          "type": "Cent",
+          "value": -410
+        },
+        {
+          "type": "Cent",
+          "value": -400
+        },
+        {
+          "type": "Cent",
+          "value": -390
+        },
+        {
+          "type": "Cent",
+          "value": -380
+        },
+        {
+          "type": "Cent",
+          "value": -370
+        },
+        {
+          "type": "Cent",
+          "value": -360
+        },
+        {
+          "type": "Cent",
+          "value": -350
+        },
+        {
+          "type": "Cent",
+          "value": -340
+        },
+        {
+          "type": "Cent",
+          "value": -330
+        },
+        {
+          "type": "Cent",
+          "value": -320
+        },
+        {
+          "type": "Cent",
+          "value": -310
+        },
+        {
+          "type": "Cent",
+          "value": -300
+        },
+        {
+          "type": "Cent",
+          "value": -290
+        },
+        {
+          "type": "Cent",
+          "value": -280
+        },
+        {
+          "type": "Cent",
+          "value": -270
+        },
+        {
+          "type": "Cent",
+          "value": -260
+        },
+        {
+          "type": "Cent",
+          "value": -250
+        },
+        {
+          "type": "Cent",
+          "value": -240
+        },
+        {
+          "type": "Cent",
+          "value": -230
+        },
+        {
+          "type": "Cent",
+          "value": -220
+        },
+        {
+          "type": "Cent",
+          "value": -210
+        },
+        {
+          "type": "Cent",
+          "value": -200
+        },
+        {
+          "type": "Cent",
+          "value": -190
+        },
+        {
+          "type": "Cent",
+          "value": -180
+        },
+        {
+          "type": "Cent",
+          "value": -170
+        },
+        {
+          "type": "Cent",
+          "value": -160
+        },
+        {
+          "type": "Cent",
+          "value": -150
+        },
+        {
+          "type": "Cent",
+          "value": -140
+        },
+        {
+          "type": "Cent",
+          "value": -130
+        },
+        {
+          "type": "Cent",
+          "value": -120
+        },
+        {
+          "type": "Cent",
+          "value": -110
+        },
+        {
+          "type": "Cent",
+          "value": -100
+        },
+        {
+          "type": "Cent",
+          "value": -90
+        },
+        {
+          "type": "Cent",
+          "value": -80
+        },
+        {
+          "type": "Cent",
+          "value": -70
+        },
+        {
+          "type": "Cent",
+          "value": -60
+        },
+        {
+          "type": "Cent",
+          "value": -50
+        },
+        {
+          "type": "Cent",
+          "value": -40
+        },
+        {
+          "type": "Cent",
+          "value": -30
+        },
+        {
+          "type": "Cent",
+          "value": -20
+        },
+        {
+          "type": "Cent",
+          "value": -10
+        },
+        {
+          "type": "Cent",
+          "value": 0
+        },
+        {
+          "type": "Cent",
+          "value": 10
+        },
+        {
+          "type": "Cent",
+          "value": 20
+        },
+        {
+          "type": "Cent",
+          "value": 30
+        },
+        {
+          "type": "Cent",
+          "value": 40
+        },
+        {
+          "type": "Cent",
+          "value": 50
+        },
+        {
+          "type": "Cent",
+          "value": 60
+        },
+        {
+          "type": "Cent",
+          "value": 70
+        },
+        {
+          "type": "Cent",
+          "value": 80
+        },
+        {
+          "type": "Cent",
+          "value": 90
+        },
+        {
+          "type": "Cent",
+          "value": 100
+        },
+        {
+          "type": "Cent",
+          "value": 110
+        },
+        {
+          "type": "Cent",
+          "value": 120
+        },
+        {
+          "type": "Cent",
+          "value": 130
+        },
+        {
+          "type": "Cent",
+          "value": 140
+        },
+        {
+          "type": "Cent",
+          "value": 150
+        },
+        {
+          "type": "Cent",
+          "value": 160
+        },
+        {
+          "type": "Cent",
+          "value": 170
+        },
+        {
+          "type": "Cent",
+          "value": 180
+        },
+        {
+          "type": "Cent",
+          "value": 190
+        },
+        {
+          "type": "Cent",
+          "value": 200
+        },
+        {
+          "type": "Cent",
+          "value": 210
+        },
+        {
+          "type": "Cent",
+          "value": 220
+        },
+        {
+          "type": "Cent",
+          "value": 230
+        },
+        {
+          "type": "Cent",
+          "value": 240
+        },
+        {
+          "type": "Cent",
+          "value": 250
+        },
+        {
+          "type": "Cent",
+          "value": 260
+        },
+        {
+          "type": "Cent",
+          "value": 270
+        },
+        {
+          "type": "Cent",
+          "value": 280
+        },
+        {
+          "type": "Cent",
+          "value": 290
+        },
+        {
+          "type": "Cent",
+          "value": 300
+        },
+        {
+          "type": "Cent",
+          "value": 310
+        },
+        {
+          "type": "Cent",
+          "value": 320
+        },
+        {
+          "type": "Cent",
+          "value": 330
+        },
+        {
+          "type": "Cent",
+          "value": 340
+        },
+        {
+          "type": "Cent",
+          "value": 350
+        },
+        {
+          "type": "Cent",
+          "value": 360
+        },
+        {
+          "type": "Cent",
+          "value": 370
+        },
+        {
+          "type": "Cent",
+          "value": 380
+        },
+        {
+          "type": "Cent",
+          "value": 390
+        },
+        {
+          "type": "Cent",
+          "value": 400
+        },
+        {
+          "type": "Cent",
+          "value": 410
+        },
+        {
+          "type": "Cent",
+          "value": 420
+        },
+        {
+          "type": "Cent",
+          "value": 430
+        },
+        {
+          "type": "Cent",
+          "value": 440
+        },
+        {
+          "type": "Cent",
+          "value": 450
+        },
+        {
+          "type": "Cent",
+          "value": 460
+        },
+        {
+          "type": "Cent",
+          "value": 470
+        },
+        {
+          "type": "Cent",
+          "value": 480
+        },
+        {
+          "type": "Cent",
+          "value": 490
+        },
+        {
+          "type": "Cent",
+          "value": 500
+        },
+        {
+          "type": "Cent",
+          "value": 510
+        },
+        {
+          "type": "Cent",
+          "value": 520
+        },
+        {
+          "type": "Cent",
+          "value": 530
+        },
+        {
+          "type": "Cent",
+          "value": 540
+        },
+        {
+          "type": "Cent",
+          "value": 550
+        },
+        {
+          "type": "Cent",
+          "value": 560
+        },
+        {
+          "type": "Cent",
+          "value": 570
+        },
+        {
+          "type": "Cent",
+          "value": 580
+        },
+        {
+          "type": "Cent",
+          "value": 590
+        },
+        {
+          "type": "Cent",
+          "value": 600
+        },
+        {
+          "type": "Cent",
+          "value": 610
+        },
+        {
+          "type": "Cent",
+          "value": 620
+        },
+        {
+          "type": "Cent",
+          "value": 630
+        },
+        {
+          "type": "Cent",
+          "value": 640
+        },
+        {
+          "type": "Cent",
+          "value": 650
+        },
+        {
+          "type": "Cent",
+          "value": 660
+        },
+        {
+          "type": "Cent",
+          "value": 670
+        },
+        {
+          "type": "Cent",
+          "value": 680
+        },
+        {
+          "type": "Cent",
+          "value": 690
+        },
+        {
+          "type": "Cent",
+          "value": 700
+        },
+        {
+          "type": "Cent",
+          "value": 710
+        },
+        {
+          "type": "Cent",
+          "value": 720
+        },
+        {
+          "type": "Cent",
+          "value": 730
+        },
+        {
+          "type": "Cent",
+          "value": 740
+        },
+        {
+          "type": "Cent",
+          "value": 750
+        },
+        {
+          "type": "Cent",
+          "value": 760
+        },
+        {
+          "type": "Cent",
+          "value": 770
+        },
+        {
+          "type": "Cent",
+          "value": 780
+        },
+        {
+          "type": "Cent",
+          "value": 790
+        },
+        {
+          "type": "Cent",
+          "value": 800
+        },
+        {
+          "type": "Cent",
+          "value": 810
+        },
+        {
+          "type": "Cent",
+          "value": 820
+        },
+        {
+          "type": "Cent",
+          "value": 830
+        },
+        {
+          "type": "Cent",
+          "value": 840
+        },
+        {
+          "type": "Cent",
+          "value": 850
+        },
+        {
+          "type": "Cent",
+          "value": 860
+        },
+        {
+          "type": "Cent",
+          "value": 870
+        },
+        {
+          "type": "Cent",
+          "value": 880
+        },
+        {
+          "type": "Cent",
+          "value": 890
+        },
+        {
+          "type": "Cent",
+          "value": 900
+        },
+        {
+          "type": "Cent",
+          "value": 910
+        },
+        {
+          "type": "Cent",
+          "value": 920
+        },
+        {
+          "type": "Cent",
+          "value": 930
+        },
+        {
+          "type": "Cent",
+          "value": 940
+        },
+        {
+          "type": "Cent",
+          "value": 950
+        },
+        {
+          "type": "Cent",
+          "value": 960
+        },
+        {
+          "type": "Cent",
+          "value": 970
+        },
+        {
+          "type": "Cent",
+          "value": 980
+        },
+        {
+          "type": "Cent",
+          "value": 990
+        },
+        {
+          "type": "Cent",
+          "value": 1000
+        }
+      ],
+      "unit": "dB"
     },
     {
       "scope": "System",

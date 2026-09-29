@@ -1,24 +1,23 @@
 {
-  "model": "8700hd",
-  "firmware": "1.0.2.161",
-  "reference_sha256": "6ff1f203b45345553459e70f043ae681514c98ba130058d677e70170a72ee5b5",
-  "firmware_sha256": "7237681ead460387d9332b30bbe1acfc22681a69ba363a2c64cc87c64f91bfc6",
-  "installer_sha256": "46a170fe1f545ced9f058e99c17a0d12307d4eab01b1d1e2858917738ab039ea",
-  "banner": "8700HD V 1.0.2.161",
-  "document_family": "8700.",
-  "registrations": 594,
-  "factory_presets": 712,
+  "model": "5700i",
+  "firmware": "3.0.1.20",
+  "reference_sha256": "63def9bbe3ea4cc5714b958a330f511e9f8540b973f0cedaf596dd7956054b43",
+  "firmware_sha256": "6253b1e6f373ff1796d987dfb413ed6e4e100678dea01a18c6e3caf3bf6655e5",
+  "installer_sha256": "889e9ff7263c485c23bd42f71a65cb0a0f0637713ff71de43189570f964d8a62",
+  "banner": "5700i V 3.0.1.20",
+  "document_family": "5700.",
+  "registrations": 624,
+  "factory_presets": 534,
   "preset_families": {
-    "OptimodVersion=<8600.40>": 534,
-    "OptimodVersion=<8600.10>": 178
+    "OptimodVersion=<5700.50>": 534
   },
   "preset_fields": 236,
   "field_evidence": {
-    "text": 25,
+    "text": 31,
     "not-convertible": 10,
-    "confirmed": 227,
-    "unobserved": 297,
-    "conflict": 9
+    "confirmed": 234,
+    "unobserved": 320,
+    "conflict": 2
   },
   "excluded": [
     {
@@ -62,35 +61,7 @@
       "reason": "not convertible"
     },
     {
-      "name": "DWNWRD EXP",
-      "reason": "conflicts with factory presets"
-    },
-    {
-      "name": "B5 DWNWRD EXP",
-      "reason": "conflicts with factory presets"
-    },
-    {
       "name": "B3 CLIP THRSH",
-      "reason": "conflicts with factory presets"
-    },
-    {
-      "name": "MX BASS CLIP",
-      "reason": "conflicts with factory presets"
-    },
-    {
-      "name": "B12 CROSSOVER",
-      "reason": "conflicts with factory presets"
-    },
-    {
-      "name": "IBOC LIM DR",
-      "reason": "conflicts with factory presets"
-    },
-    {
-      "name": "HD DWNWRD EXP",
-      "reason": "conflicts with factory presets"
-    },
-    {
-      "name": "HD B12 CROSSOVER",
       "reason": "conflicts with factory presets"
     },
     {
@@ -138,7 +109,6 @@
     "Loudness Level",
     "HD Output",
     "2-Band Gain Reduction",
-    "HF Limiting",
     "2-Band HD Gain Reduction"
   ]
 }
