@@ -2,12 +2,14 @@
 
 Independent open-source control software for Orban OPTIMOD processors, starting with the **OPTIMOD 5500, 5700i and 8700HD**. More models will follow.
 
-| Model | Firmware | Control | Verified on hardware |
-|---|---|---|---|
-| OPTIMOD 5500 | 1.2.8.24 | Full: settings, presets, live meters | Not yet; derived from Orban's PC Remote and firmware |
-| OPTIMOD 5700i | 3.0.1.20 | Full: settings, presets, live meters | Yes |
-| OPTIMOD-FM 8700HD | 1.0.2.161 | Full: settings, presets, live meters, FM and HD | Not yet; derived from Orban's PC Remote and firmware |
-| 5500i, 5700 FM/HD, 6300, 8500, 8600, 8700i, 9300, 9400 | any | Read-only | — |
+| Model | Firmware | Processing, presets, meters | System and setup settings | Verified on hardware |
+|---|---|---|---|---|
+| OPTIMOD 5500 | 1.2.8.24 | Yes | **Incomplete.** 45 of 121 system fields have their own page; the rest can be read and changed only in a generic list | Not yet; derived from Orban's PC Remote and firmware |
+| OPTIMOD 5700i | 3.0.1.20 | Yes | 134 controls in the native Settings window; not every setting | Yes |
+| OPTIMOD-FM 8700HD | 1.0.2.161 | Yes, FM and HD | **Incomplete.** 88 of 177 system fields have their own page; the rest can be read and changed only in a generic list | Not yet; derived from Orban's PC Remote and firmware |
+| 5500i, 5700 FM/HD, 6300, 8500, 8600, 8700i, 9300, 9400 | any | Read-only | Read-only | — |
+
+**Not yet available on any model:** complete system and setup pages that work the same way for every model, named preset save, rename and delete on the processor, automation, passcodes, backup and restore, and maintenance. This is the next piece of work.
 
 A native Rust process communicates directly with the processor and the installed macOS app presents the interface in its own native window. No Windows, browser, Wine, CrossOver or Orban runtime is required for normal use.
 
