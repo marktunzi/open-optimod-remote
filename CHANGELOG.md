@@ -2,6 +2,7 @@
 
 ## 0.2.0 — 29 September 2026
 
+- OPTIMOD 5700i: unchanged and still the only hardware-verified model. Its 3.0.1.20 profile, pages and meters are identical to 0.1.0 and are now served through the per-model profile registry. Its writes keep the verified fast path without an extra readback.
 - Added full control for the OPTIMOD 5500 (firmware 1.2.8.24) and the original OPTIMOD-FM 8700HD (firmware 1.0.2.161): parameter writes, preset recall, live meters and their own processing pages and meter layouts. Both profiles are statically derived from the official PC Remote and firmware and are not yet hardware-verified. The interface says so, and every write is confirmed by a full AP/AS readback that shows the processor's actual value on a mismatch.
 - Added the 8700HD as a separate model with its own adapter, skin, discovery banner and connection choice. It is not the 8700i.
 - Added `scripts/extract_pc_remote.py`, which derives parameters (emulated conversion routines cross-checked against factory presets), pages (dialog resources and control bindings) and meters (bar channels, curves and orientation) from an official installer. `docs/adding-a-model.md` describes how to add the next model.

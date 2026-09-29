@@ -1,6 +1,15 @@
 # Open Optimod Remote
 
-Independent open-source control software for Orban OPTIMOD processors, with fully verified control centered on the 5700i. A native Rust process communicates directly with the processor and the installed macOS app presents the interface in its own native window. No Windows, browser, Wine, CrossOver or Orban runtime is required for normal use.
+Independent open-source control software for Orban OPTIMOD processors, starting with the **OPTIMOD 5500, 5700i and 8700HD**. More models will follow.
+
+| Model | Firmware | Control | Verified on hardware |
+|---|---|---|---|
+| OPTIMOD 5500 | 1.2.8.24 | Full: settings, presets, live meters | Not yet; derived from Orban's PC Remote and firmware |
+| OPTIMOD 5700i | 3.0.1.20 | Full: settings, presets, live meters | Yes |
+| OPTIMOD-FM 8700HD | 1.0.2.161 | Full: settings, presets, live meters, FM and HD | Not yet; derived from Orban's PC Remote and firmware |
+| 5500i, 5700 FM/HD, 6300, 8500, 8600, 8700i, 9300, 9400 | any | Read-only | — |
+
+A native Rust process communicates directly with the processor and the installed macOS app presents the interface in its own native window. No Windows, browser, Wine, CrossOver or Orban runtime is required for normal use.
 
 ![Open Optimod Remote controlling an OPTIMOD 5700i: live FM and HD meters above the AGC processing page](docs/images/main-window.png)
 
@@ -20,7 +29,7 @@ Because it controls equipment that is on air, it is deliberately strict:
 - models without their own parameter profile stay read-only;
 - models whose profile is derived from the official software instead of hardware (currently the 5500 and 8700HD) say so on screen, and every write is confirmed by reading the processor back.
 
-It is open source because that knowledge should not live in one person's head or on one workstation. The protocol, the parameter mappings and the verification notes are documented in this repository. A model can be unlocked from its official PC Remote installer ([adding a model](docs/adding-a-model.md)), but only someone with that exact processor can confirm it on hardware. If you run a 5500, an 8700HD or one of the read-only models, your verification is the most valuable contribution you can make. See [Contributing](#contributing).
+It is open source because that knowledge should not live in one person's head or on one workstation. The 5500, 5700i and 8700HD are the starting point: every further OPTIMOD model is meant to be added the same way. The protocol, the parameter mappings and the verification notes are documented in this repository. A model can be unlocked from its official PC Remote installer ([adding a model](docs/adding-a-model.md)), but only someone with that exact processor can confirm it on hardware. If you run a 5500, an 8700HD or one of the read-only models, your verification is the most valuable contribution you can make. See [Contributing](#contributing).
 
 **Development build, not a complete Windows PC Remote replacement.** The target remains full feature and interaction parity, including FM/HD, live metering, presets, setup and maintenance. See [compatibility](docs/compatibility.md) and [verified protocol](docs/protocol/5700i.md).
 
