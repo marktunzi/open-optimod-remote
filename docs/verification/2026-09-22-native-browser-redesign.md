@@ -1,6 +1,6 @@
 # Native Connections and Presets browser verification
 
-> **Evidence status:** Current structural, build and installation evidence for the two native browser windows. Pixel-level visual acceptance remains separate.
+> **Evidence status:** Structural, build and installation evidence for the two native browser windows as of 22 September. Pixel-level visual acceptance remains separate. Since 29 September the Presets workflow is a workspace of the interface, also in the macOS app, and the native Presets window is only a fallback; see [preset management and backup](2026-09-29-preset-management-backup.md).
 
 Date: 2026-09-22
 

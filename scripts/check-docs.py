@@ -89,6 +89,12 @@ def main() -> int:
     require("skills/optimod-5500-control/SKILL.md", "## Presets on the processor", errors)
     require("skills/optimod-8700hd-control/SKILL.md", "## Presets on the processor", errors)
     require("docs/verification/2026-09-29-preset-management-backup.md", "Evidence status", errors)
+    forbid("PRODUCT.md", "Connections, Presets and System Settings use native macOS windows", errors)
+    forbid("DESIGN.md", "Connections, Presets and System Settings use native macOS windows", errors)
+    forbid("docs/research/2026-09-29-5500-8700hd-static-analysis.md", "8,19 s", errors)
+    require("docs/research/2026-09-29-5500-8700hd-static-analysis.md", "8,557 s in plaats van 16,250 s", errors)
+    forbid("skills/optimod-5700i-control/references/state-and-controls.md", "must not be followed by a redundant warning sheet", errors)
+    require("CHANGELOG.md", "the signed release has not yet been published", errors)
 
     for path in sorted((ROOT / "docs/plans").glob("*.md")):
         if "> **Status:**" not in path.read_text(encoding="utf-8"):

@@ -1,6 +1,6 @@
 # Native connections, presets and responsive writes — 21 September 2026
 
-> **Superseded current-behavior note:** This file preserves the evidence gathered on 21 September. The 44-point preset rows and continued polling during Recall described below were replaced on 22 September by 40-point rows, native `.sidebar` split items and a single RP/AP Recall exchange with polling paused. Use [native browser](2026-09-22-native-browser-redesign.md), [Recall continuity](2026-09-22-recall-continuity.md) and [meter/write continuity](2026-09-22-meter-write-continuity.md) for current behavior.
+> **Superseded current-behavior note:** This file preserves the evidence gathered on 21 September. The 44-point preset rows and continued polling during Recall described below were replaced on 22 September by 40-point rows, native `.sidebar` split items and a single RP/AP Recall exchange with polling paused. Use [native browser](2026-09-22-native-browser-redesign.md), [Recall continuity](2026-09-22-recall-continuity.md) and [meter/write continuity](2026-09-22-meter-write-continuity.md) for the behavior as of 22 September. Since 29 September the Presets workflow is a workspace of the interface, also in the macOS app, and the native Presets window is only a fallback; see [preset management and backup](2026-09-29-preset-management-backup.md).
 
 ## Reference behavior reviewed
 

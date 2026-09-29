@@ -59,7 +59,7 @@ Before enabling writes for one exact model and firmware:
 8. run a long session/meter soak;
 9. add parameter, meter and capability profiles plus documentation.
 
-Keep the adapter read-only until the reversible hardware write succeeds. Never auto-retry an uncertain write.
+Keep the adapter read-only until the reversible hardware write succeeds, unless the owner explicitly accepts a statically derived profile: the 5500 and 8700HD write before hardware verification with `Evidence::Static`, only on the exact banner, and with a mandatory full readback after every write. Never auto-retry an uncertain write.
 
 ## Repository references
 

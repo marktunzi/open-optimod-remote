@@ -275,7 +275,7 @@ Een adapter bereikt pas volledige ondersteuning wanneer alle onderstaande stappe
 11. capabilitygestuurde UI en onbekende-firmwaregrenzen getest;
 12. documentatie, profiel en skillreferentie bijgewerkt.
 
-Tot stap 7 blijft de adapter read-only. Onbekende firmware mag identificatie en eventueel bewezen status tonen, maar nooit automatisch schrijven.
+Tot stap 7 blijft de adapter read-only. Uitzondering sinds 29 september, op uitdrukkelijk verzoek van de eigenaar: de 5500 (1.2.8.24) en 8700HD (1.0.2.161) schrijven vóór hardwareverificatie met `Evidence::Static`, alleen op de exacte banner en met een verplichte volledige readback na iedere write. Onbekende firmware mag identificatie en eventueel bewezen status tonen, maar nooit automatisch schrijven.
 
 ## Minimale testopstelling
 

@@ -1,6 +1,6 @@
 # Preset Recall continuity
 
-> **Evidence status:** Current synthetic continuity evidence plus a read-only post-build meter observation. No on-air hardware Recall was performed.
+> **Evidence status:** Synthetic continuity evidence as of 22 September plus a read-only post-build meter observation. No on-air hardware Recall was performed. The Recall exchange itself is unchanged; since 29 September the workspace asks for one confirmation before it. Since 29 September the Presets workflow is a workspace of the interface, also in the macOS app, and the native Presets window is only a fallback; see [preset management and backup](2026-09-29-preset-management-backup.md).
 
 Target: the Rust session owner and native Presets workflow for an OPTIMOD 5700i running the supported firmware profile.
 
