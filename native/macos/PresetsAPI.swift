@@ -4,6 +4,22 @@ struct PresetBrowserContext: Sendable {
     let snapshot: DeviceSnapshotPayload
 
     var currentName: String { snapshot.processing?.name ?? "" }
+    var fileFormat: PresetFileFormat { PresetFileFormat.forAdapter(snapshot.adapterID) }
+}
+
+/// The user-preset file name and extension of the connected model, as used by
+/// Orban's own PC Remote for that model.
+struct PresetFileFormat: Equatable, Sendable {
+    let model: String
+    let fileExtension: String
+
+    static func forAdapter(_ adapterID: String?) -> PresetFileFormat {
+        let id = adapterID ?? ""
+        if id.hasPrefix("pc-remote-5500-") { return PresetFileFormat(model: "OPTIMOD 5500", fileExtension: "orb55user") }
+        if id.hasPrefix("pc-remote-8700hd-") { return PresetFileFormat(model: "OPTIMOD-FM 8700HD", fileExtension: "orb86user") }
+        if id.hasPrefix("pc-remote-5700i-") { return PresetFileFormat(model: "OPTIMOD 5700i", fileExtension: "orb57user") }
+        return PresetFileFormat(model: "OPTIMOD", fileExtension: "orb")
+    }
 }
 
 enum PresetBrowserFilter: String, CaseIterable {

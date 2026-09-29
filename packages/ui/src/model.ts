@@ -9,6 +9,10 @@ export type Capabilities = {
   live_meters: boolean;
   preset_catalog: boolean;
   preset_recall: boolean;
+  /** Save the on-air processing as a user preset on the processor. */
+  preset_store?: boolean;
+  /** Delete a user preset on the processor. */
+  preset_delete?: boolean;
 };
 export type Snapshot = {
   connected: boolean; host: string; firmware: string;

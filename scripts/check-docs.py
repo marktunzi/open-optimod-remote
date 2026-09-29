@@ -76,6 +76,19 @@ def main() -> int:
     require("skills/optimod-8700hd-control/SKILL.md", "8700HD V 1.0.2.161", errors)
     require("docs/adding-a-model.md", "scripts/extract_pc_remote.py", errors)
     require("README.md", "not yet been verified on hardware", errors)
+    require("README.md", "Saving, renaming and deleting presets on the processor works only on the 5500.", errors)
+    require("README.md", "all twelve selectable PC Remote models", errors)
+    forbid("README.md", "all eleven selectable", errors)
+    forbid("README.md", "backup and restore, and maintenance", errors)
+    require("docs/compatibility.md", "Stand: 29 september 2026", errors)
+    forbid("docs/HANDOFF.md", "feature/native-remote", errors)
+    require("docs/research/2026-09-29-5500-8700hd-static-analysis.md", "295 registraties", errors)
+    require("docs/research/2026-09-29-5500-8700hd-static-analysis.md", "## Presets op het apparaat opslaan en verwijderen", errors)
+    forbid("skills/optimod-5700i-control/SKILL.md", "AES67", errors)
+    forbid("skills/optimod-5700i-control/SKILL.md", "read-only adapters for 5500i, 5500,", errors)
+    require("skills/optimod-5500-control/SKILL.md", "## Presets on the processor", errors)
+    require("skills/optimod-8700hd-control/SKILL.md", "## Presets on the processor", errors)
+    require("docs/verification/2026-09-29-preset-management-backup.md", "Evidence status", errors)
 
     for path in sorted((ROOT / "docs/plans").glob("*.md")):
         if "> **Status:**" not in path.read_text(encoding="utf-8"):

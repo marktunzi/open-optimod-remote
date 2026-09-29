@@ -33,7 +33,7 @@ Read `report.json`:
 
 ## 3. Register the model
 
-- `crates/orban-protocol/src/adapter.rs`: a `DeviceModel` and `SkinId`, a read-only family adapter for the banner prefix, an `EXACT` entry for the exact banner with `Evidence::Static`, and the terminal banner in `identify_terminal_banner`.
+- `crates/orban-protocol/src/adapter.rs`: a `DeviceModel` and `SkinId`, a read-only family adapter for the banner prefix, an `EXACT` entry for the exact banner with `Evidence::Static`, and the terminal banner in `identify_terminal_banner`. Set `preset_store` and `preset_delete` only when the firmware documents a save and delete command, as the 5500 does with `SP` and `DP`; add the model's preset name limit to `presets::max_store_name_length`.
 - `crates/orban-protocol/src/profile.rs`: one `EMBEDDED` entry pointing to the three JSON files.
 - `crates/orban-protocol/src/document.rs`: the document family if it is new.
 - `packages/ui/src/skin-registry.ts`, `main-interface.css`, `public/assets/optimod-<model>.svg` and `Devices.tsx`: skin and model choice.

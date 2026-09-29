@@ -35,9 +35,19 @@ An FM processor with two-band and five-band structures, stereo enhancer, AGC, eq
 
 Meters: input 1/2, AGC B/M 3/4, HF enhance 25, five-band gain reduction 5–9, MPX limiter G/R 26, MPX power 77, output 27/28, composite 29, two-band gain reduction 38/39, HF limiting 21/22, overshoot limit 23/24. Records may carry up to 79 values.
 
+## Presets on the processor
+
+The 5500 firmware's terminal help documents `SP 'preset name': Saves a preset` and `DP 'preset name': Deletes a preset`. The app sends them like `RP`: `SP NAME[CODE]` or `DP NAME[CODE]`, followed by `AP [CODE]??` in the same terminal transaction, then reads `LP` again.
+
+- `SP` saves the on-air processing, so Save As works from a modified preset and a rename is only possible for the unmodified on-air user preset: save under the new name, confirm it in the list, then delete the old one.
+- Refuse before sending: a factory or existing name (the firmware answers `already exists. Please choose another name.`), more than 18 characters (the limit in the 5500 PC Remote), a leading or trailing space, the `modif ` prefix, brackets, and deleting a factory preset or the preset on air.
+- Treat these firmware replies as refusals: `already exists`, `A factory preset named`, `Maximum number of characters in a preset name is`, `preset does not exist`.
+- Whether the firmware expects the name without quotes, like `RP`, is not verified on hardware; the preset list decides.
+
 ## Safety rules for this model
 
 1. Write only after the live AP/AS document contains the field and its current value matches the profile at the current index.
 2. After every write, read the full AP or AS document back. If the value differs, show the processor's value and never retry.
 3. Recall uses `RP NAME[CODE]` plus AP and requires `ON AIR: NAME`.
-4. Only a hardware check on one exact firmware can turn this into a verified profile. Start with one reversible system setting, then one processing setting, then recall.
+4. Save and delete (below) are confirmed only by a fresh preset list, never by the reply alone, and are never retried.
+5. Only a hardware check on one exact firmware can turn this into a verified profile. Start with one reversible system setting, then one processing setting, then recall.

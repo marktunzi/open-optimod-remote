@@ -98,11 +98,13 @@ struct DeviceSnapshotPayload: Codable, Sendable {
     let writeEnabled: Bool
     let sessionID: String?
     let presets: [DevicePresetPayload]
+    let adapterID: String?
 
     enum CodingKeys: String, CodingKey {
         case connected, firmware, host, system, processing, error, presets
         case writeEnabled = "write_enabled"
         case sessionID = "session_id"
+        case adapterID = "adapter_id"
     }
 }
 
@@ -222,6 +224,7 @@ final class SystemSettingsAPI {
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
     private var cachedProfile: DeviceProfilePayload?
+    private var cachedAdapterID: String?
 
     init() {
         let configuration = URLSessionConfiguration.ephemeral
@@ -241,7 +244,8 @@ final class SystemSettingsAPI {
             switch stateResult {
             case let .failure(error): self.finish(.failure(error), completion: completion)
             case let .success(snapshot):
-                if let profile = self.cachedProfile {
+                // A profile belongs to one adapter; reload it after a model change.
+                if let profile = self.cachedProfile, self.cachedAdapterID == snapshot.adapterID {
                     let systemDefinitions = Dictionary(uniqueKeysWithValues: profile.fields
                         .filter { $0.scope == "System" }
                         .map { ($0.name, $0) })
@@ -253,6 +257,7 @@ final class SystemSettingsAPI {
                     case let .failure(error): self.finish(.failure(error), completion: completion)
                     case let .success(profile):
                         self.cachedProfile = profile
+                        self.cachedAdapterID = snapshot.adapterID
                         let systemDefinitions = Dictionary(uniqueKeysWithValues: profile.fields
                             .filter { $0.scope == "System" }
                             .map { ($0.name, $0) })

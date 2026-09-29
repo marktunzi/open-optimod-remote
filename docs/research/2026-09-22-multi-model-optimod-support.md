@@ -144,9 +144,9 @@ De onderstaande tabel gebruikt de hoofd-EXE uit ieder officieel pakket. `Overeen
 
 De officiële pakketten zijn alleen als tijdelijke onderzoeksinput gebruikt. Hun SHA-256 is vastgelegd zodat een vervolgonderzoek exact kan controleren welke binary is onderzocht.
 
-## Waarom de huidige code niet modelneutraal is
+## Waarom de code op 22 september niet modelneutraal was
 
-De huidige implementatie bevat correcte maar harde 5700i-grenzen:
+Deze lijst beschrijft de stand bij de start van dit onderzoek. Sindsdien zijn deze grenzen per model gemaakt: de adapterregistry kiest banner, documentfamilie, meterprofiel (de 5700i blijft exact 112 waarden; statisch afgeleide adapters accepteren 1–512) en parameterprofiel per exact model en firmware. De implementatie bevatte toen correcte maar harde 5700i-grenzen:
 
 - `crates/orban-protocol/src/session.rs` accepteert alleen een firmwaretekst die met `5700i V ` begint;
 - `crates/orban-protocol/src/terminal.rs` vereist een 5700i-terminalbanner;

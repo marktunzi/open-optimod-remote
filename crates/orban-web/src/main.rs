@@ -82,6 +82,8 @@ enum Command {
     Refresh(Reply),
     Recall(Recall, Reply),
     ApplyPreset(ApplyPreset, Reply),
+    PresetFile(PresetFile, Reply),
+    RestoreSetup(RestoreSetup, Reply),
 }
 #[derive(Deserialize)]
 struct Connect {
@@ -120,6 +122,38 @@ struct Recall {
     confirmed: bool,
     expected_host: String,
     expected_session: String,
+}
+/// Save, delete or rename a user preset on the processor.
+#[derive(Deserialize)]
+#[serde(tag = "action", rename_all = "snake_case")]
+enum PresetFileAction {
+    /// Save the on-air processing under a new name.
+    Save { name: String },
+    /// Delete a user preset that is not on air.
+    Delete { name: String },
+    /// Save the unmodified on-air user preset under a new name, then delete the old one.
+    Rename { name: String, new_name: String },
+}
+#[derive(Deserialize)]
+struct PresetFile {
+    #[serde(flatten)]
+    action: PresetFileAction,
+    expected_name: String,
+    confirmed: bool,
+    expected_host: String,
+    expected_session: String,
+}
+/// A system (AS) document from a backup, restored field by field.
+#[derive(Deserialize)]
+struct RestoreSetup {
+    document: String,
+    confirmed: bool,
+    expected_host: String,
+    expected_session: String,
+}
+#[derive(Deserialize)]
+struct SetupDocument {
+    document: String,
 }
 #[derive(Deserialize)]
 struct ApplyPreset {
@@ -205,6 +239,10 @@ async fn main() {
         .route("/api/presets/recall", post(recall_handler))
         .route("/api/presets/current-file", get(preset_file_handler))
         .route("/api/presets/apply-file", post(apply_preset_handler))
+        .route("/api/presets/manage", post(preset_file_action_handler))
+        .route("/api/backup", get(backup_handler))
+        .route("/api/backup/setup-plan", post(setup_plan_handler))
+        .route("/api/backup/restore-setup", post(restore_setup_handler))
         .route("/api/devices", get(devices_list).post(devices_save))
         .route("/api/devices/delete", post(devices_delete))
         .route("/api/devices/code", post(devices_code))
@@ -317,6 +355,64 @@ async fn preset_file_handler(State(app): State<App>) -> ApiResult {
     Ok(Json(
         json!({"name": document.name, "document": document.raw}),
     ))
+}
+async fn preset_file_action_handler(
+    State(app): State<App>,
+    Json(body): Json<PresetFile>,
+) -> ApiResult {
+    dispatch(app, |r| Command::PresetFile(body, r)).await
+}
+/// Refreshes both documents and the preset list, then returns them as one
+/// backup. User presets other than the on-air one cannot be read without
+/// recalling them, so only their names are included.
+async fn backup_handler(State(app): State<App>) -> ApiResult {
+    let _ = dispatch(app.clone(), Command::Refresh).await?;
+    let state = app.state.read().await;
+    let (Some(processing), Some(system)) = (&state.processing, &state.system) else {
+        return Err(api_error("Connect to an Optimod before making a backup"));
+    };
+    let created = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or_default();
+    Ok(Json(json!({
+        "format": "open-optimod-backup",
+        "version": 1,
+        "created": created,
+        "model": state.model.label(),
+        "adapter_id": state.adapter_id,
+        "firmware": state.firmware,
+        "processing": {"name": processing.name, "document": processing.raw},
+        "system": {"document": system.raw},
+        "presets": state.presets,
+    })))
+}
+/// Lists which settings a restore would change and which it leaves alone,
+/// without contacting the processor.
+async fn setup_plan_handler(State(app): State<App>, Json(body): Json<SetupDocument>) -> ApiResult {
+    let state = app.state.read().await;
+    let current = state
+        .system
+        .as_ref()
+        .ok_or_else(|| api_error("Connect to an Optimod before restoring settings"))?;
+    let imported =
+        Document::parse_for_model(body.document.as_bytes(), state.model).map_err(api_error)?;
+    let profile = app
+        .profile
+        .read()
+        .map_err(|_| api_error("Profile unavailable"))?
+        .clone();
+    let (changes, skipped) = setup_restore_plan(&profile, current, &imported);
+    Ok(Json(json!({
+        "changes": changes.iter().map(|(name, field)| json!({"name": name, "from": current.fields.get(name), "to": field})).collect::<Vec<_>>(),
+        "skipped": skipped.iter().map(|(name, reason)| json!({"name": name, "reason": reason})).collect::<Vec<_>>(),
+    })))
+}
+async fn restore_setup_handler(
+    State(app): State<App>,
+    Json(body): Json<RestoreSetup>,
+) -> ApiResult {
+    dispatch(app, |r| Command::RestoreSetup(body, r)).await
 }
 async fn apply_preset_handler(State(app): State<App>, Json(body): Json<ApplyPreset>) -> ApiResult {
     dispatch(app, |r| Command::ApplyPreset(body, r)).await
@@ -721,6 +817,188 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
     Ok(())
 }
 
+/// Sends `SP` or `DP` once, then confirms the result with a fresh preset list.
+/// There is never a retry: a list that does not show the expected change is
+/// reported with the processor's actual list published.
+async fn preset_file_step(
+    device: &mut Device,
+    app: &App,
+    name: &str,
+    store: bool,
+) -> Result<(), OperationError> {
+    let address = device.terminal;
+    let code = device.code.clone();
+    let model = device.session.info.model;
+    let sent = if store {
+        orban_protocol::terminal::store_preset_for_model(
+            address,
+            &code,
+            name,
+            Duration::from_secs(10),
+            model,
+        )
+        .await
+    } else {
+        orban_protocol::terminal::delete_preset_for_model(
+            address,
+            &code,
+            name,
+            Duration::from_secs(10),
+            model,
+        )
+        .await
+    };
+    let _ = device.session.send(222, b"").await;
+    // Read the list even after an error: the command may have taken effect.
+    let listed = refresh_presets(app, device).await;
+    let present = app
+        .state
+        .read()
+        .await
+        .presets
+        .iter()
+        .any(|p| p.name == name && p.kind == orban_protocol::presets::PresetKind::User);
+    let verb = if store { "save" } else { "delete" };
+    match (sent, listed) {
+        (Ok(_), Ok(())) if present == store => Ok(()),
+        (Ok(_), Ok(())) => Err(OperationError::uncertain(format!(
+            "The processor did not {verb} {name}: the preset list does not show the change"
+        ))),
+        (Err(e), Ok(())) if present == store => Err(OperationError::uncertain(format!(
+            "The preset list shows that {name} was {verb}d, but the reply was unusual: {e}"
+        ))),
+        (Err(e), Ok(())) => Err(OperationError::safe(format!(
+            "Could not {verb} {name}. {e}"
+        ))),
+        (_, Err(e)) => Err(OperationError::uncertain(format!(
+            "The result of {verb} {name} could not be confirmed. Refresh the preset list. {e}"
+        ))),
+    }
+}
+
+async fn manage_preset(
+    device: &mut Device,
+    app: &App,
+    body: PresetFile,
+) -> Result<(), OperationError> {
+    use orban_protocol::presets::{PresetKind, max_store_name_length, validate_store_name};
+    let capabilities = device.session.info.capabilities;
+    let model = device.session.info.model;
+    let needs_store = !matches!(body.action, PresetFileAction::Delete { .. });
+    let needs_delete = !matches!(body.action, PresetFileAction::Save { .. });
+    if (needs_store && !capabilities.preset_store) || (needs_delete && !capabilities.preset_delete)
+    {
+        return Err(OperationError::safe(format!(
+            "Saving, renaming and deleting presets on the processor is not available for {}",
+            model.label()
+        )));
+    }
+    if !body.confirmed {
+        return Err(OperationError::safe("Confirm the preset change first"));
+    }
+    if device.session.info.access_level != 0 {
+        return Err(OperationError::safe(
+            "Preset changes are not enabled for this access level",
+        ));
+    }
+    {
+        let state = app.state.read().await;
+        ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
+        if state.host != body.expected_host {
+            return Err(OperationError::safe(
+                "The active device changed. Review the connection first",
+            ));
+        }
+        let on_air = state.processing.as_ref().map(|d| d.name.as_str());
+        if on_air != Some(body.expected_name.as_str()) {
+            return Err(OperationError::safe(
+                "The on-air preset changed elsewhere. Review the current preset first",
+            ));
+        }
+        let kind = |name: &str| {
+            state
+                .presets
+                .iter()
+                .find(|p| p.name == name)
+                .map(|p| p.kind.clone())
+        };
+        let new_name = match &body.action {
+            PresetFileAction::Save { name } | PresetFileAction::Rename { new_name: name, .. } => {
+                Some(name)
+            }
+            PresetFileAction::Delete { .. } => None,
+        };
+        if let Some(name) = new_name {
+            validate_store_name(name, max_store_name_length(model))
+                .map_err(OperationError::safe)?;
+            match kind(name) {
+                Some(PresetKind::Factory) => {
+                    return Err(OperationError::safe(format!(
+                        "A factory preset named {name} already exists"
+                    )));
+                }
+                Some(_) => {
+                    return Err(OperationError::safe(format!(
+                        "A preset named {name} already exists. Choose another name"
+                    )));
+                }
+                None => {}
+            }
+        }
+        match &body.action {
+            PresetFileAction::Delete { name } => {
+                if kind(name) != Some(PresetKind::User) {
+                    return Err(OperationError::safe("Only user presets can be deleted"));
+                }
+                if on_air.is_some_and(|n| n == name || n.strip_prefix("modif ") == Some(name)) {
+                    return Err(OperationError::safe(format!(
+                        "Cannot delete the on-air preset {name}"
+                    )));
+                }
+            }
+            PresetFileAction::Rename { name, .. } => {
+                if kind(name) != Some(PresetKind::User) {
+                    return Err(OperationError::safe("Only user presets can be renamed"));
+                }
+                // SP saves the on-air processing, so only the unmodified
+                // on-air preset can be renamed without changing its content.
+                if on_air != Some(name.as_str()) {
+                    return Err(OperationError::safe(format!(
+                        "Recall {name} without changes first; only the on-air preset can be renamed"
+                    )));
+                }
+            }
+            PresetFileAction::Save { .. } => {}
+        }
+    }
+    match body.action {
+        PresetFileAction::Save { name } => preset_file_step(device, app, &name, true).await,
+        PresetFileAction::Delete { name } => preset_file_step(device, app, &name, false).await,
+        PresetFileAction::Rename { name, new_name } => {
+            preset_file_step(device, app, &new_name, true).await?;
+            preset_file_step(device, app, &name, false)
+                .await
+                .map_err(|e| {
+                    OperationError::uncertain(format!(
+                        "{new_name} was saved, but {name} was not deleted. {}",
+                        e.message
+                    ))
+                })
+        }
+    }?;
+    let mut state = app.state.write().await;
+    if let Some(document) = &state.processing {
+        let base = document
+            .name
+            .strip_prefix("modif ")
+            .unwrap_or(&document.name)
+            .to_owned();
+        state.preset_base_name = Some(base);
+    }
+    state.error = None;
+    Ok(())
+}
+
 fn same_value_type(left: &Value, right: &Value) -> bool {
     matches!(
         (left, right),
@@ -879,6 +1157,139 @@ async fn apply_preset(
     state.modified_fields.clear();
     state.less_more_available = false;
     state.revision += 1;
+    state.error = None;
+    Ok(())
+}
+
+/// System fields a restore never writes: the network settings that carry this
+/// connection, the running clock, and status values the processor reports.
+fn setup_restore_exclusion(name: &str) -> Option<&'static str> {
+    if name.starts_with("NETWORK ") || name.ends_with(" PORT") || name == "SHOW IP" {
+        Some("network settings are left alone so the connection survives")
+    } else if matches!(
+        name,
+        "SET HOUR" | "SET MINUTE" | "SET SECOND" | "SET DAY" | "SET MONTH" | "SET YEAR"
+    ) {
+        Some("the clock is not set back to the time of the backup")
+    } else if name.starts_with("ACTUAL ") {
+        Some("a status value reported by the processor")
+    } else {
+        None
+    }
+}
+
+/// The system fields a restore writes, and those it skips with a reason.
+type RestorePlan = (Vec<(String, Field)>, Vec<(String, String)>);
+
+fn setup_restore_plan(profile: &Profile, current: &Document, imported: &Document) -> RestorePlan {
+    let mut changes = Vec::new();
+    let mut skipped = Vec::new();
+    for (name, requested) in &imported.fields {
+        let Some(present) = current.fields.get(name) else {
+            skipped.push((name.clone(), "not present on this processor".into()));
+            continue;
+        };
+        if present == requested {
+            continue;
+        }
+        if let Some(reason) = setup_restore_exclusion(name) {
+            skipped.push((name.clone(), reason.into()));
+            continue;
+        }
+        let valid = same_value_type(&present.value, &requested.value)
+            && match &requested.value {
+                Value::Text(text) => requested.index == present.index && text.len() <= 255,
+                _ => profile
+                    .value(Scope::System, name, requested.index)
+                    .is_ok_and(|value| value == requested.value),
+            }
+            && orban_protocol::control::encode_change(Scope::System, name, requested).is_ok();
+        if valid {
+            changes.push((name.clone(), requested.clone()));
+        } else {
+            skipped.push((
+                name.clone(),
+                "not writable with this processor's profile".into(),
+            ));
+        }
+    }
+    (changes, skipped)
+}
+
+/// Writes each planned system field once, then reads AS back (up to four
+/// times, without replaying a write) and requires every written field to match.
+async fn restore_setup(
+    device: &mut Device,
+    app: &App,
+    body: RestoreSetup,
+) -> Result<(), OperationError> {
+    if !device.session.info.capabilities.parameter_writes {
+        return Err(OperationError::safe(format!(
+            "Settings cannot be written on {}",
+            device.session.info.model.label()
+        )));
+    }
+    if !body.confirmed {
+        return Err(OperationError::safe("Confirm the restore first"));
+    }
+    if device.session.info.access_level != 0 {
+        return Err(OperationError::safe(
+            "Setting changes are not enabled for this access level",
+        ));
+    }
+    {
+        let state = app.state.read().await;
+        ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
+        if state.host != body.expected_host {
+            return Err(OperationError::safe(
+                "The active device changed. Review the connection first",
+            ));
+        }
+    }
+    let imported = Document::parse_for_model(body.document.as_bytes(), device.session.info.model)
+        .map_err(OperationError::safe)?;
+    let profile = device.profile.clone().ok_or_else(|| {
+        OperationError::safe("This processor has no parameter profile; it is read-only")
+    })?;
+    let before = live_snapshot(device, app, Scope::System)
+        .await
+        .map_err(OperationError::safe)?;
+    let (changes, _) = setup_restore_plan(&profile, &before, &imported);
+    for (name, field) in &changes {
+        device
+            .session
+            .change(Scope::System, name, field)
+            .await
+            .map_err(OperationError::uncertain)?;
+        drain(device, app)
+            .await
+            .map_err(OperationError::uncertain)?;
+    }
+    let mut after = None;
+    for attempt in 0..4 {
+        let snapshot = live_snapshot(device, app, Scope::System)
+            .await
+            .map_err(OperationError::uncertain)?;
+        let matches = changes
+            .iter()
+            .all(|(name, expected)| snapshot.fields.get(name) == Some(expected));
+        after = Some((snapshot, matches));
+        if matches {
+            break;
+        }
+        if attempt < 3 {
+            sleep(Duration::from_millis(180)).await;
+        }
+    }
+    let (after, matches) = after.expect("verification loop always produces a snapshot");
+    let mut state = app.state.write().await;
+    state.system = Some(after);
+    state.revision += 1;
+    if !matches {
+        return Err(OperationError::uncertain(
+            "The processor did not confirm every restored setting; the current values are shown",
+        ));
+    }
     state.error = None;
     Ok(())
 }
@@ -1075,6 +1486,16 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
               let _=reply.send(Err(e.message));
              }
             }
+           }
+           Command::PresetFile(body,reply)=>{
+            let result=if let Some(d)=&mut device{manage_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            meter_failures=0;
+            tick.reset();
+            let _=reply.send(result.map_err(|e| e.message));
+           }
+           Command::RestoreSetup(body,reply)=>{
+            let result=if let Some(d)=&mut device{restore_setup(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            let _=reply.send(result.map_err(|e| e.message));
            }
            Command::ApplyPreset(body,reply)=>{
             let result=if let Some(d)=&mut device{apply_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
@@ -2004,5 +2425,664 @@ mod tests {
         .await;
         assert!(supplement.result.is_ok(), "{:?}", supplement.result.err());
         assert_eq!((supplement.changes, supplement.readbacks), (1, 1));
+    }
+
+    struct PresetFileCase {
+        banner: &'static str,
+        terminal_banner: &'static str,
+        on_air: &'static str,
+        users: &'static [&'static str],
+        /// The processor ignores SP and DP, as if the command had no effect.
+        ignore: bool,
+        action: PresetFileAction,
+    }
+    struct PresetFileOutcome {
+        result: Result<(), String>,
+        commands: Vec<String>,
+        users: Vec<String>,
+    }
+
+    /// A 5500-style terminal that keeps a user preset list, answers SP and DP
+    /// like the firmware and always ends a reply with an AP document.
+    async fn simulated_preset_file(case: PresetFileCase) -> PresetFileOutcome {
+        let pc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let pc_address = pc_listener.local_addr().unwrap();
+        let banner = case.banner;
+        tokio::spawn(async move {
+            let (mut stream, _) = pc_listener.accept().await.unwrap();
+            loop {
+                if stream.read_u8().await.unwrap() == 0 {
+                    break;
+                }
+            }
+            stream
+                .write_all(format!("connect ok\n0\n{banner}\n123\n").as_bytes())
+                .await
+                .unwrap();
+            let mut decoder = orban_protocol::framing::Decoder::default();
+            let mut buffer = [0_u8; 4096];
+            loop {
+                let count = match stream.read(&mut buffer).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(count) => count,
+                };
+                for frame in decoder.feed(&buffer[..count]).unwrap() {
+                    let reply = match orban_protocol::message::decode(&frame).unwrap() {
+                        Message::Other { kind: 219, .. } => Some(220),
+                        Message::Other { kind: 250, .. } => Some(251),
+                        _ => None,
+                    };
+                    if let Some(kind) = reply {
+                        let _ = stream
+                            .write_all(&orban_protocol::message::encode(kind, b"").unwrap())
+                            .await;
+                    }
+                }
+            }
+        });
+
+        let terminal_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let terminal_address = terminal_listener.local_addr().unwrap();
+        let commands = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let users = Arc::new(std::sync::Mutex::new(
+            case.users.iter().map(|u| u.to_string()).collect::<Vec<_>>(),
+        ));
+        let on_air = Arc::new(std::sync::Mutex::new(case.on_air.to_string()));
+        let (server_commands, server_users, server_on_air) =
+            (commands.clone(), users.clone(), on_air.clone());
+        let terminal_banner = case.terminal_banner;
+        let ignore = case.ignore;
+        tokio::spawn(async move {
+            loop {
+                let Ok((mut stream, _)) = terminal_listener.accept().await else {
+                    break;
+                };
+                stream
+                    .write_all(format!("{terminal_banner}\r\n").as_bytes())
+                    .await
+                    .unwrap();
+                let mut request = Vec::new();
+                let mut byte = [0_u8; 1];
+                while !request.ends_with(b"??\r\n") {
+                    if stream.read_exact(&mut byte).await.is_err() {
+                        break;
+                    }
+                    request.push(byte[0]);
+                }
+                let request = String::from_utf8(request).unwrap();
+                let first = request.lines().next().unwrap_or_default().to_owned();
+                let mut reply = String::new();
+                let name = first
+                    .get(3..)
+                    .and_then(|rest| rest.split_once('['))
+                    .map(|(name, _)| name.to_owned());
+                if first.starts_with("SP ") || first.starts_with("DP ") {
+                    server_commands.lock().unwrap().push(first.clone());
+                    let name = name.unwrap();
+                    let mut users = server_users.lock().unwrap();
+                    if first.starts_with("SP ") {
+                        if users.contains(&name) {
+                            reply.push_str(&format!(
+                                " SP: {name} already exists. Please choose another name.\r\n"
+                            ));
+                        } else if !ignore {
+                            users.push(name.clone());
+                            *server_on_air.lock().unwrap() = name.clone();
+                            reply.push_str(&format!(" SP: {name}\r\n"));
+                        }
+                    } else if !users.contains(&name) {
+                        reply.push_str(" DP: preset does not exist\r\n");
+                    } else if !ignore {
+                        users.retain(|u| *u != name);
+                        reply.push_str(&format!(" DP: {name}\r\n"));
+                    }
+                } else if first.starts_with("LP ") {
+                    reply.push_str("FACTORY ONE factory\r\n");
+                    for user in server_users.lock().unwrap().iter() {
+                        reply.push_str(&format!("{user} user\r\n"));
+                    }
+                }
+                let on_air = server_on_air.lock().unwrap().clone();
+                reply.push_str(&format!(
+                    "OptimodVersion=<8300.10>\r\nPreset Name=<{on_air}> size=1\r\nC:<AGC DRIVE>Int:10;D:20;\r\nEnd Preset<end>\r\n"
+                ));
+                let _ = stream.write_all(reply.as_bytes()).await;
+                let mut tail = [0_u8; 64];
+                let _ = stream.read(&mut tail).await;
+            }
+        });
+
+        let session = Session::connect(pc_address, "1234", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (command_tx, _) = mpsc::channel(1);
+        let (meters, _) = watch::channel(json!({"live":false}));
+        let storage = tempfile::tempdir().unwrap();
+        let current = processing(case.on_air, 20);
+        let mut presets = vec![orban_protocol::presets::Preset {
+            name: "FACTORY ONE".into(),
+            kind: orban_protocol::presets::PresetKind::Factory,
+        }];
+        presets.extend(case.users.iter().map(|u| orban_protocol::presets::Preset {
+            name: (*u).into(),
+            kind: orban_protocol::presets::PresetKind::User,
+        }));
+        let app = App {
+            state: Arc::new(RwLock::new(Snapshot {
+                connected: true,
+                host: "127.0.0.1".into(),
+                processing: Some(current.clone()),
+                write_enabled: true,
+                session_id: Some("test-session".into()),
+                presets,
+                ..Snapshot::default()
+            })),
+            meters,
+            commands: command_tx,
+            profile: shared_profile(reference_profile()),
+            book: Arc::new(std::sync::Mutex::new(
+                devices::Book::open(
+                    storage.path().join("connections.json"),
+                    Box::new(devices::FileVault::new(
+                        storage.path().join("credentials.json"),
+                    )),
+                )
+                .unwrap(),
+            )),
+        };
+        let mut device = Device {
+            session,
+            terminal: terminal_address,
+            code: Zeroizing::new("1234".to_owned()),
+            processing_baseline: Some(current),
+            profile: Some(reference_profile()),
+        };
+        let result = manage_preset(
+            &mut device,
+            &app,
+            PresetFile {
+                action: case.action,
+                expected_name: case.on_air.into(),
+                confirmed: true,
+                expected_host: "127.0.0.1".into(),
+                expected_session: "test-session".into(),
+            },
+        )
+        .await
+        .map_err(|e| e.message);
+        let listed = app
+            .state
+            .read()
+            .await
+            .presets
+            .iter()
+            .filter(|p| p.kind == orban_protocol::presets::PresetKind::User)
+            .map(|p| p.name.clone())
+            .collect();
+        let commands = commands.lock().unwrap().clone();
+        PresetFileOutcome {
+            result,
+            commands,
+            users: listed,
+        }
+    }
+
+    const P5500: (&str, &str) = ("5500 V 1.2.8.24", "Orban Optimod 5500");
+
+    #[tokio::test]
+    async fn a_5500_saves_and_deletes_user_presets_confirmed_by_the_list() {
+        let saved = simulated_preset_file(PresetFileCase {
+            banner: P5500.0,
+            terminal_banner: P5500.1,
+            on_air: "modif FACTORY ONE",
+            users: &["MORNING"],
+            ignore: false,
+            action: PresetFileAction::Save {
+                name: "EVENING".into(),
+            },
+        })
+        .await;
+        assert!(saved.result.is_ok(), "{:?}", saved.result);
+        assert_eq!(saved.commands, ["SP EVENING[1234]"]);
+        assert_eq!(saved.users, ["MORNING", "EVENING"]);
+
+        let deleted = simulated_preset_file(PresetFileCase {
+            banner: P5500.0,
+            terminal_banner: P5500.1,
+            on_air: "FACTORY ONE",
+            users: &["MORNING", "EVENING"],
+            ignore: false,
+            action: PresetFileAction::Delete {
+                name: "MORNING".into(),
+            },
+        })
+        .await;
+        assert!(deleted.result.is_ok(), "{:?}", deleted.result);
+        assert_eq!(deleted.commands, ["DP MORNING[1234]"]);
+        assert_eq!(deleted.users, ["EVENING"]);
+    }
+
+    #[tokio::test]
+    async fn a_5500_renames_the_on_air_user_preset_by_saving_then_deleting() {
+        let renamed = simulated_preset_file(PresetFileCase {
+            banner: P5500.0,
+            terminal_banner: P5500.1,
+            on_air: "MORNING",
+            users: &["MORNING"],
+            ignore: false,
+            action: PresetFileAction::Rename {
+                name: "MORNING".into(),
+                new_name: "BREAKFAST".into(),
+            },
+        })
+        .await;
+        assert!(renamed.result.is_ok(), "{:?}", renamed.result);
+        assert_eq!(renamed.commands, ["SP BREAKFAST[1234]", "DP MORNING[1234]"]);
+        assert_eq!(renamed.users, ["BREAKFAST"]);
+    }
+
+    #[tokio::test]
+    async fn preset_changes_are_refused_before_any_command_when_unsafe() {
+        for (users, on_air, action, expected) in [
+            (
+                &["MORNING"][..],
+                "MORNING",
+                PresetFileAction::Delete {
+                    name: "MORNING".into(),
+                },
+                "on-air",
+            ),
+            (
+                &["MORNING"][..],
+                "FACTORY ONE",
+                PresetFileAction::Delete {
+                    name: "FACTORY ONE".into(),
+                },
+                "Only user presets",
+            ),
+            (
+                &["MORNING"][..],
+                "FACTORY ONE",
+                PresetFileAction::Save {
+                    name: "MORNING".into(),
+                },
+                "already exists",
+            ),
+            (
+                &["MORNING"][..],
+                "FACTORY ONE",
+                PresetFileAction::Save {
+                    name: "FACTORY ONE".into(),
+                },
+                "factory preset",
+            ),
+            (
+                &["MORNING"][..],
+                "FACTORY ONE",
+                PresetFileAction::Save {
+                    name: "NINETEEN CHARACTERS".into(),
+                },
+                "at most 18",
+            ),
+            (
+                &["MORNING"][..],
+                "FACTORY ONE",
+                PresetFileAction::Save {
+                    name: "modif X".into(),
+                },
+                "modif",
+            ),
+            (
+                &["MORNING"][..],
+                "modif MORNING",
+                PresetFileAction::Rename {
+                    name: "MORNING".into(),
+                    new_name: "NEW".into(),
+                },
+                "without changes",
+            ),
+        ] {
+            let outcome = simulated_preset_file(PresetFileCase {
+                banner: P5500.0,
+                terminal_banner: P5500.1,
+                on_air,
+                users,
+                ignore: false,
+                action,
+            })
+            .await;
+            let error = outcome.result.expect_err(expected);
+            assert!(error.contains(expected), "{error}");
+            assert!(
+                outcome.commands.is_empty(),
+                "{expected}: {:?}",
+                outcome.commands
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn an_ignored_delete_is_reported_from_the_list_and_never_retried() {
+        let outcome = simulated_preset_file(PresetFileCase {
+            banner: P5500.0,
+            terminal_banner: P5500.1,
+            on_air: "FACTORY ONE",
+            users: &["MORNING"],
+            ignore: true,
+            action: PresetFileAction::Delete {
+                name: "MORNING".into(),
+            },
+        })
+        .await;
+        let error = outcome.result.unwrap_err();
+        assert!(error.contains("did not delete"), "{error}");
+        assert_eq!(outcome.commands, ["DP MORNING[1234]"]);
+        assert_eq!(outcome.users, ["MORNING"]);
+    }
+
+    #[tokio::test]
+    async fn models_without_a_documented_save_command_refuse_preset_changes() {
+        for (banner, terminal_banner) in [
+            ("5700i V 3.0.1.20", "Orban Optimod 5700i test"),
+            (
+                "8700HD V 1.0.2.161",
+                "Welcome to the Orban Optimod-FM 8700HD.",
+            ),
+        ] {
+            let outcome = simulated_preset_file(PresetFileCase {
+                banner,
+                terminal_banner,
+                on_air: "FACTORY ONE",
+                users: &["MORNING"],
+                ignore: false,
+                action: PresetFileAction::Delete {
+                    name: "MORNING".into(),
+                },
+            })
+            .await;
+            let error = outcome.result.unwrap_err();
+            assert!(error.contains("not available"), "{error}");
+            assert!(outcome.commands.is_empty());
+        }
+    }
+
+    fn system_document(fields: &[(&str, u32, Value)]) -> Document {
+        Document {
+            name: "SYSTEM".into(),
+            fields: fields
+                .iter()
+                .map(|(name, index, value)| {
+                    (
+                        (*name).to_owned(),
+                        Field {
+                            index: *index,
+                            value: value.clone(),
+                        },
+                    )
+                })
+                .collect(),
+            raw: String::new(),
+        }
+    }
+
+    #[test]
+    fn setup_restore_plan_writes_only_valid_changes_and_explains_the_rest() {
+        let profile = reference_profile();
+        let current = system_document(&[
+            ("CONTRAST", 3, Value::Int(3)),
+            ("LANGUAGE", 0, Value::Choice("English".into())),
+            ("NETWORK PORT", 6201, Value::Int(6201)),
+            ("SET HOUR", 10, Value::Int(10)),
+        ]);
+        let imported = system_document(&[
+            ("CONTRAST", 2, Value::Int(2)),
+            ("LANGUAGE", 0, Value::Choice("English".into())),
+            ("NETWORK PORT", 6202, Value::Int(6202)),
+            ("SET HOUR", 4, Value::Int(4)),
+            ("NOT ON THIS UNIT", 0, Value::Int(0)),
+        ]);
+        let (changes, skipped) = setup_restore_plan(&profile, &current, &imported);
+        assert_eq!(
+            changes,
+            [(
+                "CONTRAST".to_owned(),
+                Field {
+                    index: 2,
+                    value: Value::Int(2)
+                }
+            )]
+        );
+        let skipped: Vec<_> = skipped.iter().map(|(name, _)| name.as_str()).collect();
+        assert_eq!(skipped, ["NETWORK PORT", "NOT ON THIS UNIT", "SET HOUR"]);
+
+        // An index outside the profile is never written.
+        let invalid = system_document(&[("CONTRAST", 9, Value::Int(9))]);
+        let (changes, skipped) = setup_restore_plan(&profile, &current, &invalid);
+        assert!(changes.is_empty());
+        assert_eq!(skipped[0].1, "not writable with this processor's profile");
+    }
+
+    /// A 5700i that records opcode-227 writes and answers terminal reads with
+    /// the given documents in order, repeating the last one.
+    async fn scripted_5700i(
+        documents: Vec<String>,
+    ) -> (App, Device, Arc<std::sync::Mutex<Vec<String>>>) {
+        let pc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let pc_address = pc_listener.local_addr().unwrap();
+        let writes = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+        let server_writes = writes.clone();
+        tokio::spawn(async move {
+            let (mut stream, _) = pc_listener.accept().await.unwrap();
+            loop {
+                if stream.read_u8().await.unwrap() == 0 {
+                    break;
+                }
+            }
+            stream
+                .write_all(b"connect ok\n0\n5700i V 3.0.1.20\n123\n")
+                .await
+                .unwrap();
+            let mut decoder = orban_protocol::framing::Decoder::default();
+            let mut buffer = [0_u8; 4096];
+            loop {
+                let count = match stream.read(&mut buffer).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(count) => count,
+                };
+                for frame in decoder.feed(&buffer[..count]).unwrap() {
+                    match orban_protocol::message::decode(&frame).unwrap() {
+                        Message::Other { kind: 227, data } => {
+                            server_writes
+                                .lock()
+                                .unwrap()
+                                .push(String::from_utf8(data).unwrap());
+                        }
+                        Message::Other { kind: 219, .. } => {
+                            let _ = stream
+                                .write_all(&orban_protocol::message::encode(220, b"").unwrap())
+                                .await;
+                        }
+                        Message::Other { kind: 250, .. } => {
+                            let _ = stream
+                                .write_all(&orban_protocol::message::encode(251, b"").unwrap())
+                                .await;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        });
+        let terminal_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let terminal_address = terminal_listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let mut next = 0;
+            loop {
+                let Ok((mut stream, _)) = terminal_listener.accept().await else {
+                    break;
+                };
+                stream
+                    .write_all(b"Orban Optimod 5700i test\r\n")
+                    .await
+                    .unwrap();
+                let mut request = Vec::new();
+                let mut byte = [0_u8; 1];
+                while !request.ends_with(b"??\r\n") {
+                    if stream.read_exact(&mut byte).await.is_err() {
+                        break;
+                    }
+                    request.push(byte[0]);
+                }
+                let reply = &documents[next.min(documents.len() - 1)];
+                next += 1;
+                let _ = stream.write_all(reply.as_bytes()).await;
+                let mut tail = [0_u8; 64];
+                let _ = stream.read(&mut tail).await;
+            }
+        });
+        let session = Session::connect(pc_address, "1234", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (command_tx, _) = mpsc::channel(1);
+        let (meters, _) = watch::channel(json!({"live":false}));
+        let storage = tempfile::tempdir().unwrap();
+        let app = App {
+            state: Arc::new(RwLock::new(Snapshot {
+                connected: true,
+                host: "127.0.0.1".into(),
+                write_enabled: true,
+                session_id: Some("test-session".into()),
+                ..Snapshot::default()
+            })),
+            meters,
+            commands: command_tx,
+            profile: shared_profile(reference_profile()),
+            book: Arc::new(std::sync::Mutex::new(
+                devices::Book::open(
+                    storage.path().join("connections.json"),
+                    Box::new(devices::FileVault::new(
+                        storage.path().join("credentials.json"),
+                    )),
+                )
+                .unwrap(),
+            )),
+        };
+        let device = Device {
+            session,
+            terminal: terminal_address,
+            code: Zeroizing::new("1234".to_owned()),
+            processing_baseline: None,
+            profile: Some(reference_profile()),
+        };
+        (app, device, writes)
+    }
+
+    fn document_text(name: &str, fields: &[(&str, &str)]) -> String {
+        let mut text = format!(
+            "OptimodVersion=<5700.51>\r\nPreset Name=<{name}> size={}\r\n",
+            fields.len()
+        );
+        for (field, value) in fields {
+            text.push_str(&format!("C:<{field}>{value}\r\n"));
+        }
+        text + "End Preset<end>\r\n"
+    }
+
+    #[tokio::test]
+    async fn setup_restore_writes_each_change_once_and_requires_the_readback() {
+        for (after_contrast, expect_ok) in [(2, true), (3, false)] {
+            let system = |contrast: u32| {
+                document_text(
+                    "SYSTEM",
+                    &[
+                        ("CONTRAST", &format!("Int:{contrast};D:{contrast};")),
+                        ("NETWORK PORT", "Int:6201;D:6201;"),
+                    ],
+                )
+            };
+            let (app, mut device, writes) =
+                scripted_5700i(vec![system(3), system(after_contrast)]).await;
+            let backup = document_text(
+                "SYSTEM",
+                &[
+                    ("CONTRAST", "Int:2;D:2;"),
+                    ("NETWORK PORT", "Int:6202;D:6202;"),
+                ],
+            );
+            let result = restore_setup(
+                &mut device,
+                &app,
+                RestoreSetup {
+                    document: backup,
+                    confirmed: true,
+                    expected_host: "127.0.0.1".into(),
+                    expected_session: "test-session".into(),
+                },
+            )
+            .await;
+            assert_eq!(
+                result.is_ok(),
+                expect_ok,
+                "{:?}",
+                result.err().map(|e| e.message)
+            );
+            // CONTRAST once; the network port is never written.
+            assert_eq!(*writes.lock().unwrap(), ["CONTRAST;2;Int:2;2;"]);
+            let shown = app.state.read().await.system.as_ref().unwrap().fields["CONTRAST"].index;
+            assert_eq!(shown, after_contrast);
+        }
+    }
+
+    #[tokio::test]
+    async fn applying_a_preset_file_writes_differences_once_and_verifies_them() {
+        let before = document_text(
+            "CURRENT",
+            &[("AGC DRIVE", "Int:10;D:20;"), ("MB DRIVE", "Int:0;D:0;")],
+        );
+        let file = document_text(
+            "FILE",
+            &[("AGC DRIVE", "Int:11;D:21;"), ("MB DRIVE", "Int:0;D:0;")],
+        );
+        let after = document_text(
+            "modif CURRENT",
+            &[("AGC DRIVE", "Int:11;D:21;"), ("MB DRIVE", "Int:0;D:0;")],
+        );
+        let (app, mut device, writes) = scripted_5700i(vec![before, after]).await;
+        let result = apply_preset(
+            &mut device,
+            &app,
+            ApplyPreset {
+                document: file,
+                expected_name: "CURRENT".into(),
+                confirmed: true,
+                expected_host: "127.0.0.1".into(),
+                expected_session: "test-session".into(),
+            },
+        )
+        .await;
+        assert!(result.is_ok(), "{:?}", result.err().map(|e| e.message));
+        assert_eq!(*writes.lock().unwrap(), ["AGC DRIVE;21;Int:11;1;"]);
+        let state = app.state.read().await;
+        assert_eq!(
+            state.processing.as_ref().unwrap().fields["AGC DRIVE"].index,
+            21
+        );
+        assert_eq!(state.preset_base_name.as_deref(), Some("FILE"));
+
+        // A file for another preset than the one on air is refused before writing.
+        drop(state);
+        let refused = apply_preset(
+            &mut device,
+            &app,
+            ApplyPreset {
+                document: document_text("FILE", &[("AGC DRIVE", "Int:11;D:21;")]),
+                expected_name: "SOMETHING ELSE".into(),
+                confirmed: true,
+                expected_host: "127.0.0.1".into(),
+                expected_session: "test-session".into(),
+            },
+        )
+        .await;
+        assert!(refused.is_err());
+        assert_eq!(writes.lock().unwrap().len(), 1);
     }
 }

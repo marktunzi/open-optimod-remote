@@ -21,9 +21,13 @@ Use this model skill for the OPTIMOD-FM 8700HD only. The 8700i is a different mo
 
 ## Model shape
 
-An FM+HD processor with a separate HD chain. `HD COUPLING` is `FM->HD` or `Indepen.`. Like the 5700i, coupled mode makes the HD counterparts follow FM, while `IBOC EQ GAIN`, `IBOC EQ FREQ`, `HD DE ESS` and `HD COUPLING` stay independent. The FM side also has MX and ULL structure controls (`MX …`, `ULL SWITCH`, `STD SWITCH`). A control whose field is absent from the live document is shown as unavailable.
+An FM+HD processor with a separate HD chain. `HD COUPLING` is `FM->HD` or `Indepen.`. Like the 5700i, coupled mode makes the HD counterparts follow FM, while `IBOC EQ GAIN`, `IBOC EQ FREQ`, `HD DE ESS` and `HD COUPLING` stay independent. The FM side also has MX and ULL structure controls (`MX …`, `ULL SWITCH`, `STD SWITCH`). MX is standard on the 8700HD (its 1.0.2 readme describes the MX presets); on the 5700i it is a paid upgrade. A control whose field is absent from the live document is shown as unavailable.
 
 Not writable, because PC Remote and the factory presets disagree: `DWNWRD EXP`, `B5 DWNWRD EXP`, `HD DWNWRD EXP`, `B3 CLIP THRSH`, `MX BASS CLIP`, `B12 CROSSOVER`, `HD B12 CROSSOVER`, `IBOC LIM DR` and `MPX PWR OFFSET`.
+
+## Presets on the processor
+
+The 8700HD firmware documents no terminal save or delete command. Its PC Remote keeps presets in a local folder and syncs it with file messages whose effect is unverified, so do not send them. Offer recall, preset files (`.orb86user`, a plain AP document) and the backup/restore of system settings instead.
 
 ## Safety rules for this model
 

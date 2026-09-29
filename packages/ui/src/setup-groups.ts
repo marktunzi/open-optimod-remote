@@ -35,8 +35,8 @@ const groupDescriptions: Record<SetupGroupName, string> = {
 };
 
 const sectionOrder: Record<SetupGroupName, string[]> = {
-  'Audio Input': ['Source Selection', 'Analog Input', 'Digital Input', 'AES67 Input', 'Failover & Silence Detection'],
-  'Audio Outputs': ['Analog Output', 'Digital Output 1', 'Digital Output 2', 'AES67 Output', 'Monitoring & Composite'],
+  'Audio Input': ['Source Selection', 'Analog Input', 'Digital Input', 'EI1/EI2 Input', 'Failover & Silence Detection'],
+  'Audio Outputs': ['Analog Output', 'Digital Output 1', 'Digital Output 2', 'EO1/EO2 Output', 'Monitoring & Composite'],
   'FM Transmission': ['Operating Mode', 'Test & Bypass', 'Stereo Generator', 'Modulation & Carrier', 'Loudness Protection', 'Processing Structure'],
   'HD & Diversity': ['HD Output', 'Diversity Delay', 'Loudness Protection', 'HD Processing'],
   'Network & Time': ['IP Configuration', 'Service Ports', 'Clock & Calendar', 'Automatic Clock Set'],
@@ -94,13 +94,13 @@ function setupGroup(name: string): SetupGroupName {
 function setupSection(group: SetupGroupName, name: string): string {
   switch (group) {
     case 'Audio Input':
-      if (/^EI[12] /.test(name)) return 'AES67 Input';
+      if (/^EI[12] /.test(name)) return 'EI1/EI2 Input';
       if (/^AI /.test(name)) return 'Analog Input';
       if (/^DI /.test(name)) return 'Digital Input';
       if (/FALLBACK|SILENCE/.test(name)) return 'Failover & Silence Detection';
       return 'Source Selection';
     case 'Audio Outputs':
-      if (/^(EO[12] |EO LR SWAP)/.test(name)) return 'AES67 Output';
+      if (/^(EO[12] |EO LR SWAP)/.test(name)) return 'EO1/EO2 Output';
       if (/^(DO1 |DO LR SWAP)/.test(name)) return 'Digital Output 1';
       if (/^DO2 /.test(name)) return 'Digital Output 2';
       if (/^(PHONES|OUT METER|Monitor|COMP|DIGITAL COMP)/.test(name)) return 'Monitoring & Composite';

@@ -402,16 +402,17 @@ final class PresetsWindowController: NSWindowController, NSTableViewDataSource, 
                 self.presentError(error.localizedDescription)
             case let .success(file):
                 self.setBusy(false, message: "Choose where to save the preset")
+                let format = self.context?.fileFormat ?? PresetFileFormat.forAdapter(nil)
                 let panel = NSSavePanel()
-                panel.title = "Save Current OPTIMOD Preset"
-                panel.nameFieldStringValue = self.safeFilename(file.name) + ".orb57user"
-                panel.allowedContentTypes = [UTType(filenameExtension: "orb57user") ?? .data]
+                panel.title = "Save Current \(format.model) Preset"
+                panel.nameFieldStringValue = self.safeFilename(file.name) + "." + format.fileExtension
+                panel.allowedContentTypes = [UTType(filenameExtension: format.fileExtension) ?? .data]
                 panel.canCreateDirectories = true
                 panel.beginSheetModal(for: window) { response in
                     guard response == .OK, let url = panel.url else { return }
                     do {
                         try file.document.write(to: url, atomically: true, encoding: .utf8)
-                        self.statusLabel.stringValue = "Saved (url.lastPathComponent)"
+                        self.statusLabel.stringValue = "Saved \(url.lastPathComponent)"
                     } catch {
                         self.presentError(error.localizedDescription)
                     }
@@ -423,10 +424,11 @@ final class PresetsWindowController: NSWindowController, NSTableViewDataSource, 
     @objc private func applyPresetFile() {
         guard !busy, let context, context.snapshot.connected, context.snapshot.writeEnabled,
               let session = context.snapshot.sessionID, let window else { return }
+        let format = context.fileFormat
         let panel = NSOpenPanel()
-        panel.title = "Choose an OPTIMOD 5700i Preset"
+        panel.title = "Choose an \(format.model) Preset"
         panel.allowedContentTypes = [
-            UTType(filenameExtension: "orb57user") ?? .data,
+            UTType(filenameExtension: format.fileExtension) ?? .data,
             UTType(filenameExtension: "orb") ?? .data,
             .plainText,
         ]
@@ -437,11 +439,11 @@ final class PresetsWindowController: NSWindowController, NSTableViewDataSource, 
             do {
                 let data = try Data(contentsOf: url, options: [.mappedIfSafe])
                 guard data.count <= 65_535, let document = String(data: data, encoding: .utf8) else {
-                    throw SystemSettingsAPIError.service("This is not a supported OPTIMOD 5700i preset file.")
+                    throw SystemSettingsAPIError.service("This is not a supported \(format.model) preset file.")
                 }
                 let alert = NSAlert()
                 alert.alertStyle = .warning
-                alert.messageText = "Apply (url.lastPathComponent)?"
+                alert.messageText = "Apply \(url.lastPathComponent)?"
                 alert.informativeText = "All processing values in this file will be written to the connected OPTIMOD and verified."
                 alert.addButton(withTitle: "Apply Preset")
                 alert.addButton(withTitle: "Cancel")
@@ -454,7 +456,7 @@ final class PresetsWindowController: NSWindowController, NSTableViewDataSource, 
                         expectedHost: context.snapshot.host,
                         expectedSession: session
                     )
-                    self.setBusy(true, message: "Applying and verifying (url.lastPathComponent)…")
+                    self.setBusy(true, message: "Applying and verifying \(url.lastPathComponent)…")
                     self.api.apply(request) { result in
                         switch result {
                         case let .failure(error):

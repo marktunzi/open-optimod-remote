@@ -13,7 +13,7 @@ import { Presets } from './Presets';
 import { Outputs } from './Outputs';
 import { Setup } from './Setup';
 import { InstrumentHeader } from './InstrumentHeader';
-import { DEFAULT_METER_VIEW, initialWorkspace, mergeSupplementPages, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
+import { DEFAULT_METER_VIEW, initialWorkspace, livePages, mergeSupplementPages, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
 import { binaryOnIndex, groupProcessingPage, type LayoutPage } from './processing-layout';
 import { modifiedFieldNames, optimisticLessMoreAvailability, optimisticModifiedFields } from './preset-state';
 import { nextControlIndex } from './control-keyboard';
@@ -27,6 +27,10 @@ declare global {
       openPresets?: { postMessage: (body: unknown) => void };
       recordError?: { postMessage: (body: unknown) => void };
     } };
+    /** Called by the macOS app menu (Command-,) so it opens the right settings for the connected model. */
+    openOptimodSystemSettings?: () => void;
+    /** Called by the macOS app menu (Shift-Command-P) to open the Presets workspace. */
+    openOptimodPresets?: () => void;
   }
 }
 function reportError(source: string, error: unknown) {
@@ -298,7 +302,14 @@ function App() {
   };
   const coupling = snapshot.processing?.fields["HD COUPLING"];
   const couplingValue = String(coupling?.value.value || '') || undefined;
-  const pages = processingPages(modelLayouts ?? mergeSupplementPages(layouts as LayoutPage[], supplementLayouts), path, couplingValue);
+  const liveFields = snapshot.processing?.fields;
+  const pages = processingPages(
+    modelLayouts
+      ? livePages(modelLayouts, liveFields)
+      : mergeSupplementPages(layouts as LayoutPage[], livePages(supplementLayouts, liveFields)),
+    path,
+    couplingValue,
+  );
   const page = pages.find((p) => p.title === tab) || pages[0];
   const processingGroups = groupProcessingPage(page);
   const independentPaths = processingPathSelectorVisible(couplingValue);
@@ -346,16 +357,19 @@ function App() {
     if (systemSettingsTarget(Boolean(handler) && modelLayouts === null) === 'native') handler!.postMessage({ source: '5700i-interface' });
     else setArea('Setup');
   };
+  useEffect(() => {
+    window.openOptimodSystemSettings = openSystemSettings;
+    window.openOptimodPresets = () => setArea('Presets');
+    return () => { delete window.openOptimodSystemSettings; delete window.openOptimodPresets; };
+  });
   const openConnections = () => {
     const handler = window.webkit?.messageHandlers?.openConnections;
     if (handler) handler.postMessage({ source: '5700i-interface' });
     else setArea('Connections');
   };
-  const openPresets = () => {
-    const handler = window.webkit?.messageHandlers?.openPresets;
-    if (handler) handler.postMessage({ source: '5700i-interface' });
-    else setArea('Presets');
-  };
+  // The Presets workspace holds recall, on-device save/rename/delete, preset
+  // files and backups for every model, so the macOS app uses it as well.
+  const openPresets = () => setArea('Presets');
   return (
     <main className={area === 'Connections' ? 'connection-mode' : ''} data-skin={skin.id} data-material={skin.material}>
       <a className="skip-link" href="#main-workspace">Skip to Controls</a>

@@ -20,3 +20,37 @@ fn preset_names_cannot_inject_terminal_commands() {
     assert!(parse_list("NAME factory\nNAME user").is_err());
     assert!(parse_list("").is_err());
 }
+
+#[test]
+fn save_and_delete_commands_follow_the_5500_terminal_help() {
+    use orban_protocol::{
+        adapter::DeviceModel,
+        presets::{
+            delete_command, max_store_name_length, reply_refusal, store_command,
+            validate_store_name,
+        },
+    };
+    assert_eq!(
+        &**store_command("MY STATION", "9876").unwrap(),
+        "SP MY STATION[9876]\r\n"
+    );
+    assert_eq!(
+        &**delete_command("MY STATION", "9876").unwrap(),
+        "DP MY STATION[9876]\r\n"
+    );
+    assert!(store_command("X]\r\nRP Y[", "9876").is_err());
+
+    assert_eq!(max_store_name_length(DeviceModel::Optimod5500), 18);
+    assert_eq!(max_store_name_length(DeviceModel::Optimod5700i), 20);
+    assert!(validate_store_name("EIGHTEEN CHARS 123", 18).is_ok());
+    assert!(validate_store_name("NINETEEN CHARS 1234", 18).is_err());
+    assert!(validate_store_name(" LEADING", 18).is_err());
+    assert!(validate_store_name("Modif ROCK", 18).is_err());
+
+    assert_eq!(
+        reply_refusal(" SP: ROCK already exists. Please choose another name.\r\n").as_deref(),
+        Some("SP: ROCK already exists. Please choose another name.")
+    );
+    assert!(reply_refusal(" DP: preset does not exist").is_some());
+    assert_eq!(reply_refusal(" SP: ROCK\r\n"), None);
+}

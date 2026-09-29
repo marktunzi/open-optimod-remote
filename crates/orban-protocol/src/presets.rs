@@ -60,3 +60,68 @@ pub fn recall_command(name: &str, code: &str) -> Result<zeroize::Zeroizing<Strin
         code.to_ascii_uppercase()
     )))
 }
+
+/// Longest preset name the model's own PC Remote accepts: 18 characters for
+/// the 5500, 20 for the 5700i and 8700HD.
+pub fn max_store_name_length(model: crate::adapter::DeviceModel) -> usize {
+    match model {
+        crate::adapter::DeviceModel::Optimod5500 => 18,
+        _ => 20,
+    }
+}
+
+/// A name for a new user preset. The firmware reserves the `modif ` prefix for
+/// the unsaved state and PC Remote trims surrounding spaces.
+pub fn validate_store_name(name: &str, max: usize) -> Result<(), String> {
+    validate_name(name)?;
+    if name.len() > max {
+        return Err(format!("A preset name can have at most {max} characters"));
+    }
+    if name.trim() != name {
+        return Err("A preset name cannot start or end with a space".into());
+    }
+    if name.to_ascii_lowercase().starts_with("modif ") {
+        return Err("A preset name cannot start with \"modif \"".into());
+    }
+    Ok(())
+}
+
+fn terminal_command(
+    verb: &str,
+    name: &str,
+    code: &str,
+) -> Result<zeroize::Zeroizing<String>, String> {
+    validate_name(name)?;
+    let _ = zeroize::Zeroizing::new(crate::auth::login_request(code)?);
+    Ok(zeroize::Zeroizing::new(format!(
+        "{verb} {name}[{}]\r\n",
+        code.to_ascii_uppercase()
+    )))
+}
+
+/// `SP NAME[CODE]`: save the on-air processing as a user preset.
+pub fn store_command(name: &str, code: &str) -> Result<zeroize::Zeroizing<String>, String> {
+    terminal_command("SP", name, code)
+}
+
+/// `DP NAME[CODE]`: delete a user preset.
+pub fn delete_command(name: &str, code: &str) -> Result<zeroize::Zeroizing<String>, String> {
+    terminal_command("DP", name, code)
+}
+
+/// A refusal in the processor's reply to `SP` or `DP`. These are the 5500
+/// firmware's own messages; the preset list decides success.
+pub fn reply_refusal(reply: &str) -> Option<String> {
+    const REFUSALS: [&str; 5] = [
+        "already exists",
+        "A factory preset named",
+        "Maximum number of characters",
+        "preset does not exist",
+        "Cannot delete",
+    ];
+    reply
+        .lines()
+        .map(str::trim)
+        .find(|line| REFUSALS.iter().any(|refusal| line.contains(refusal)))
+        .map(str::to_owned)
+}

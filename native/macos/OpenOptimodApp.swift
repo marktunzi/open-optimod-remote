@@ -265,7 +265,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         NSApp.reply(toApplicationShouldTerminate: true)
     }
 
+    /// Command-, asks the interface first: it knows the connected model and opens
+    /// the native 5700i window or the generic Setup workspace. Without a loaded
+    /// interface the native window opens.
     @objc private func showSystemSettings(_ sender: Any?) {
+        let script = "window.openOptimodSystemSettings ? (window.openOptimodSystemSettings(), true) : false"
+        webView.evaluateJavaScript(script) { [weak self] result, error in
+            if error != nil || (result as? Bool) != true { self?.showNativeSystemSettings() }
+        }
+    }
+
+    private func showNativeSystemSettings() {
         if settingsWindowController == nil {
             settingsWindowController = SystemSettingsWindowController()
         }
@@ -283,7 +293,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         connectionsWindowController?.show()
     }
 
+    /// Shift-Command-P opens the interface's Presets workspace, which has every
+    /// preset function for the connected model. Without a loaded interface the
+    /// native preset window opens.
     @objc private func showPresets(_ sender: Any?) {
+        let script = "window.openOptimodPresets ? (window.openOptimodPresets(), true) : false"
+        webView.evaluateJavaScript(script) { [weak self] result, error in
+            if error != nil || (result as? Bool) != true { self?.showNativePresets() }
+        }
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    private func showNativePresets() {
         if presetsWindowController == nil {
             let controller = PresetsWindowController()
             controller.onChanged = { [weak self] in
@@ -302,9 +323,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         switch message.name {
-        case "openSystemSettings": showSystemSettings(nil)
+        case "openSystemSettings": showNativeSystemSettings()
         case "openConnections": showConnections(nil)
-        case "openPresets": showPresets(nil)
+        case "openPresets": showNativePresets()
         case "recordError":
             guard let body = message.body as? [String: Any], let text = body["message"] as? String else { break }
             ErrorLogStore.shared.record(source: body["source"] as? String ?? "Interface", message: text)

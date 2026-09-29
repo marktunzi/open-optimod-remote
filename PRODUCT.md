@@ -6,7 +6,7 @@ product
 
 ## Users
 
-OPTIMOD operators who need local control from macOS or a browser. The initial models are the OPTIMOD 5500 (1.2.8.24), 5700i (3.0.1.20) and OPTIMOD-FM 8700HD (1.0.2.161), all with full control. The 5700i is verified on hardware; the 5500 and 8700HD profiles are statically derived and labelled as such until they are. More models follow. The read-only PC Remote expansion covers 5500i, 5500, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 and 9400. Other operators should be able to build and contribute to an independent open-source implementation.
+OPTIMOD operators who need local control from macOS or a browser. The initial models are the OPTIMOD 5500 (1.2.8.24), 5700i (3.0.1.20) and OPTIMOD-FM 8700HD (1.0.2.161), all with parameter writes, preset recall, live meters and every system setting. The 5700i is verified on hardware; the 5500 and 8700HD profiles are statically derived and labelled as such until they are. More models follow. The read-only PC Remote expansion covers the 5500i, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 and 9400, and other firmware of the three writable models. Other operators should be able to build and contribute to an independent open-source implementation.
 
 ## Product Purpose
 

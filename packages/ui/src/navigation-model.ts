@@ -62,3 +62,14 @@ export function mergeSupplementPages(builtin: LayoutPage[], supplement: LayoutPa
   });
   return [...builtin, ...added];
 }
+
+/**
+ * Keeps only pages with at least one control in the processor's live
+ * document. Statically derived pages cover options a unit may lack, such as
+ * the MX structure, which is a paid upgrade on the 5700i, so they appear only
+ * when the processor reports their fields. Without a document every page is kept.
+ */
+export function livePages(pages: LayoutPage[], fields: Record<string, unknown> | undefined): LayoutPage[] {
+  if (!fields) return pages;
+  return pages.filter(page => page.controls.some(control => control.name in fields));
+}
