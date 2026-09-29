@@ -27,6 +27,10 @@ declare global {
       openPresets?: { postMessage: (body: unknown) => void };
       recordError?: { postMessage: (body: unknown) => void };
     } };
+    /** Called by the macOS app menu (Command-,) so it opens the right settings for the connected model. */
+    openOptimodSystemSettings?: () => void;
+    /** Called by the macOS app menu (Shift-Command-P) to open the Presets workspace. */
+    openOptimodPresets?: () => void;
   }
 }
 function reportError(source: string, error: unknown) {
@@ -353,16 +357,19 @@ function App() {
     if (systemSettingsTarget(Boolean(handler) && modelLayouts === null) === 'native') handler!.postMessage({ source: '5700i-interface' });
     else setArea('Setup');
   };
+  useEffect(() => {
+    window.openOptimodSystemSettings = openSystemSettings;
+    window.openOptimodPresets = () => setArea('Presets');
+    return () => { delete window.openOptimodSystemSettings; delete window.openOptimodPresets; };
+  });
   const openConnections = () => {
     const handler = window.webkit?.messageHandlers?.openConnections;
     if (handler) handler.postMessage({ source: '5700i-interface' });
     else setArea('Connections');
   };
-  const openPresets = () => {
-    const handler = window.webkit?.messageHandlers?.openPresets;
-    if (handler) handler.postMessage({ source: '5700i-interface' });
-    else setArea('Presets');
-  };
+  // The Presets workspace holds recall, on-device save/rename/delete, preset
+  // files and backups for every model, so the macOS app uses it as well.
+  const openPresets = () => setArea('Presets');
   return (
     <main className={area === 'Connections' ? 'connection-mode' : ''} data-skin={skin.id} data-material={skin.material}>
       <a className="skip-link" href="#main-workspace">Skip to Controls</a>

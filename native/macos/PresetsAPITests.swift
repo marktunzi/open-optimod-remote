@@ -9,6 +9,13 @@ struct PresetsAPITests {
         precondition(!PresetBrowserFilter.factory.includes(modified))
         precondition(PresetBrowserFilter.modified.includes(modified))
 
+        precondition(PresetFileFormat.forAdapter("pc-remote-5700i-3.0.1.20").fileExtension == "orb57user")
+        precondition(PresetFileFormat.forAdapter("pc-remote-5500-1.2.8.24").fileExtension == "orb55user")
+        precondition(PresetFileFormat.forAdapter("pc-remote-8700hd-1.0.2.161").fileExtension == "orb86user")
+        precondition(PresetFileFormat.forAdapter("pc-remote-5700i-family").fileExtension == "orb57user")
+        precondition(PresetFileFormat.forAdapter("pc-remote-5500i-family").fileExtension == "orb")
+        precondition(PresetFileFormat.forAdapter(nil).model == "OPTIMOD")
+
         let request = PresetRecallRequest(
             name: "GREGG OPEN",
             expectedName: "NEWS-TALK",

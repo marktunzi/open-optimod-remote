@@ -1168,3 +1168,7 @@ body {background:#1f1f1e;color:var(--app-text);}
   .connection-toolbar {grid-template-columns:minmax(150px,1fr) auto 46px minmax(190px,240px);gap:9px;}
   .connection-form-grid {grid-template-columns:minmax(170px,1fr) minmax(160px,1fr) 120px 120px;gap:10px;}
 }
+.preset-detail h3 {margin:22px 0 8px;font-size:0.95rem;}
+.preset-actions {display:flex;flex-wrap:wrap;gap:8px;}
+.preset-name {display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+.recall-confirmation ul {margin:6px 0 0;padding-left:18px;}

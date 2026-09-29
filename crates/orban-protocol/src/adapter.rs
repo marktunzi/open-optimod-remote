@@ -135,6 +135,10 @@ pub struct Capabilities {
     pub live_meters: bool,
     pub preset_catalog: bool,
     pub preset_recall: bool,
+    /// Save the on-air processing as a user preset on the processor.
+    pub preset_store: bool,
+    /// Delete a user preset on the processor.
+    pub preset_delete: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -168,6 +172,8 @@ const READ_ONLY: Capabilities = Capabilities {
     live_meters: false,
     preset_catalog: true,
     preset_recall: false,
+    preset_store: false,
+    preset_delete: false,
 };
 
 const VERIFIED_5700I: AdapterDescriptor = AdapterDescriptor {
@@ -186,6 +192,10 @@ const VERIFIED_5700I: AdapterDescriptor = AdapterDescriptor {
         live_meters: true,
         preset_catalog: true,
         preset_recall: true,
+        // The 5700i firmware has no terminal save or delete command; PC Remote
+        // syncs a local folder through file messages whose effect is unverified.
+        preset_store: false,
+        preset_delete: false,
     },
     meter_profile: Some(MeterProfile {
         banks: &[1, 2],
@@ -202,6 +212,16 @@ const STATIC_FULL: Capabilities = Capabilities {
     live_meters: true,
     preset_catalog: true,
     preset_recall: true,
+    preset_store: false,
+    preset_delete: false,
+};
+
+/// The 5500 firmware documents `SP 'preset name'` and `DP 'preset name'` in its
+/// terminal help, next to the `RP` command the app already uses for recall.
+const STATIC_FULL_WITH_PRESET_FILES: Capabilities = Capabilities {
+    preset_store: true,
+    preset_delete: true,
+    ..STATIC_FULL
 };
 
 /// Static meter records: PC Remote accepts any count and ignores channels it
@@ -226,7 +246,7 @@ const EXACT: [(&str, AdapterDescriptor); 3] = [
             default_terminal_port: 23,
             product_mark: "5500 DIGITAL",
             firmware_prefix: "5500 V ",
-            capabilities: STATIC_FULL,
+            capabilities: STATIC_FULL_WITH_PRESET_FILES,
             meter_profile: Some(STATIC_METERS),
             evidence: Evidence::Static,
         },

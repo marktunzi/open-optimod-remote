@@ -3,7 +3,7 @@ use crate::{
     adapter::{AdapterRegistry, DeviceModel},
     control::Scope,
     document::Document,
-    presets::{Preset, parse_list, recall_command},
+    presets::{Preset, delete_command, parse_list, recall_command, reply_refusal, store_command},
 };
 use std::{net::SocketAddr, time::Duration};
 use tokio::{
@@ -168,4 +168,43 @@ pub async fn recall_preset_for_model(
         return Err("Preset recall was not confirmed by the processor".into());
     }
     Ok(document)
+}
+
+/// Sends `SP` or `DP` followed by `AP` in one terminal transaction. The AP
+/// document marks the end of the reply. A refusal from the processor is an
+/// error; success must still be confirmed with the preset list.
+async fn preset_file_command(
+    address: SocketAddr,
+    code: &str,
+    mut command: Zeroizing<String>,
+    deadline: Duration,
+    model: DeviceModel,
+) -> Result<Document, String> {
+    command.push_str(&format!("AP [{}]??\r\n", code.to_ascii_uppercase()));
+    let text = exchange(address, command, deadline, model).await?;
+    let (reply, document) = split_document(&text, model)?;
+    if let Some(refusal) = reply_refusal(reply) {
+        return Err(format!("The processor refused: {refusal}"));
+    }
+    Ok(document)
+}
+
+pub async fn store_preset_for_model(
+    address: SocketAddr,
+    code: &str,
+    name: &str,
+    deadline: Duration,
+    model: DeviceModel,
+) -> Result<Document, String> {
+    preset_file_command(address, code, store_command(name, code)?, deadline, model).await
+}
+
+pub async fn delete_preset_for_model(
+    address: SocketAddr,
+    code: &str,
+    name: &str,
+    deadline: Duration,
+    model: DeviceModel,
+) -> Result<Document, String> {
+    preset_file_command(address, code, delete_command(name, code)?, deadline, model).await
 }

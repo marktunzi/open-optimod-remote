@@ -117,4 +117,6 @@ Applying a local 5700 processing document uses only the verified field-write rou
 6. Read a fresh complete AP document and require every imported field to match exactly. A delayed readback may be polled briefly, but never replay a write automatically.
 7. Only after full confirmation may the imported document become the comparison baseline.
 
-This is local export/application, not named on-device Save or Save As. Named save, rename, delete, previous-preset, bulk backup and restore remain unverified. Do not guess commands or use opcode `226` for them.
+This is local export/application, not named on-device Save or Save As. Named save, rename, delete and previous-preset remain unverified on the 5700i. Do not guess commands or use opcode `226` for them. PC Remote's own preset sync uses file uploads (opcodes 229, 230, 231, 233, 234) and a deletion message (opcode 237, newline-terminated names); their expected name form and side effects are unknown, so do not send them.
+
+A backup that needs no unverified command: the AP and AS documents from the terminal plus the LP names. Restore system settings one field at a time with opcode 227, skip network settings, the running clock and `ACTUAL` status values, and read AS back without replaying a write. User presets that are not on air cannot be backed up without recalling them.

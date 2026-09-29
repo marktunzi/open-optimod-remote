@@ -124,6 +124,10 @@ fn only_exact_profile_banners_enable_writes_and_live_meter_mapping() {
         let adapter = AdapterRegistry::identify_banner(banner).unwrap();
         assert!(!adapter.capabilities.parameter_writes, "{banner}");
         assert!(!adapter.capabilities.preset_recall, "{banner}");
+        assert!(
+            !adapter.capabilities.preset_store && !adapter.capabilities.preset_delete,
+            "{banner}"
+        );
         assert_eq!(adapter.meter_profile, None, "{banner}");
     }
 }
@@ -195,4 +199,17 @@ fn the_8700hd_is_its_own_model_and_is_found_by_its_terminal_banner() {
             .model,
         DeviceModel::Optimod8700i
     );
+}
+
+#[test]
+fn only_the_5500_has_documented_terminal_save_and_delete() {
+    for (banner, expected) in [
+        ("5500 V 1.2.8.24", true),
+        ("5700i V 3.0.1.20", false),
+        ("8700HD V 1.0.2.161", false),
+    ] {
+        let adapter = AdapterRegistry::identify_banner(banner).unwrap();
+        assert_eq!(adapter.capabilities.preset_store, expected, "{banner}");
+        assert_eq!(adapter.capabilities.preset_delete, expected, "{banner}");
+    }
 }
