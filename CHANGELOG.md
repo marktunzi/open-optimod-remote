@@ -2,9 +2,9 @@
 
 ## 0.2.0 — 29 September 2026
 
-- Setup now places every system field of the 5500, 5700i and 8700HD in one of the same ten categories. That includes test and bypass, the manual and automatic clock, AES67 input and output, the processing-structure switches and passcodes. The 5700i fields keep their exact placement.
+- Setup now places every system field of the 5500, 5700i and 8700HD in one of the same ten categories. That includes test and bypass, the manual and automatic clock, the EI1/EI2 inputs and EO1/EO2 outputs, the processing-structure switches and passcodes. The 5700i fields keep their exact placement.
 - Validated the extraction against the hardware-verified 5700i: 363 of 366 mappings identical and none wrong. This found and fixed four extractor faults: overlapping registrations were missed, lower-case names were rejected, the sample-rate snap was imprecise, and preset offset transforms were unreliable. Offset transforms are now rejected.
-- Added 199 statically derived 5700i settings next to the verified profile, including the two-band and MX structures (7 extra pages). Changes to any statically derived field are read back; hardware-verified fields keep the fast path.
+- Added 199 statically derived 5700i settings next to the verified profile, including the two-band structure and the MX structure of Orban's paid MX upgrade (7 extra pages). A statically derived page appears only when the processor reports its fields, so a 5700i without the MX upgrade shows no MX pages. Changes to any statically derived field are read back; hardware-verified fields keep the fast path.
 - The 5500 and 8700HD profiles now also cover the terminal port, RDS alternate frequencies 1–24 and timeouts (8700HD), output levels and more. `DWNWRD EXP` is read-only.
 - Known limitation: the native Settings window supports only the 5700i.
 - OPTIMOD 5700i: unchanged and still the only hardware-verified model. Its 3.0.1.20 profile, pages and meters are identical to 0.1.0 and are now served through the per-model profile registry. Its writes keep the verified fast path without an extra readback.

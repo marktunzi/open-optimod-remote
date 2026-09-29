@@ -62,3 +62,14 @@ test('5700i keeps its built-in pages and gains only new structures from the supp
     assert.equal(new Set(titles).size, titles.length, titles.join(', '));
   }
 });
+
+test('statically derived pages appear only when the processor reports their fields', async () => {
+  const { livePages } = await import('../src/navigation-model.ts');
+  const supplement: LayoutPage[] = profile('5700i/3.0.1.20/static-layouts.json');
+  // A 5-band preset on a 5700i without the MX upgrade reports neither 2B nor MX fields.
+  const fiveBand = livePages(supplement, { 'B1 COMP THRSH': {}, 'LESS MORE': {} }).map(page => page.title);
+  assert.ok(!fiveBand.some(title => title.startsWith('MX') || title.includes('2 Band')), fiveBand.join(', '));
+  const mx = livePages(supplement, { 'MX CLIP DRIVE': {} }).map(page => page.title);
+  assert.ok(mx.includes('MX Distortion Control'), mx.join(', '));
+  assert.equal(livePages(supplement, undefined).length, supplement.length);
+});

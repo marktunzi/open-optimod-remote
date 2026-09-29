@@ -13,7 +13,7 @@ import { Presets } from './Presets';
 import { Outputs } from './Outputs';
 import { Setup } from './Setup';
 import { InstrumentHeader } from './InstrumentHeader';
-import { DEFAULT_METER_VIEW, initialWorkspace, mergeSupplementPages, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
+import { DEFAULT_METER_VIEW, initialWorkspace, livePages, mergeSupplementPages, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
 import { binaryOnIndex, groupProcessingPage, type LayoutPage } from './processing-layout';
 import { modifiedFieldNames, optimisticLessMoreAvailability, optimisticModifiedFields } from './preset-state';
 import { nextControlIndex } from './control-keyboard';
@@ -298,7 +298,14 @@ function App() {
   };
   const coupling = snapshot.processing?.fields["HD COUPLING"];
   const couplingValue = String(coupling?.value.value || '') || undefined;
-  const pages = processingPages(modelLayouts ?? mergeSupplementPages(layouts as LayoutPage[], supplementLayouts), path, couplingValue);
+  const liveFields = snapshot.processing?.fields;
+  const pages = processingPages(
+    modelLayouts
+      ? livePages(modelLayouts, liveFields)
+      : mergeSupplementPages(layouts as LayoutPage[], livePages(supplementLayouts, liveFields)),
+    path,
+    couplingValue,
+  );
   const page = pages.find((p) => p.title === tab) || pages[0];
   const processingGroups = groupProcessingPage(page);
   const independentPaths = processingPathSelectorVisible(couplingValue);

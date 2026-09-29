@@ -62,8 +62,8 @@ test('every system field of the 5500, 5700i and 8700HD profiles has a real categ
  assert.equal(section('TEST TONE'),'Test & Bypass');
  assert.equal(section('SET HOUR'),'Clock & Calendar');
  assert.equal(section('AUTO SET HOUR'),'Automatic Clock Set');
- assert.equal(section('EI1 REF LEVEL'),'AES67 Input');
- assert.equal(section('EO1 LEVEL'),'AES67 Output');
+ assert.equal(section('EI1 REF LEVEL'),'EI1/EI2 Input');
+ assert.equal(section('EO1 LEVEL'),'EO1/EO2 Output');
  assert.equal(section('2B SWITCH'),'Processing Structure');
  assert.equal(section('PASSCODE ACCESS LEVEL'),'Security');
 });
