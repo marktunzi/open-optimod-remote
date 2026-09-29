@@ -1,6 +1,6 @@
 # Interface reference
 
-The approved visual target is the supplied full-interface reference at 2264×2108 (not included in the repository), supplemented by the user's meter-edge and header close-ups. The main window is a physical-looking 5700i control surface, while Connections, Presets and System Settings use native macOS windows.
+The approved visual target is the supplied full-interface reference at 2264×2108 (not included in the repository), supplemented by the user's meter-edge and header close-ups. The main window is a physical-looking 5700i control surface, while Connections uses a native macOS window, Presets is a workspace of the interface (the native Presets window is only a fallback) and the native System Settings window serves the 5700i.
 
 ## Main instrument
 
@@ -17,6 +17,6 @@ The approved visual target is the supplied full-interface reference at 2264×210
 
 The meter strip remains visible above processing. The local FM/HD editing selector appears only while processing paths are decoupled. FM→HD coupling is a global device control with confirmation; physical output routing stays in System Settings.
 
-Controls retain keyboard focus, value fields support Tab and arrow-key editing, and confirmed values remain blue whenever they differ from the loaded preset baseline. Routine writes do not show banners between meters and controls. Errors go to the native Error Log.
+Controls retain keyboard focus, value fields support Tab and arrow-key editing, and confirmed values remain cyan whenever they differ from the loaded preset baseline. Routine writes do not show banners between meters and controls. Errors go to the native Error Log.
 
 The PC Remote socket has one owner and continues its 50 ms heartbeat and meter polling while terminal snapshots, parameter readback and preset Recall are in progress. A write is never replayed automatically.

@@ -47,7 +47,7 @@ Never translate a display-tab click into coupling or routing. Coupling and routi
 
 `LP [CODE]` returns lines ending in `factory`, `user`, or `unsaved`. Names must be unique, ASCII, 1–80 bytes, and exclude control characters, `[` and `]`. Cap the list at 1024 entries and reject an empty or malformed list.
 
-Selecting or double-clicking a preset in the UI must not send a command. Recall requires an explicit Recall action; that action is the confirmation and must not be followed by a redundant warning sheet. Then use this sequence:
+Selecting or double-clicking a preset in the UI must not send a command. Recall requires an explicit Recall action followed by one confirmation that names the on-air and target presets; the service refuses a request without `confirmed: true`. (Until 29 September the native window treated the Recall button itself as the confirmation.) Then use this sequence:
 
 1. Use the catalog and active AP document already owned by the current application session. Refresh them only when they are absent or explicitly stale; do not add an LP/AP preflight to every Recall.
 2. Confirm the expected prior on-air name still matches.
@@ -60,7 +60,7 @@ If confirmation fails after a write-capable exchange, one direct AP read while P
 
 Local current-document export and local file application are available without guessing a named-preset command. For export, read and validate a fresh AP document and save it under an app-generated local name. For application, validate every imported field against the active profile, send verified opcode-227 writes in coupling-safe order, and require a complete final AP match before accepting the file as the new comparison baseline. Never replay an unconfirmed write.
 
-Named on-device Save, Save As, rename, delete, previous-preset, bulk backup, restore, automation, and other bulk preset operations are not yet verified. Do not infer them from Recall or local file application.
+Named on-device Save, Save As, rename, delete, previous-preset, automation and other bulk preset operations are not verified on the 5700i. Do not infer them from Recall or local file application. A backup of the AP and AS documents plus the LP names, and a field-by-field restore of system settings with AS readback, are implemented from verified reads and opcode-227 writes; they have not been run on hardware.
 
 ## Preset comparison state
 

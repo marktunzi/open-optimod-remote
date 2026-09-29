@@ -6,7 +6,7 @@ product
 
 ## Users
 
-OPTIMOD operators who need local control from macOS or a browser. The initial models are the OPTIMOD 5500 (1.2.8.24), 5700i (3.0.1.20) and OPTIMOD-FM 8700HD (1.0.2.161), all with parameter writes, preset recall, live meters and every system setting. The 5700i is verified on hardware; the 5500 and 8700HD profiles are statically derived and labelled as such until they are. More models follow. The read-only PC Remote expansion covers the 5500i, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 and 9400, and other firmware of the three writable models. Other operators should be able to build and contribute to an independent open-source implementation.
+OPTIMOD operators who need local control from macOS or a browser. The initial models are the OPTIMOD 5500 (1.2.8.24), 5700i (3.0.1.20) and OPTIMOD-FM 8700HD (1.0.2.161), all with parameter writes, preset recall, live meters and every system field in their profile (fields that cannot be converted safely stay read-only: 9 on the 5500 and 10 on the 8700HD). The 5700i is verified on hardware; the 5500 and 8700HD profiles are statically derived and labelled as such until they are. More models follow. The read-only PC Remote expansion covers the 5500i, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 and 9400, and other firmware of the three writable models. Other operators should be able to build and contribute to an independent open-source implementation.
 
 ## Product Purpose
 
@@ -30,7 +30,7 @@ The approved plan requires keyboard control, Tab and Ctrl-Tab navigation, +/- an
 
 ## Updated user direction
 
-The supplied Windows PC Remote screenshot remains the functional reference for control organization and simultaneous grouped FM/HD meters. The approved instrument artwork is the visual reference for the main processing window. Connections, Presets and System Settings use native macOS windows. Multiple named connections and their settings persist locally. Access codes live outside connection metadata in an owner-only Application Support credential file and appear only as bullets; the app does not use Keychain.
+The supplied Windows PC Remote screenshot remains the functional reference for control organization and simultaneous grouped FM/HD meters. The approved instrument artwork is the visual reference for the main processing window. Connections uses a native macOS window. Presets is a workspace of the interface, also in the macOS app; the native Presets window is only a fallback. The native System Settings window exists for the 5700i; the 5500 and 8700HD use the Setup workspace, which lists every system field. Multiple named connections and their settings persist locally. Access codes live outside connection metadata in an owner-only Application Support credential file and appear only as bullets; the app does not use Keychain.
 
 FM → HD coupling is a deliberate processor change with confirmation. FM/HD/Both meter tabs are display choices, and analog/digital/headphone source selectors control physical routing. Setup uses clear functional groups. Meter movement follows real packets with smooth browser-frame interpolation so an uneven device cadence does not appear as large visual steps.
 
