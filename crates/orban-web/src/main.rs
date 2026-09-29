@@ -194,10 +194,7 @@ async fn main() {
         .or(bundled_assets)
         .unwrap_or_else(|| "packages/ui/dist".into());
     let routes = Router::new()
-        .route(
-            "/api/health",
-            get(|| async { "open-optimod-remote/0.1.0-alpha.1" }),
-        )
+        .route("/api/health", get(|| async { "open-optimod-remote/0.2.0" }))
         .route("/api/state", get(state))
         .route("/api/profile", get(profile_handler))
         .route("/api/meters", get(meters_handler))

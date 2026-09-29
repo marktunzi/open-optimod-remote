@@ -59,7 +59,8 @@ def main() -> int:
 
     require("PRODUCT.md", "owner-only Application Support credential file", errors)
     forbid("PRODUCT.md", "belong in the macOS Keychain", errors)
-    require("CHANGELOG.md", "Unreleased — 23 September 2026", errors)
+    require("CHANGELOG.md", "0.1.0 — 23 September 2026", errors)
+    require("CHANGELOG.md", "0.2.0 — 29 September 2026", errors)
     require("README.md", "6300, 8500, 8600, 8700i, 9300 and 9400", errors)
     require("PRODUCT.md", "Every processor model has its own skin", errors)
     require("CHANGELOG.md", "134 specification-backed controls", errors)
