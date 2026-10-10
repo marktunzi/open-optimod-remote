@@ -104,24 +104,15 @@ Stand 29 september: de 5500 (1.2.8.24) en de nieuwe 8700HD (1.0.2.161) hebben st
 
 **Klaar wanneer:** een 8200 zonder Windows Remote volledig kan worden gelezen en de geverifieerde functies veilig kan uitvoeren.
 
-## Fase 7 — één universele macOS-app met meerdere gelijktijdige sessies en Figma-achtige tabs
+## Fase 7 — meerdere gelijktijdige sessies
 
-**Productdoel (10 oktober 2026):** vervang de losse Windows PC Remote-app per model door één native macOS-app waarin de gebruiker verschillende fysieke en virtuele OPTIMOD-modellen tegelijk verbonden houdt en direct wisselt via een Figma-achtige tabstrip. Modelspecifieke bediening blijft volledig gelijkwaardig aan de originele PC Remote; tabs zijn uitsluitend de navigatie tussen apparaten.
+- Vervang de ene `Option<Device>` door een runtime per `DeviceId`.
+- Geef iedere runtime eigen status, meters, caches, queues en foutgeschiedenis.
+- Maak de geselecteerde processor expliciet in alle mutatieverzoeken.
+- Voer een instelbare limiet voor gelijktijdige verbindingen in.
+- Voeg een overzichtsmodus toe met compacte meters en alarmstatus per processor.
 
-- Vervang de ene `Option<Device>` door een onafhankelijke runtime per stabiele `DeviceId`, elk met eigen protocoldapter, geconfigureerde besturings-/terminal-/meterpoorten, sessiestatus, meters, documenten, presets, command queue en foutgeschiedenis.
-- Laat meerdere modellen tegelijk verbonden blijven. Wisselen van tab mag **geen** disconnect, login, state-reset of nieuwe preset-/documentinitialisatie veroorzaken. Niet-actieve tabs behouden hun live sessies en caches.
-- Maak een native macOS tabstrip zoals Figma: elke tab staat voor één apparaat/instantie, met herkenbare naam en model, actieve selectie, verbindings-/alarmstatus, tabs openen/sluiten, rangschikken en vlot schakelen via toetsenbord. Een tab sluiten verwijdert nooit de opgeslagen verbinding; expliciet verbreken blijft een afzonderlijke handeling.
-- Houd tabs voor *apparaten* visueel en semantisch apart van modelinterne tabs zoals FM/HD, Processing, Presets en Setup. Binnen de actieve apparaattab toont de UI automatisch de juiste model-/firmwareadapter, eigen frontpanel/skin, pagina's en capabilities.
-- Gebruik tabs als views op persistente sessies, niet als sessie-eigenaren. UI-herladen, wisselen, sluiten of opnieuw openen mag nooit impliciet een write of preset recall uitvoeren; bij herstart worden opgeslagen apparaten en tabs veilig hersteld zonder onbevestigde schrijfopdrachten.
-- Maak de doelprocessor expliciet (`DeviceId` + sessiegeneratie) in iedere lees- en schrijfopdracht. Zorg dat in-flight writes, callbacks, meterupdates en reconnects van apparaat A nooit op B terechtkomen.
-- Isoleer fouten en herstel per apparaat: een netwerk-/firmware-/meterprobleem in één tab beïnvloedt andere tabs niet. Toon per tab de toestanden Connected, Connecting, Recovering, Degraded en Disconnected.
-- Behoud alle per-apparaat handmatig ingestelde poorten: poortnummer identificeert het model niet. Modelidentificatie gebeurt via het juiste protocol en de daadwerkelijk teruggegeven apparaat-/firmware-identiteit.
-- Voer een instelbare limiet voor gelijktijdige verbindingen in en voeg een optionele overzichtsmodus toe met compacte meters en alarmstatus per processor.
-- Verifieer eerst de afzonderlijke modeladapters en betrouwbare verbindingen; bouw multi-device-tabs daarna op die basis, niet tijdens de eerste protocolrefactor.
-
-**Acceptatie:** tegelijk verbonden 5700i, 5500/5500i, 6300, 8400 en 8700HD (voor zover adapters gereed); 100 opeenvolgende tabwissels zonder onbedoelde reconnect of stateverlies; meters en actuele waarden blijven per apparaat correct; recall op A verandert geen toestand van B; netwerkverlies van één Optimod laat alle andere tabs ongemoeid; sluiten/heropenen van een tab verwijdert nooit een opgeslagen verbinding.
-
-**Klaar wanneer:** één macOS-app al deze modellen via de juiste eigen protocollen volledig kan bedienen en een schrijfopdracht voor apparaat A onder geen enkele wissel-, reconnect- of recallrace naar apparaat B kan gaan.
+**Klaar wanneer:** een schrijfopdracht voor apparaat A onder geen enkele wissel-, reconnect- of recallrace naar apparaat B kan gaan.
 
 ## Fase 8 — overige PC Remote- en Web UI-modellen
 

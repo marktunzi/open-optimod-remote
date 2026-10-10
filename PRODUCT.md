@@ -12,10 +12,6 @@ OPTIMOD operators who need local control from macOS or a browser. The initial mo
 
 Implement the approved compatibility plan in docs: the Windows PC Remote workflows, settings and live meters, including separate FM and HD views. The current implementation is a development build. Completion means verified feature parity, not merely displaying parameters.
 
-## Universal multi-device workflow
-
-The final product is **one native macOS remote for all supported OPTIMOD models**, replacing the separate Windows PC Remote application for each model. Operators can open multiple physical or virtual processors in **Figma-like device tabs**, keep their independent connections alive, and switch instantly without reconnecting. Each tab identifies the processor name, model and connection state; activating a tab displays that model's authentic processing, presets, meters and setup. Device tabs must remain distinct from a model's own FM/HD or other functional tabs. Closing a tab must never delete its saved connection or silently write settings. User-configured ports and the model's actual protocol determine connectivity, not fixed port assumptions. Cross-device changes, callbacks and failures must remain strictly isolated. See [phase 7](docs/plans/2026-09-22-multi-model-adapter-plan.md) for implementation and acceptance criteria.
-
 ## Brand Personality
 
 Precise, familiar, restrained. Use the device terminology and the existing Windows tab and control organization. Independent project branding, own graphics, no proprietary binaries or runtime.
