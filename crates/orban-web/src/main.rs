@@ -1,4 +1,5 @@
 mod devices;
+mod diagnostics;
 use axum::{
     Json, Router,
     extract::{Request, State},
@@ -73,6 +74,7 @@ struct App {
     /// adapter has one, otherwise the 5700i reference used for read-only display.
     profile: Arc<std::sync::RwLock<Arc<Profile>>>,
     book: Arc<std::sync::Mutex<devices::Book>>,
+    diagnostics: Arc<diagnostics::Log>,
 }
 type Reply = oneshot::Sender<Result<(), String>>;
 enum Command {
@@ -206,6 +208,7 @@ async fn main() {
         meters,
         commands: tx,
         profile,
+        diagnostics: Default::default(),
         book: Arc::new(std::sync::Mutex::new(
             devices::Book::open(
                 devices::data_file().expect("Application data directory"),
@@ -228,7 +231,12 @@ async fn main() {
         .or(bundled_assets)
         .unwrap_or_else(|| "packages/ui/dist".into());
     let routes = Router::new()
-        .route("/api/health", get(|| async { "open-optimod-remote/0.2.0" }))
+        .route(
+            "/api/health",
+            get(|| async { concat!("open-optimod-remote/", env!("CARGO_PKG_VERSION")) }),
+        )
+        .route("/api/version", get(version_handler))
+        .route("/api/diagnostics", get(diagnostics_handler))
         .route("/api/state", get(state))
         .route("/api/profile", get(profile_handler))
         .route("/api/meters", get(meters_handler))
@@ -304,6 +312,21 @@ async fn local_origin(req: Request, next: Next) -> Response {
 }
 async fn state(State(app): State<App>) -> Json<Snapshot> {
     Json(app.state.read().await.clone())
+}
+/// Exact build identity, so a launcher can refuse a stale resident service.
+async fn version_handler() -> Json<JsonValue> {
+    Json(json!({
+        "name": "open-optimod-remote",
+        "version": env!("CARGO_PKG_VERSION"),
+        "api": 1,
+    }))
+}
+/// Redacted connection and session events; safe to attach to a field report.
+async fn diagnostics_handler(State(app): State<App>) -> Json<JsonValue> {
+    Json(json!({
+        "version": env!("CARGO_PKG_VERSION"),
+        "events": app.diagnostics.snapshot(),
+    }))
 }
 async fn profile_handler(State(app): State<App>) -> Json<Profile> {
     let active = app
@@ -524,8 +547,12 @@ async fn live_snapshot(device: &mut Device, app: &App, scope: Scope) -> Result<D
     .await
 }
 async fn documents(device: &mut Device, app: &App) -> Result<(Document, Document), String> {
-    let system = live_snapshot(device, app, Scope::System).await?;
-    let processing = live_snapshot(device, app, Scope::Processing).await?;
+    let system = live_snapshot(device, app, Scope::System)
+        .await
+        .map_err(|e| format!("System document: {e}"))?;
+    let processing = live_snapshot(device, app, Scope::Processing)
+        .await
+        .map_err(|e| format!("Processing document: {e}"))?;
     Ok((system, processing))
 }
 fn processing_modifications(current: &Document, baseline: Option<&Document>) -> BTreeSet<String> {
@@ -621,16 +648,48 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
     Err("Too many device events before response boundary".into())
 }
 async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
+    use diagnostics::Outcome;
+    let log = &app.diagnostics;
+    let started = std::time::Instant::now();
     let code = Zeroizing::new(body.code);
     let ip = body.host.parse().map_err(|_| "Enter an IP address")?;
-    let session = Session::connect_for_model(
+    log.record(
+        "connect",
+        Outcome::Info,
+        format!(
+            "PC Remote port {}, terminal port {}, saved model {}",
+            body.port,
+            body.terminal_port,
+            body.model.label()
+        ),
+        None,
+    );
+    let session = match Session::connect_for_model(
         SocketAddr::new(ip, body.port),
         &code,
         Duration::from_secs(4),
         body.model,
     )
-    .await?;
+    .await
+    {
+        Ok(session) => session,
+        Err(e) => {
+            let message = format!("PC Remote login (port {}): {e}", body.port);
+            log.record("login", Outcome::Failed, &message, Some(started.elapsed()));
+            return Err(message);
+        }
+    };
+    log.record(
+        "login",
+        Outcome::Ok,
+        format!(
+            "{}, access level {}, adapter {}",
+            session.info.firmware, session.info.access_level, session.info.adapter_id
+        ),
+        Some(started.elapsed()),
+    );
     let profile = Profile::for_adapter(session.info.adapter_id)?.map(Arc::new);
+    let terminal_port = body.terminal_port;
     let mut device = Device {
         session,
         terminal: SocketAddr::new(ip, body.terminal_port),
@@ -638,23 +697,41 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
         processing_baseline: None,
         profile,
     };
+    // Login has succeeded here. Each later step is labelled so a failure
+    // names its stage instead of looking like a rejected access code.
     let init = async {
         if device.session.info.capabilities.parameter_reads {
-            publish_documents(app, &mut device).await?;
+            publish_documents(app, &mut device)
+                .await
+                .map_err(|e| ("documents", format!("Terminal (port {terminal_port}): {e}")))?;
+            log.record("documents", Outcome::Ok, "", Some(started.elapsed()));
         }
         if device.session.info.capabilities.preset_catalog {
-            refresh_presets(app, &mut device).await?;
+            refresh_presets(app, &mut device).await.map_err(|e| {
+                (
+                    "preset_catalog",
+                    format!("Terminal (port {terminal_port}): Preset catalog: {e}"),
+                )
+            })?;
+            log.record("preset_catalog", Outcome::Ok, "", Some(started.elapsed()));
         }
         if device.session.info.capabilities.live_meters {
-            device.session.send(222, b"").await?;
+            device
+                .session
+                .send(222, b"")
+                .await
+                .map_err(|e| ("meter_subscription", format!("Meter subscription: {e}")))?;
         }
-        Ok::<(), String>(())
+        Ok::<(), (&'static str, String)>(())
     }
     .await;
-    if let Err(e) = init {
+    if let Err((stage, e)) = init {
         let _ = device.session.disconnect().await;
-        return Err(e);
+        let message = format!("{e} (login succeeded; the session was closed)");
+        log.record(stage, Outcome::Failed, &message, Some(started.elapsed()));
+        return Err(message);
     }
+    log.record("ready", Outcome::Ok, "", Some(started.elapsed()));
     if let Ok(mut active) = app.profile.write() {
         *active = device.profile.clone().unwrap_or_else(reference_profile);
     }
@@ -797,7 +874,10 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
     // A preset can reset the device's meter subscription. Re-enable it once,
     // after the processing document is complete, then let the normal owner
     // tick resume the 50 ms cadence.
-    let _ = device.session.send(222, b"").await;
+    if let Err(e) = device.session.send(222, b"").await {
+        app.diagnostics
+            .record("meter_resubscribe", diagnostics::Outcome::Failed, e, None);
+    }
     let recalled = recalled?;
     let mut baseline = recalled.clone();
     if let Some(name) = baseline.name.strip_prefix("modif ") {
@@ -1460,6 +1540,7 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
            }
            Command::Disconnect(reply)=>{
             let disconnecting=device.take();
+            app.diagnostics.record("disconnect",diagnostics::Outcome::Info,"requested",None);
             meter_failures=0;
             let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=None;drop(state);app.meters.send_replace(json!({"live":false}));
             let result=if let Some(d)=disconnecting{d.session.disconnect().await}else{Ok(())};
@@ -1511,10 +1592,15 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
          _=tick.tick(),if device.as_ref().is_some_and(|d| d.session.info.capabilities.live_meters)=>{
           let d=device.as_mut().unwrap();let result=async{d.session.send(219,b"").await?;drain(d,&app).await}.await;
           match result {
-           Ok(())=>{meter_failures=0;}
+           Ok(())=>{
+            if meter_failures>0{app.diagnostics.record("meter_poll",diagnostics::Outcome::Ok,format!("recovered after {meter_failures} failed poll(s)"),None);}
+            meter_failures=0;
+           }
            Err(e)=>{
             meter_failures=meter_failures.saturating_add(1);
+            app.diagnostics.record("meter_poll",diagnostics::Outcome::Failed,format!("{e} ({meter_failures} of 3)"),None);
             if is_definite_disconnect(&e) || meter_failures>=3 {
+             app.diagnostics.record("session_lost",diagnostics::Outcome::Failed,format!("closed after meter poll failure: {e}"),None);
              if let Some(d)=device.take(){let _=d.session.disconnect().await;}
              let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=Some(e);app.meters.send_replace(json!({"live":false}));
              meter_failures=0;
@@ -1714,6 +1800,7 @@ mod tests {
             meters,
             commands,
             profile: shared_profile(reference_profile()),
+            diagnostics: Default::default(),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     storage.path().join("connections.json"),
@@ -1817,6 +1904,7 @@ mod tests {
             meters,
             commands,
             profile: shared_profile(reference_profile()),
+            diagnostics: Default::default(),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     storage.path().join("connections.json"),
@@ -1968,6 +2056,7 @@ mod tests {
             meters,
             commands,
             profile: shared_profile(reference_profile()),
+            diagnostics: Default::default(),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     storage.path().join("connections.json"),
@@ -2129,6 +2218,7 @@ mod tests {
             meters,
             commands: tx,
             profile: shared_profile(reference_profile()),
+            diagnostics: Default::default(),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     tempfile::tempdir().unwrap().path().join("test.json"),
@@ -2301,6 +2391,7 @@ mod tests {
             meters,
             commands,
             profile: shared_profile(profile.clone()),
+            diagnostics: Default::default(),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     storage.path().join("connections.json"),
@@ -2580,6 +2671,7 @@ mod tests {
             meters,
             commands: command_tx,
             profile: shared_profile(reference_profile()),
+            diagnostics: Default::default(),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     storage.path().join("connections.json"),
@@ -2956,6 +3048,7 @@ mod tests {
             meters,
             commands: command_tx,
             profile: shared_profile(reference_profile()),
+            diagnostics: Default::default(),
             book: Arc::new(std::sync::Mutex::new(
                 devices::Book::open(
                     storage.path().join("connections.json"),
@@ -3084,5 +3177,319 @@ mod tests {
         .await;
         assert!(refused.is_err());
         assert_eq!(writes.lock().unwrap().len(), 1);
+    }
+
+    // Phase 0 fault injection: a scripted processor on non-default ports that
+    // runs the real connect path. Tests named `known_defect_*` pin current
+    // behaviour that issue #8 classifies as a defect; the fix must invert them.
+    enum Terminal {
+        Documents {
+            system: String,
+            processing: String,
+            presets: String,
+        },
+        Stall,
+    }
+    struct FakeProcessor {
+        pc_port: u16,
+        terminal_port: u16,
+        corrupt_polls: Arc<std::sync::atomic::AtomicBool>,
+        pc_closed: Arc<std::sync::atomic::AtomicBool>,
+    }
+    async fn fake_processor(
+        banner: &'static str,
+        terminal_banner: &'static str,
+        terminal: Terminal,
+    ) -> FakeProcessor {
+        use std::sync::atomic::AtomicBool;
+        let pc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let terminal_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let corrupt_polls = Arc::new(AtomicBool::new(false));
+        let pc_closed = Arc::new(AtomicBool::new(false));
+        let (corrupt, closed) = (corrupt_polls.clone(), pc_closed.clone());
+        let fake = FakeProcessor {
+            pc_port: pc_listener.local_addr().unwrap().port(),
+            terminal_port: terminal_listener.local_addr().unwrap().port(),
+            corrupt_polls,
+            pc_closed,
+        };
+        tokio::spawn(async move {
+            let (mut stream, _) = pc_listener.accept().await.unwrap();
+            while stream.read_u8().await.unwrap() != 0 {}
+            stream
+                .write_all(format!("connect ok\n0\n{banner}\n123\n").as_bytes())
+                .await
+                .unwrap();
+            let mut decoder = orban_protocol::framing::Decoder::default();
+            let mut buffer = [0_u8; 4096];
+            loop {
+                let count = match stream.read(&mut buffer).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(count) => count,
+                };
+                for frame in decoder.feed(&buffer[..count]).unwrap() {
+                    let reply = match orban_protocol::message::decode(&frame).unwrap() {
+                        Message::Other { kind: 218, .. } => break,
+                        Message::Other { kind: 219, .. } => {
+                            orban_protocol::message::encode(220, b"").unwrap()
+                        }
+                        Message::Other { kind: 250, .. } if corrupt.load(Ordering::SeqCst) => {
+                            vec![0xff; 5]
+                        }
+                        Message::Other { kind: 250, .. } => {
+                            orban_protocol::message::encode(251, b"").unwrap()
+                        }
+                        _ => continue,
+                    };
+                    let _ = stream.write_all(&reply).await;
+                }
+            }
+            closed.store(true, Ordering::SeqCst);
+        });
+        let terminal = Arc::new(terminal);
+        tokio::spawn(async move {
+            loop {
+                let Ok((mut stream, _)) = terminal_listener.accept().await else {
+                    break;
+                };
+                let terminal = terminal.clone();
+                tokio::spawn(async move {
+                    let Terminal::Documents {
+                        system,
+                        processing,
+                        presets,
+                    } = &*terminal
+                    else {
+                        // Accept, then never send the banner.
+                        sleep(Duration::from_secs(30)).await;
+                        return;
+                    };
+                    let _ = stream
+                        .write_all(format!("{terminal_banner}\r\n").as_bytes())
+                        .await;
+                    let mut request = Vec::new();
+                    let mut byte = [0_u8; 1];
+                    while !request.ends_with(b"??\r\n") {
+                        if stream.read_exact(&mut byte).await.is_err() {
+                            return;
+                        }
+                        request.push(byte[0]);
+                    }
+                    let reply = if request.starts_with(b"AS") {
+                        system.clone()
+                    } else if request.starts_with(b"LP") {
+                        format!("{presets}{processing}")
+                    } else {
+                        processing.clone()
+                    };
+                    let _ = stream.write_all(reply.as_bytes()).await;
+                    let mut tail = [0_u8; 64];
+                    let _ = stream.read(&mut tail).await;
+                });
+            }
+        });
+        fake
+    }
+    fn bare_app(commands: mpsc::Sender<Command>) -> (App, tempfile::TempDir) {
+        let (meters, _) = watch::channel(json!({"live":false}));
+        let storage = tempfile::tempdir().unwrap();
+        let app = App {
+            state: Arc::new(RwLock::new(Snapshot::default())),
+            meters,
+            commands,
+            profile: shared_profile(reference_profile()),
+            diagnostics: Default::default(),
+            book: Arc::new(std::sync::Mutex::new(
+                devices::Book::open(
+                    storage.path().join("connections.json"),
+                    Box::new(devices::FileVault::new(
+                        storage.path().join("credentials.json"),
+                    )),
+                )
+                .unwrap(),
+            )),
+        };
+        (app, storage)
+    }
+    fn connect_body(fake: &FakeProcessor) -> Connect {
+        Connect {
+            host: "127.0.0.1".into(),
+            code: "1234".into(),
+            port: fake.pc_port,
+            terminal_port: fake.terminal_port,
+            model: DeviceModel::Auto,
+            device_id: Some("fake".into()),
+        }
+    }
+    fn versioned_document(version: &str, name: &str) -> String {
+        format!(
+            "OptimodVersion=<{version}>\r\nPreset Name=<{name}> size=1\r\nC:<AGC>String:<On>;D:1;\r\nEnd Preset<end>\r\n"
+        )
+    }
+    fn assert_no_code_in(app: &App) {
+        for event in app.diagnostics.snapshot() {
+            assert!(!event.detail.contains("1234"), "{event:?}");
+            assert!(!event.detail.contains("127.0.0.1"), "{event:?}");
+        }
+    }
+    async fn wait_until(condition: impl Fn() -> bool) {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while !condition() {
+                sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("condition within five seconds");
+    }
+
+    /// Issue #1. The 5500's `ST ENC NO LIM` factory preset is a `5500.10`
+    /// document; with it on air, the processing read is rejected after a valid
+    /// login. Whether the reporter's unit ran that preset is not known. The
+    /// 5500 system document version is assumed to be `8300.10`, unverified.
+    #[tokio::test]
+    async fn issue_1_a_5500_with_a_5500_10_preset_on_air_names_the_failing_stage() {
+        let fake = fake_processor(
+            "5500 V 1.2.8.24",
+            "Orban Optimod 5500",
+            Terminal::Documents {
+                system: versioned_document("8300.10", "SYSTEM"),
+                processing: versioned_document("5500.10", "ST ENC NO LIM"),
+                presets: "ST ENC NO LIM factory\r\n".into(),
+            },
+        )
+        .await;
+        let (commands, _) = mpsc::channel(1);
+        let (app, _storage) = bare_app(commands);
+
+        let error = make_device(connect_body(&fake), &app)
+            .await
+            .err()
+            .expect("the connection is refused");
+
+        assert_eq!(
+            error,
+            format!(
+                "Terminal (port {}): Processing document: Unsupported Optimod document version 5500.10 (expected 8300.…) (login succeeded; the session was closed)",
+                fake.terminal_port
+            )
+        );
+        wait_until(|| fake.pc_closed.load(Ordering::SeqCst)).await;
+        assert!(!app.state.read().await.connected);
+        let events = app.diagnostics.snapshot();
+        assert!(events.iter().any(|e| e.stage == "login"
+            && e.outcome == diagnostics::Outcome::Ok
+            && e.detail.starts_with("5500 V 1.2.8.24")));
+        assert!(events.iter().any(|e| e.stage == "documents"
+            && e.outcome == diagnostics::Outcome::Failed
+            && e.detail.contains("5500.10")));
+        assert_no_code_in(&app);
+    }
+
+    #[tokio::test]
+    async fn a_5500_connects_with_both_ports_set_by_the_user() {
+        let fake = fake_processor(
+            "5500 V 1.2.8.24",
+            "Orban Optimod 5500",
+            Terminal::Documents {
+                system: versioned_document("8300.10", "SYSTEM"),
+                processing: versioned_document("8300.10", "ROCK-MEDIUM"),
+                presets: "ROCK-MEDIUM factory\r\n".into(),
+            },
+        )
+        .await;
+        assert!(fake.pc_port != 6201 && fake.terminal_port != 23);
+        let (commands, _) = mpsc::channel(1);
+        let (app, _storage) = bare_app(commands);
+
+        let device = make_device(connect_body(&fake), &app).await.unwrap();
+
+        let state = app.state.read().await;
+        assert!(state.connected);
+        assert_eq!(state.firmware, "5500 V 1.2.8.24");
+        assert_eq!(state.processing.as_ref().unwrap().name, "ROCK-MEDIUM");
+        assert_eq!(device.terminal.port(), fake.terminal_port);
+        let stages = app
+            .diagnostics
+            .snapshot()
+            .iter()
+            .map(|e| e.stage)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            stages,
+            ["connect", "login", "documents", "preset_catalog", "ready"]
+        );
+        assert_no_code_in(&app);
+    }
+
+    /// CR-01: a terminal that accepts but never answers ends a valid PC Remote
+    /// session after the 4 s system-document budget.
+    #[tokio::test]
+    async fn known_defect_cr01_a_stalled_terminal_discards_a_valid_login() {
+        let fake = fake_processor("5700i V 3.0.1.20", "Orban Optimod 5700i", Terminal::Stall).await;
+        let (commands, _) = mpsc::channel(1);
+        let (app, _storage) = bare_app(commands);
+        let started = std::time::Instant::now();
+
+        let error = make_device(connect_body(&fake), &app)
+            .await
+            .err()
+            .expect("the connection is refused");
+
+        assert!(started.elapsed() >= Duration::from_secs(4));
+        assert!(
+            error.starts_with(&format!(
+                "Terminal (port {}): System document: Terminal response timed out",
+                fake.terminal_port
+            )),
+            "{error}"
+        );
+        assert!(error.ends_with("(login succeeded; the session was closed)"));
+        wait_until(|| fake.pc_closed.load(Ordering::SeqCst)).await;
+    }
+
+    /// CR-02: three unusable meter-poll replies end the whole session, although
+    /// the processor never closed the PC Remote connection.
+    #[tokio::test]
+    async fn known_defect_cr02_three_bad_meter_replies_end_a_live_session() {
+        let fake = fake_processor(
+            "5700i V 3.0.1.20",
+            "Orban Optimod 5700i",
+            Terminal::Documents {
+                system: versioned_document("5700.51", "SYSTEM"),
+                processing: versioned_document("5700.51", "TEST"),
+                presets: "TEST factory\r\n".into(),
+            },
+        )
+        .await;
+        let (commands, rx) = mpsc::channel(8);
+        let (app, _storage) = bare_app(commands);
+        tokio::spawn(owner(app.clone(), rx));
+        let connected = dispatch(app.clone(), |reply| {
+            Command::Connect(connect_body(&fake), reply)
+        })
+        .await;
+        assert!(connected.is_ok());
+        assert!(app.state.read().await.connected);
+
+        fake.corrupt_polls.store(true, Ordering::SeqCst);
+        let state = app.state.clone();
+        tokio::time::timeout(Duration::from_secs(5), async {
+            while state.read().await.connected {
+                sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("the session ends");
+
+        assert!(app.state.read().await.error.is_some());
+        let events = app.diagnostics.snapshot();
+        let failed_polls = events
+            .iter()
+            .filter(|e| e.stage == "meter_poll" && e.outcome == diagnostics::Outcome::Failed)
+            .count();
+        assert_eq!(failed_polls, 3);
+        assert!(events.iter().any(|e| e.stage == "session_lost"));
+        wait_until(|| fake.pc_closed.load(Ordering::SeqCst)).await;
+        assert_no_code_in(&app);
     }
 }

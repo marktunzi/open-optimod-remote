@@ -19,6 +19,19 @@ pub struct Document {
     #[serde(skip)]
     pub raw: String,
 }
+/// The version token of a rejected document, for diagnostics. Only digits and
+/// dots are echoed, so no field content or credential can reach a log.
+fn observed_version(raw: &str) -> String {
+    raw.strip_prefix("OptimodVersion=<")
+        .and_then(|rest| rest.split_once('>'))
+        .map(|(version, _)| version)
+        .filter(|version| {
+            !version.is_empty()
+                && version.len() <= 16
+                && version.bytes().all(|b| b.is_ascii_digit() || b == b'.')
+        })
+        .map_or_else(|| "unknown".to_owned(), str::to_owned)
+}
 impl Document {
     pub fn parse(bytes: &[u8]) -> Result<Self, String> {
         Self::parse_with_prefix(bytes, "OptimodVersion=<5700.")
@@ -53,8 +66,15 @@ impl Document {
             return Err("Oversized document".into());
         }
         let raw = std::str::from_utf8(bytes).map_err(|_| "Unsupported document encoding")?;
-        if !raw.starts_with(version_prefix) || !raw.ends_with("End Preset<end>\r\n") {
-            return Err("Invalid or unsupported Optimod document".into());
+        if !raw.starts_with(version_prefix) {
+            return Err(format!(
+                "Unsupported Optimod document version {} (expected {}…)",
+                observed_version(raw),
+                version_prefix.trim_start_matches("OptimodVersion=<")
+            ));
+        }
+        if !raw.ends_with("End Preset<end>\r\n") {
+            return Err("Incomplete Optimod document".into());
         }
         let mut fields = BTreeMap::new();
         let mut name = None;

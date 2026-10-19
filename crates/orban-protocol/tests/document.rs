@@ -53,3 +53,27 @@ fn malformed_decrypted_documents_never_become_device_state() {
         assert!(Document::parse(doc.as_bytes()).is_err());
     }
 }
+
+/// Issue #1 evidence: two of the 5500/5500i factory presets (`ST ENC NO LIM`)
+/// are `5500.10` documents, while every other one is `8300.10`. The rejection
+/// must name the observed version so a field report identifies the cause.
+#[test]
+fn a_rejected_document_family_is_named_without_echoing_its_content() {
+    let text = "OptimodVersion=<5500.10>\r\nPreset Name=<ST ENC NO LIM> size=1\r\nC:<AGC>String:<On>;D:1;\r\nEnd Preset<end>\r\n";
+    for model in [DeviceModel::Optimod5500, DeviceModel::Optimod5500i] {
+        let error = Document::parse_for_model(text.as_bytes(), model).unwrap_err();
+        assert_eq!(
+            error,
+            "Unsupported Optimod document version 5500.10 (expected 8300.…)"
+        );
+    }
+    let secret = "OptimodVersion=<1234 [SECRET]>\r\nEnd Preset<end>\r\n";
+    let error = Document::parse(secret.as_bytes()).unwrap_err();
+    assert!(error.contains("version unknown"), "{error}");
+    assert!(!error.contains("SECRET"));
+    let truncated = DOC.replace("End Preset<end>\r\n", "");
+    assert_eq!(
+        Document::parse(truncated.as_bytes()).unwrap_err(),
+        "Incomplete Optimod document"
+    );
+}

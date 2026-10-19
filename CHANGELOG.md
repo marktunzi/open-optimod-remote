@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- A failed connection now names its stage and port (PC Remote login, system document, processing document, preset catalog or meter subscription) and says when the login itself succeeded. A rejected document names its version, for example `5500.10`, which the 5500's `ST ENC NO LIM` factory preset uses. See the [phase 0 baseline](docs/verification/2026-10-19-phase-0-baseline.md).
+- Added `GET /api/diagnostics`, a bounded log of connection and session events without access codes or addresses, and `GET /api/version` with the exact build version.
+
 ## 0.2.0 — 29 September 2026
 
 On `main`; the signed release has not yet been published. The latest published release is 0.1.0.
