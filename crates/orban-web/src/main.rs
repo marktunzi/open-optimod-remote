@@ -38,8 +38,9 @@ const METER_POLL_PERIOD: Duration = Duration::from_millis(50);
 /// serving the session. Slow or failed ticks before that are not a lost
 /// connection: the original PC Remote waits about 42 s without any byte.
 const UNANSWERED_LIMIT: Duration = Duration::from_secs(20);
-/// Reads of the on-air archive after a push, and the wait between them.
-const ARCHIVE_READS: u8 = 3;
+/// Reads of the on-air archive after a push, and the wait before each: the
+/// unit saves the archive file a moment after the change.
+const ARCHIVE_READS: u8 = 5;
 const ARCHIVE_RETRY: Duration = Duration::from_secs(2);
 /// PC Remote login including the TCP connection, and each wait for a reply
 /// on the session (such as a response boundary).
@@ -256,13 +257,22 @@ impl Boundaries {
     }
 }
 
+/// The encrypted on-air file the unit pushed: whole, or the part that
+/// arrived before the unit cut the frame.
+enum Pushed {
+    Whole(Vec<u8>),
+    Start(Vec<u8>),
+}
+
 struct Device {
     session: Session,
     boundaries: Boundaries,
     /// Set when a poll during other work found the PC Remote session lost.
     lost: Option<String>,
-    /// The unit pushed its on-air document; see `on_air_changed_elsewhere`.
-    on_air_pushed: bool,
+    /// The on-air document the unit pushed; see `on_air_pushed`.
+    pushed: Option<Pushed>,
+    /// The start of the pushed document that a later archive must match.
+    expected: Option<Document>,
     /// An on-air archive (opcode 239) is on its way, and the one received.
     archive_requested: bool,
     archive: Option<Vec<u8>>,
@@ -780,66 +790,134 @@ async fn read_on_air_archive(app: &App, device: &mut Device) -> Result<Document,
     Document::parse_for_model(&plain, device.session.info.model)
 }
 
+/// Whether `document` agrees with every field of `start`, the start of
+/// another document.
+fn begins_like(start: &Document, document: &Document) -> bool {
+    start.name == document.name
+        && start
+            .fields
+            .iter()
+            .all(|(name, field)| document.fields.get(name) == Some(field))
+}
+
+/// Shows `processing` as the on-air document; another preset resets the
+/// baseline that modifications are counted from.
+fn show_on_air(state: &mut Snapshot, device: &mut Device, processing: Document) {
+    let before = device.processing_baseline.as_ref().map(|d| d.name.clone());
+    let now = processing
+        .name
+        .strip_prefix("modif ")
+        .unwrap_or(processing.name.as_str())
+        .to_owned();
+    if before.as_deref() != Some(now.as_str()) {
+        device.processing_baseline = None;
+    }
+    let (base_name, modified_fields) =
+        refresh_processing_identity(&processing, &state.presets, &mut device.processing_baseline);
+    state.processing = Some(processing);
+    state.preset_base_name = base_name;
+    state.modified_fields = modified_fields;
+    state.sync_error = None;
+    state.revision += 1;
+}
+
+/// No processing document is shown: processing writes, Recall and preset
+/// management are refused until one is read.
+fn hide_on_air(state: &mut Snapshot, message: String) {
+    state.processing = None;
+    state.modified_fields.clear();
+    state.sync_error = Some(message);
+    state.revision += 1;
+}
+
 /// The unit pushed its on-air processing document (opcode 229) without a
-/// request: the front panel, the terminal or automation changed it. Checks
-/// and writes must not rely on the document the app read before. Where the
-/// adapter reads the on-air archive, it is read again on the PC Remote
-/// session. Otherwise, and when that read fails, no processing document is
-/// shown, which also refuses processing writes, Recall and preset
-/// management, until Refresh reads it. The terminal is not used here: the
-/// change may come from a terminal session that is still open.
-async fn on_air_changed_elsewhere(app: &App, device: &mut Device) {
-    let left = if device.on_air_pushed {
-        ARCHIVE_READS
-    } else {
-        device.archive_retry.map_or(0, |(_, left)| left)
+/// request: after the front panel, the terminal, automation or the app's own
+/// Recall changed it. With session meters on, the 5700i cuts that frame, but
+/// the part that arrives decrypts to the preset name and the first fields.
+/// A push that agrees with the shown document changes nothing (the app's own
+/// Recall). Otherwise the shown document is withdrawn and the on-air archive
+/// is read over the PC Remote session until it agrees with the push: the
+/// unit saves that file a moment after the change, so a read right after it
+/// can return the previous preset. The terminal is not used here: the change
+/// may come from a terminal session that is still open.
+async fn on_air_pushed(app: &App, device: &mut Device) {
+    let Some(pushed) = device.pushed.take() else {
+        return;
     };
-    device.on_air_pushed = false;
-    device.archive_retry = None;
-    let result = if device.session.adapter().on_air_archive && left > 0 {
-        let read = read_on_air_archive(app, device).await;
-        // Right after a change the unit's send buffer is often full and the
-        // archive arrives cut; it fits again a moment later.
-        if read.is_err() && left > 1 {
-            device.archive_retry = Some((tokio::time::Instant::now() + ARCHIVE_RETRY, left - 1));
+    let model = device.session.info.model;
+    let start = match pushed {
+        Pushed::Whole(sealed) => {
+            match device
+                .session
+                .decrypt_file(&sealed)
+                .and_then(|plain| Document::parse_for_model(&plain, model))
+            {
+                Ok(processing) => {
+                    device.expected = None;
+                    device.archive_retry = None;
+                    let mut state = app.state.write().await;
+                    show_on_air(&mut state, device, processing);
+                    return;
+                }
+                Err(_) => None,
+            }
         }
-        read
-    } else {
-        Err("The on-air processing was changed on the processor".to_owned())
+        Pushed::Start(sealed) => orban_protocol::archive::decrypt_prefix(&sealed, &device.code)
+            .and_then(|plain| Document::parse_prefix_for_model(&plain, model))
+            .ok(),
     };
     let mut state = app.state.write().await;
-    match result {
-        Ok(processing) => {
-            let before = device.processing_baseline.as_ref().map(|d| d.name.clone());
-            let now = processing
-                .name
-                .strip_prefix("modif ")
-                .unwrap_or(processing.name.as_str())
-                .to_owned();
-            // Another preset is on air: changes are counted from it.
-            if before.as_deref() != Some(now.as_str()) {
-                device.processing_baseline = None;
+    if let (Some(start), Some(shown)) = (&start, &state.processing)
+        && begins_like(start, shown)
+    {
+        return;
+    }
+    device.expected = start;
+    if device.session.adapter().on_air_archive {
+        device.archive_retry = Some((tokio::time::Instant::now() + ARCHIVE_RETRY, ARCHIVE_READS));
+        hide_on_air(
+            &mut state,
+            "The on-air processing was changed on the processor. Reading it again.".to_owned(),
+        );
+    } else {
+        hide_on_air(
+            &mut state,
+            "The on-air processing was changed on the processor. Use Refresh to read it."
+                .to_owned(),
+        );
+    }
+}
+
+/// One scheduled read of the on-air archive after a push.
+async fn read_pushed_on_air(app: &App, device: &mut Device) {
+    let Some((_, left)) = device.archive_retry.take() else {
+        return;
+    };
+    let read = read_on_air_archive(app, device)
+        .await
+        .and_then(|processing| match &device.expected {
+            Some(start) if !begins_like(start, &processing) => {
+                Err("The processor has not saved its new on-air settings yet".to_owned())
             }
-            let (base_name, modified_fields) = refresh_processing_identity(
-                &processing,
-                &state.presets,
-                &mut device.processing_baseline,
-            );
-            state.processing = Some(processing);
-            state.preset_base_name = base_name;
-            state.modified_fields = modified_fields;
+            _ => Ok(processing),
+        });
+    let mut state = app.state.write().await;
+    match read {
+        Ok(processing) => {
+            device.expected = None;
+            show_on_air(&mut state, device, processing);
+        }
+        Err(_) if left > 1 => {
+            device.archive_retry = Some((tokio::time::Instant::now() + ARCHIVE_RETRY, left - 1));
         }
         Err(error) => {
-            state.processing = None;
-            state.modified_fields.clear();
-            state.sync_error = Some(if device.archive_retry.is_some() {
-                "The on-air processing was changed on the processor. Reading it again.".to_owned()
-            } else {
-                format!("{error}. Current settings are unavailable until Refresh reads them.")
-            });
+            device.expected = None;
+            hide_on_air(
+                &mut state,
+                format!("{error}. Current settings are unavailable until Refresh reads them."),
+            );
         }
     }
-    state.revision += 1;
 }
 
 fn sync_failure(device: &Device, error: &str) -> String {
@@ -894,8 +972,15 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
             Message::Truncated { kind: 229, .. } if device.archive_requested => {
                 device.archive_requested = false;
             }
-            Message::Truncated { kind: 229, .. } | Message::File { kind: 229, .. } => {
-                device.on_air_pushed = true;
+            Message::File {
+                kind: 229, data, ..
+            } => device.pushed = Some(Pushed::Whole(data)),
+            Message::Truncated {
+                kind: 229, data, ..
+            } => {
+                let start = orban_protocol::message::file_prefix(&data)
+                    .map_or_else(Vec::new, |(_, start)| start.to_vec());
+                device.pushed = Some(Pushed::Start(start));
             }
             _ => {}
         }
@@ -917,7 +1002,8 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
         session,
         boundaries: Boundaries::default(),
         lost: None,
-        on_air_pushed: false,
+        pushed: None,
+        expected: None,
         archive_requested: false,
         archive: None,
         archive_retry: None,
@@ -1954,15 +2040,17 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
              end_session(&app,&mut device,lost.clone()).await;
              pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
           }
-          if let Some(d)=device.as_mut().filter(|d| d.on_air_pushed) {on_air_changed_elsewhere(&app,d).await;}
+          if let Some(d)=device.as_mut().filter(|d| d.pushed.is_some()) {on_air_pushed(&app,d).await;}
          }
          _=tick.tick(),if device.as_ref().is_some_and(|d| d.session.info.capabilities.live_meters)=>{
           let d=device.as_mut().unwrap();let result=async{d.session.send(219,b"").await?;drain(d,&app).await}.await;
           if let Err(e)=result && let Some(lost)=session_lost(d,&e) {
              end_session(&app,&mut device,lost.clone()).await;
              pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
-          } else if d.on_air_pushed || d.archive_retry.is_some_and(|(at,_)| at<=tokio::time::Instant::now()) {
-             on_air_changed_elsewhere(&app,d).await;
+          } else if d.pushed.is_some() {
+             on_air_pushed(&app,d).await;
+          } else if d.archive_retry.is_some_and(|(at,_)| at<=tokio::time::Instant::now()) {
+             read_pushed_on_air(&app,d).await;
           }
          }
          _=tokio::time::sleep_until(pending.as_ref().map_or_else(tokio::time::Instant::now,|p| p.at)),if pending.is_some()=>{
@@ -2251,7 +2339,8 @@ mod tests {
             session,
             boundaries: Boundaries::default(),
             lost: None,
-            on_air_pushed: false,
+            pushed: None,
+            expected: None,
             archive_requested: false,
             archive: None,
             archive_retry: None,
@@ -2360,7 +2449,8 @@ mod tests {
             session,
             boundaries: Boundaries::default(),
             lost: None,
-            on_air_pushed: false,
+            pushed: None,
+            expected: None,
             archive_requested: false,
             archive: None,
             archive_retry: None,
@@ -2517,7 +2607,8 @@ mod tests {
             session,
             boundaries: Boundaries::default(),
             lost: None,
-            on_air_pushed: false,
+            pushed: None,
+            expected: None,
             archive_requested: false,
             archive: None,
             archive_retry: None,
@@ -2640,6 +2731,8 @@ mod tests {
         push_on_air: Arc<watch::Sender<u64>>,
         /// Whether opcode 239 is answered with the on-air archive.
         answers_archive: Arc<AtomicBool>,
+        /// Archive reads still answered with the previous (CURRENT) file.
+        archive_lag: Arc<AtomicUsize>,
     }
 
     impl FakeUnit {
@@ -2656,6 +2749,7 @@ mod tests {
                 on_air: Arc::new(std::sync::Mutex::new("CURRENT")),
                 push_on_air: Arc::new(watch::channel(0).0),
                 answers_archive: Arc::new(AtomicBool::new(true)),
+                archive_lag: Arc::default(),
             };
             let counts = unit.counts.clone();
             let stall = unit.stall_once.clone();
@@ -2663,12 +2757,15 @@ mod tests {
             let pushes = unit.push_on_air.clone();
             let archive_on_air = unit.on_air.clone();
             let answers_archive = unit.answers_archive.clone();
+            let archive_lag = unit.archive_lag.clone();
             tokio::spawn(async move {
                 while let Ok((stream, _)) = pc_listener.accept().await {
                     let counts = counts.clone();
                     let stall = stall.clone();
                     let archive_on_air = archive_on_air.clone();
+                    let push_on_air = archive_on_air.clone();
                     let answers_archive = answers_archive.clone();
+                    let archive_lag = archive_lag.clone();
                     let mut dropped = drops.subscribe();
                     let mut pushed = pushes.subscribe();
                     tokio::spawn(async move {
@@ -2704,9 +2801,17 @@ mod tests {
                                 },
                                 _ = dropped.changed() => return,
                                 _ = pushed.changed() => {
+                                    let name = *push_on_air.lock().unwrap();
+                                    let sealed = orban_protocol::archive::encrypt(
+                                        on_air_text(name).as_bytes(),
+                                        "1234",
+                                        [5; 16],
+                                    )
+                                    .unwrap();
                                     let mut payload =
-                                        format!("{:8}{:8}0\n0\n\n7391\n", 229 - 204, 6).into_bytes();
-                                    payload.extend((0..7417 - payload.len()).map(|i| (i * 131 % 251) as u8));
+                                        format!("{:8}{:8}0\n0\n\n{}\n", 229 - 204, 6, sealed.len()).into_bytes();
+                                    payload.extend(sealed);
+                                    assert!(payload.len() > 4096);
                                     let frame = orban_protocol::framing::encode(&payload).unwrap();
                                     if writer.write_all(&frame[..4096]).await.is_err() {
                                         return;
@@ -2743,9 +2848,18 @@ mod tests {
                                         if !answers_archive.load(Ordering::SeqCst) {
                                             continue;
                                         }
-                                        let name = *archive_on_air.lock().unwrap();
-                                        let text =
-                                            document_text(name, &[("AGC DRIVE", "Int:10;D:20;")]);
+                                        // A lagging unit still has the previous file saved.
+                                        let name = if archive_lag
+                                            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| {
+                                                n.checked_sub(1)
+                                            })
+                                            .is_ok()
+                                        {
+                                            "CURRENT"
+                                        } else {
+                                            *archive_on_air.lock().unwrap()
+                                        };
+                                        let text = on_air_text(name);
                                         let sealed = orban_protocol::archive::encrypt(
                                             text.as_bytes(),
                                             "1234",
@@ -2810,7 +2924,7 @@ mod tests {
                         reply.push_str(&if request.starts_with("AS ") {
                             document_text("SYSTEM PRESET", &[("CONTRAST", "Int:3;D:3;")])
                         } else {
-                            document_text(on_air, &[("AGC DRIVE", "Int:10;D:20;")])
+                            on_air_text(on_air)
                         });
                         let _ = stream.write_all(reply.as_bytes()).await;
                         let mut tail = [0_u8; 64];
@@ -3090,8 +3204,10 @@ mod tests {
         );
         let terminal_sessions = unit.count(|c| &c.terminal_sessions);
         unit.recall_elsewhere("TARGET");
+        // The shown document is withdrawn at once, then read again.
+        assert!(wait_until(&app, Duration::from_secs(1), |s| s.processing.is_none()).await);
         assert!(
-            wait_until(&app, Duration::from_secs(3), |s| s
+            wait_until(&app, Duration::from_secs(4), |s| s
                 .processing
                 .as_ref()
                 .is_some_and(|d| d.name == "TARGET"))
@@ -3113,6 +3229,51 @@ mod tests {
             .unwrap_err();
         assert!(error.contains("changed"), "{error}");
         assert_eq!(unit.count(|c| &c.writes), 0);
+    }
+
+    /// The push that follows the app's own Recall agrees with the document
+    /// the Recall read: nothing is withdrawn or read again.
+    #[tokio::test]
+    async fn a_push_that_matches_the_shown_document_changes_nothing() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let revision = app.state.read().await.revision;
+        unit.recall_elsewhere("CURRENT");
+        sleep(Duration::from_millis(500)).await;
+        let state = app.state.read().await;
+        assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
+        assert_eq!(state.revision, revision);
+        drop(state);
+        sleep(ARCHIVE_RETRY + Duration::from_millis(500)).await;
+        assert_eq!(unit.count(|c| &c.unsubscriptions), 0);
+    }
+
+    /// The unit saves the archive file a moment after the change: an archive
+    /// that still holds the previous preset is not shown as the new one.
+    #[tokio::test]
+    async fn a_stale_archive_is_not_taken_for_the_pushed_document() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        unit.archive_lag.store(2, Ordering::SeqCst);
+        unit.recall_elsewhere("TARGET");
+        assert!(wait_until(&app, Duration::from_secs(1), |s| s.processing.is_none()).await);
+        // Two stale reads are refused; the third, 6 s after the push, agrees.
+        sleep(Duration::from_secs(5)).await;
+        assert!(app.state.read().await.processing.is_none());
+        assert!(
+            wait_until(&app, Duration::from_secs(3), |s| s
+                .processing
+                .as_ref()
+                .is_some_and(|d| d.name == "TARGET"))
+            .await
+        );
+        assert_eq!(unit.count(|c| &c.unsubscriptions), 3);
     }
 
     /// If the new document cannot be read, the old one is not kept as if it
@@ -3486,7 +3647,8 @@ mod tests {
             session,
             boundaries: Boundaries::default(),
             lost: None,
-            on_air_pushed: false,
+            pushed: None,
+            expected: None,
             archive_requested: false,
             archive: None,
             archive_retry: None,
@@ -3518,7 +3680,8 @@ mod tests {
             session,
             boundaries: Boundaries::default(),
             lost: None,
-            on_air_pushed: false,
+            pushed: None,
+            expected: None,
             archive_requested: false,
             archive: None,
             archive_retry: None,
@@ -3615,7 +3778,8 @@ mod tests {
                 session,
                 boundaries: Boundaries::default(),
                 lost: None,
-                on_air_pushed: false,
+                pushed: None,
+                expected: None,
                 archive_requested: false,
                 archive: None,
                 archive_retry: None,
@@ -3673,7 +3837,8 @@ mod tests {
             session,
             boundaries: Boundaries::default(),
             lost: None,
-            on_air_pushed: false,
+            pushed: None,
+            expected: None,
             archive_requested: false,
             archive: None,
             archive_retry: None,
@@ -3814,7 +3979,8 @@ mod tests {
             session,
             boundaries: Boundaries::default(),
             lost: None,
-            on_air_pushed: false,
+            pushed: None,
+            expected: None,
             archive_requested: false,
             archive: None,
             archive_retry: None,
@@ -4185,7 +4351,8 @@ mod tests {
             session,
             boundaries: Boundaries::default(),
             lost: None,
-            on_air_pushed: false,
+            pushed: None,
+            expected: None,
             archive_requested: false,
             archive: None,
             archive_retry: None,
@@ -4470,7 +4637,8 @@ mod tests {
             session,
             boundaries: Boundaries::default(),
             lost: None,
-            on_air_pushed: false,
+            pushed: None,
+            expected: None,
             archive_requested: false,
             archive: None,
             archive_retry: None,
@@ -4852,7 +5020,8 @@ mod tests {
             session,
             boundaries: Boundaries::default(),
             lost: None,
-            on_air_pushed: false,
+            pushed: None,
+            expected: None,
             archive_requested: false,
             archive: None,
             archive_retry: None,
@@ -4862,6 +5031,17 @@ mod tests {
             profile: Some(reference_profile()),
         };
         (app, device, writes)
+    }
+
+    /// The fake unit's on-air document: long enough that its push is cut.
+    fn on_air_text(name: &str) -> String {
+        let mut fields = vec![("AGC DRIVE".to_owned(), "Int:10;D:20;".to_owned())];
+        fields.extend((0..200).map(|i| (format!("FIELD {i:03}"), format!("Int:{i};D:{i};"))));
+        let fields: Vec<(&str, &str)> = fields
+            .iter()
+            .map(|(a, b)| (a.as_str(), b.as_str()))
+            .collect();
+        document_text(name, &fields)
     }
 
     fn document_text(name: &str, fields: &[(&str, &str)]) -> String {
