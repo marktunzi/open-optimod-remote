@@ -256,10 +256,10 @@ impl Book {
             has_code: old.as_ref().is_some_and(|d| d.has_code),
             model: edit.model,
         };
-        if let Some(old) = old
+        let moved = old
             .as_ref()
-            .filter(|d| account(d) != account(&device) && d.has_code)
-        {
+            .filter(|d| account(d) != account(&device) && d.has_code);
+        if let Some(old) = moved {
             // The code belongs to one processor. A new address or a different
             // processor model may be another device: never send it the code.
             // A port change keeps the processor, so the code moves with it.
@@ -269,7 +269,6 @@ impl Book {
             } else {
                 device.has_code = false;
             }
-            self.vault.delete(&account(old))?;
         }
         let mut devices = self.devices.clone();
         if let Some(i) = devices.iter().position(|d| d.id == device.id) {
@@ -277,7 +276,17 @@ impl Book {
         } else {
             devices.push(device.clone());
         }
-        self.persist(devices)?;
+        // Saved first: if that fails, the old entry and its code still match
+        // and the copy made for the new address is removed again.
+        if let Err(error) = self.persist(devices) {
+            if moved.is_some() && device.has_code {
+                let _ = self.vault.delete(&account(&device));
+            }
+            return Err(error);
+        }
+        if let Some(old) = moved {
+            self.vault.delete(&account(old))?;
+        }
         Ok(device)
     }
     pub fn set_code(&mut self, id: &str, code: Option<Zeroizing<String>>) -> Result<(), String> {
