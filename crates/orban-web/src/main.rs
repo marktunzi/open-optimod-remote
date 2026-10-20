@@ -3137,6 +3137,7 @@ mod tests {
             .unwrap();
         assert!(unit_counted(&unit, |c| &c.subscriptions, 1).await);
         unit.drop_sessions();
+        assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
         assert!(wait_until(&app, Duration::from_secs(3), |s| s.connected).await);
         assert_eq!(
             command(&app, Command::CancelReconnect).await.unwrap_err(),
