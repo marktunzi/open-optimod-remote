@@ -162,6 +162,9 @@ pub struct AdapterDescriptor {
     pub firmware_prefix: &'static str,
     pub capabilities: Capabilities,
     pub meter_profile: Option<MeterProfile>,
+    /// Wire size at which the firmware cuts a pushed frame; see
+    /// `framing::Decoder::with_cut_at`. `None` where this was not observed.
+    pub frame_cut: Option<usize>,
     pub evidence: Evidence,
 }
 
@@ -202,6 +205,9 @@ const VERIFIED_5700I: AdapterDescriptor = AdapterDescriptor {
         min_values: 112,
         max_values: 112,
     }),
+    // Measured on the reference unit: the processing document pushed after a
+    // terminal RP is cut at 4096 wire bytes (docs/verification/2026-10-20-recall-session.md).
+    frame_cut: Some(4096),
     evidence: Evidence::Hardware,
 };
 
@@ -248,6 +254,7 @@ const EXACT: [(&str, AdapterDescriptor); 3] = [
             firmware_prefix: "5500 V ",
             capabilities: STATIC_FULL_WITH_PRESET_FILES,
             meter_profile: Some(STATIC_METERS),
+            frame_cut: None,
             evidence: Evidence::Static,
         },
     ),
@@ -264,6 +271,7 @@ const EXACT: [(&str, AdapterDescriptor); 3] = [
             firmware_prefix: "8700HD V ",
             capabilities: STATIC_FULL,
             meter_profile: Some(STATIC_METERS),
+            frame_cut: None,
             evidence: Evidence::Static,
         },
     ),
@@ -281,6 +289,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "5700i V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -294,6 +303,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "5500i V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -307,6 +317,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "5500 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -320,6 +331,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "5700FM V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -333,6 +345,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "5700HD V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -346,6 +359,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "8500 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -359,6 +373,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "6300 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -372,6 +387,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "8600 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -385,6 +401,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "8700i V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -398,6 +415,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "8700HD V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -411,6 +429,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "9300 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -424,6 +443,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         firmware_prefix: "9400 V ",
         capabilities: READ_ONLY,
         meter_profile: None,
+        frame_cut: None,
         evidence: Evidence::None,
     },
 ];

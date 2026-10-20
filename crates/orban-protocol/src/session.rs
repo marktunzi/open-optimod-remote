@@ -1,7 +1,7 @@
 use crate::{
     adapter::{AdapterDescriptor, AdapterRegistry, Capabilities, DeviceModel, Evidence, SkinId},
     auth,
-    framing::Decoder,
+    framing::{Decoder, Frame},
     message::{self, Message},
 };
 use std::{collections::VecDeque, net::SocketAddr, time::Duration};
@@ -109,7 +109,9 @@ impl Session {
             },
             adapter,
             stream,
-            decoder: Decoder::default(),
+            decoder: adapter
+                .frame_cut
+                .map_or_else(Decoder::default, Decoder::with_cut_at),
             pending: VecDeque::new(),
             deadline,
             code: Zeroizing::new(code.to_ascii_uppercase()),
@@ -165,9 +167,15 @@ impl Session {
                 self.decoder.finish()?;
                 return Err("Device disconnected".into());
             }
-            for frame in self.decoder.feed(&buffer[..count])? {
-                self.pending
-                    .push_back(message::decode_for(&frame, self.adapter.meter_profile)?);
+            for frame in self.decoder.feed_frames(&buffer[..count])? {
+                self.pending.push_back(match frame {
+                    Frame::Complete(payload) => {
+                        message::decode_for(&payload, self.adapter.meter_profile)?
+                    }
+                    Frame::Truncated { payload, declared } => {
+                        message::decode_truncated(&payload, declared)?
+                    }
+                });
             }
         }
     }

@@ -2012,6 +2012,160 @@ mod tests {
         pc_server.abort();
     }
 
+    /// Reference-unit behaviour (docs/verification/2026-10-20-recall-session.md):
+    /// a terminal RP makes the 5700i push the new on-air document on the PC
+    /// Remote session, announcing the full file but sending only the first 4096
+    /// bytes. The session must keep answering the 50 ms ticks afterwards.
+    #[tokio::test]
+    async fn recall_survives_the_cut_document_the_5700i_pushes() {
+        let pc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let pc_address = pc_listener.local_addr().unwrap();
+        let pushed = Arc::new(tokio::sync::Notify::new());
+        let push = pushed.clone();
+        let pc_server = tokio::spawn(async move {
+            let (stream, _) = pc_listener.accept().await.unwrap();
+            let (mut reader, writer) = stream.into_split();
+            let writer = Arc::new(tokio::sync::Mutex::new(writer));
+            loop {
+                if reader.read_u8().await.unwrap() == 0 {
+                    break;
+                }
+            }
+            writer
+                .lock()
+                .await
+                .write_all(b"connect ok\n0\n5700i V 3.0.1.20\n123\n")
+                .await
+                .unwrap();
+            let pusher = writer.clone();
+            tokio::spawn(async move {
+                push.notified().await;
+                let mut payload = format!("{:8}{:8}0\n0\n\n7391\n", 229 - 204, 6).into_bytes();
+                payload.extend((0..7417 - payload.len()).map(|i| (i * 131 % 251) as u8));
+                let frame = orban_protocol::framing::encode(&payload).unwrap();
+                pusher.lock().await.write_all(&frame[..4096]).await.unwrap();
+            });
+            let mut decoder = orban_protocol::framing::Decoder::default();
+            let mut buffer = [0_u8; 4096];
+            loop {
+                let count = match reader.read(&mut buffer).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(count) => count,
+                };
+                for frame in decoder.feed(&buffer[..count]).unwrap() {
+                    let reply = match orban_protocol::message::decode(&frame).unwrap() {
+                        Message::Other { kind: 219, .. } => {
+                            let mut meter = vec![1];
+                            meter.extend(b"112\n");
+                            meter.extend([9; 112]);
+                            orban_protocol::message::encode(228, &meter).unwrap()
+                        }
+                        Message::Other { kind: 250, .. } => {
+                            orban_protocol::message::encode(251, b"").unwrap()
+                        }
+                        _ => continue,
+                    };
+                    writer.lock().await.write_all(&reply).await.unwrap();
+                }
+            }
+        });
+
+        let terminal_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let terminal_address = terminal_listener.local_addr().unwrap();
+        let terminal_server = tokio::spawn(async move {
+            let (mut stream, _) = terminal_listener.accept().await.unwrap();
+            stream
+                .write_all(b"Orban Optimod 5700i test\r\n")
+                .await
+                .unwrap();
+            let mut command = Vec::new();
+            let mut byte = [0_u8; 1];
+            while !command.ends_with(b"??\r\n") {
+                stream.read_exact(&mut byte).await.unwrap();
+                command.push(byte[0]);
+            }
+            pushed.notify_one();
+            sleep(Duration::from_millis(100)).await;
+            stream
+                .write_all(
+                    b"ON AIR: TARGET\r\nOptimodVersion=<5700.51>\r\nPreset Name=<TARGET> size=1\r\nC:<AGC DRIVE>Int:10;D:20;\r\nEnd Preset<end>\r\n",
+                )
+                .await
+                .unwrap();
+        });
+
+        let session = Session::connect(pc_address, "1234", Duration::from_secs(1))
+            .await
+            .unwrap();
+        let (commands, _) = mpsc::channel(1);
+        let (meters, _) = watch::channel(json!({"live":false}));
+        let storage = tempfile::tempdir().unwrap();
+        let current = processing("CURRENT", 20);
+        let app = App {
+            state: Arc::new(RwLock::new(Snapshot {
+                connected: true,
+                host: "127.0.0.1".into(),
+                processing: Some(current.clone()),
+                write_enabled: true,
+                session_id: Some("test-session".into()),
+                presets: vec![orban_protocol::presets::Preset {
+                    name: "TARGET".into(),
+                    kind: orban_protocol::presets::PresetKind::Factory,
+                }],
+                ..Snapshot::default()
+            })),
+            meters,
+            commands,
+            profile: shared_profile(reference_profile()),
+            book: Arc::new(std::sync::Mutex::new(
+                devices::Book::open(
+                    storage.path().join("connections.json"),
+                    Box::new(devices::FileVault::new(
+                        storage.path().join("credentials.json"),
+                    )),
+                )
+                .unwrap(),
+            )),
+        };
+        let mut device = Device {
+            session,
+            terminal: terminal_address,
+            code: Zeroizing::new("1234".to_owned()),
+            processing_baseline: Some(current),
+            profile: Some(reference_profile()),
+        };
+
+        recall(
+            &mut device,
+            &app,
+            Recall {
+                name: "TARGET".into(),
+                expected_name: "CURRENT".into(),
+                confirmed: true,
+                expected_host: "127.0.0.1".into(),
+                expected_session: "test-session".into(),
+            },
+        )
+        .await
+        .unwrap();
+        for tick in 0..5 {
+            tokio::time::timeout(Duration::from_millis(500), async {
+                device.session.send(219, b"").await?;
+                drain(&mut device, &app).await
+            })
+            .await
+            .unwrap_or_else(|_| panic!("tick {tick} got no response boundary"))
+            .unwrap();
+        }
+        assert_eq!(app.meters.borrow()["live"], true);
+        assert_eq!(
+            app.state.read().await.processing.as_ref().unwrap().name,
+            "TARGET"
+        );
+        terminal_server.abort();
+        pc_server.abort();
+    }
+
     #[test]
     fn less_more_stays_available_across_its_modified_factory_document() {
         let presets = vec![orban_protocol::presets::Preset {

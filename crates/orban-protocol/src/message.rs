@@ -14,6 +14,13 @@ pub enum Message {
         kind: u16,
         data: Vec<u8>,
     },
+    /// A frame the device cut short (see `framing::Decoder::with_cut_at`). Its
+    /// body is incomplete and must not be interpreted.
+    Truncated {
+        kind: u16,
+        declared: usize,
+        received: usize,
+    },
 }
 
 fn decimal(bytes: &[u8]) -> Result<u32, String> {
@@ -52,11 +59,8 @@ pub fn decode(bytes: &[u8]) -> Result<Message, String> {
     )
 }
 
-pub fn decode_for(
-    bytes: &[u8],
-    meter_profile: Option<crate::adapter::MeterProfile>,
-) -> Result<Message, String> {
-    if bytes.len() < 16 || bytes.len() > 65535 {
+fn opcode(bytes: &[u8]) -> Result<u16, String> {
+    if bytes.len() < 16 {
         return Err("Invalid message length".into());
     }
     let kind = u16::try_from(
@@ -68,6 +72,25 @@ pub fn decode_for(
     if decimal(&bytes[8..16])? != 6 {
         return Err("Unsupported protocol type".into());
     }
+    Ok(kind)
+}
+
+pub fn decode_truncated(bytes: &[u8], declared: usize) -> Result<Message, String> {
+    Ok(Message::Truncated {
+        kind: opcode(bytes)?,
+        declared,
+        received: bytes.len(),
+    })
+}
+
+pub fn decode_for(
+    bytes: &[u8],
+    meter_profile: Option<crate::adapter::MeterProfile>,
+) -> Result<Message, String> {
+    if bytes.len() > 65535 {
+        return Err("Invalid message length".into());
+    }
+    let kind = opcode(bytes)?;
     let mut data = &bytes[16..];
     match kind {
         220 => {
