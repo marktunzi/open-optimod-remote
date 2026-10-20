@@ -216,22 +216,33 @@ impl OperationError {
     }
 }
 /// Response boundaries (250) sent on the PC Remote session and not yet
-/// answered (251), oldest first. Every 250 gets exactly one 251, so a late
-/// answer to a timed-out tick can never confirm a later write.
+/// answered (251). Every 250 gets exactly one 251, so a late answer to a
+/// timed-out tick can never confirm a later write.
 #[derive(Default)]
-struct Boundaries(std::collections::VecDeque<tokio::time::Instant>);
+struct Boundaries {
+    outstanding: usize,
+    /// When the unit last had nothing left to answer. Measured from there, a
+    /// lost 251 that keeps the count from reaching zero still ends the session.
+    since: Option<tokio::time::Instant>,
+}
 
 impl Boundaries {
     fn sent(&mut self) {
-        self.0.push_back(tokio::time::Instant::now());
+        if self.outstanding == 0 {
+            self.since = Some(tokio::time::Instant::now());
+        }
+        self.outstanding += 1;
     }
     /// Records one 251; true when no boundary is outstanding any more.
     fn answered(&mut self) -> bool {
-        self.0.pop_front();
-        self.0.is_empty()
+        self.outstanding = self.outstanding.saturating_sub(1);
+        if self.outstanding == 0 {
+            self.since = None;
+        }
+        self.outstanding == 0
     }
     fn unanswered_for(&self) -> Duration {
-        self.0.front().map_or(Duration::ZERO, |sent| sent.elapsed())
+        self.since.map_or(Duration::ZERO, |since| since.elapsed())
     }
 }
 
@@ -713,8 +724,14 @@ fn sync_failure(device: &Device, error: &str) -> String {
 async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
     device.session.send(250, b"").await?;
     device.boundaries.sent();
+    // One deadline for the whole wait: unrelated pushes (247 about every
+    // 0.85 s) must not keep the owner here past it.
+    let end = tokio::time::Instant::now() + device.session.deadline();
     for _ in 0..256 {
-        match device.session.next_event().await? {
+        let event = tokio::time::timeout_at(end, device.session.next_event())
+            .await
+            .map_err(|_| "Receive timed out".to_owned())??;
+        match event {
             Message::Meters { bank, values } => {
                 if bank == 1 {
                     app.meters
@@ -3117,14 +3134,81 @@ mod tests {
         assert!(session_lost(&device, "Too many device events before response boundary").is_none());
         assert!(session_lost(&device, "Device disconnected").is_some());
         assert!(session_lost(&device, "Connection reset by peer").is_some());
-        device
-            .boundaries
-            .0
-            .push_back(tokio::time::Instant::now() - UNANSWERED_LIMIT + Duration::from_secs(1));
+        device.boundaries.sent();
+        device.boundaries.since =
+            Some(tokio::time::Instant::now() - UNANSWERED_LIMIT + Duration::from_secs(1));
         assert!(session_lost(&device, "Receive timed out").is_none());
-        device.boundaries.0[0] = tokio::time::Instant::now() - UNANSWERED_LIMIT;
+        device.boundaries.since = Some(tokio::time::Instant::now() - UNANSWERED_LIMIT);
         let lost = session_lost(&device, "Receive timed out").unwrap();
         assert!(lost.contains("has not answered for 20 seconds"), "{lost}");
+        server.abort();
+    }
+
+    /// A 251 that never comes leaves one boundary outstanding for good. The
+    /// later 251s each answer an older 250, so the count never reaches zero:
+    /// the silence is measured from the last time it did.
+    #[test]
+    fn a_lost_boundary_answer_still_ends_the_session() {
+        let mut boundaries = Boundaries::default();
+        boundaries.sent();
+        let first = boundaries.since;
+        boundaries.sent();
+        assert!(!boundaries.answered());
+        boundaries.sent();
+        assert!(!boundaries.answered());
+        assert_eq!(boundaries.since, first);
+        assert!(boundaries.answered());
+        assert_eq!(boundaries.unanswered_for(), Duration::ZERO);
+    }
+
+    /// The 5700i pushes opcode 247 about every 0.85 s. A unit that keeps
+    /// pushing but stops answering 250 must not hold the owner past one
+    /// deadline per drain.
+    #[tokio::test]
+    async fn steady_pushes_do_not_extend_a_drain() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            while stream.read_u8().await.unwrap() != 0 {}
+            stream
+                .write_all(b"connect ok\n0\n5700i V 3.0.1.20\n123\n")
+                .await
+                .unwrap();
+            loop {
+                if stream
+                    .write_all(&orban_protocol::message::encode(247, b"").unwrap())
+                    .await
+                    .is_err()
+                {
+                    break;
+                }
+                sleep(Duration::from_millis(20)).await;
+            }
+        });
+        let session = Session::connect(address, "1234", Duration::from_millis(300))
+            .await
+            .unwrap();
+        let (app, _dir) = test_app();
+        let mut device = Device {
+            session,
+            boundaries: Boundaries::default(),
+            lost: None,
+            terminal: address,
+            code: Zeroizing::new("1234".to_owned()),
+            processing_baseline: None,
+            profile: None,
+        };
+        let started = std::time::Instant::now();
+        assert_eq!(
+            drain(&mut device, &app).await.unwrap_err(),
+            "Receive timed out"
+        );
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "{:?}",
+            started.elapsed()
+        );
         server.abort();
     }
 
