@@ -208,3 +208,69 @@ pub async fn delete_preset_for_model(
 ) -> Result<Document, String> {
     preset_file_command(address, code, delete_command(name, code)?, deadline, model).await
 }
+
+/// Sends `RP NAME[CODE]` alone and returns the unit's reply. The caller
+/// confirms the result itself: the 8700HD answers without a document.
+pub async fn send_recall_for_model(
+    address: SocketAddr,
+    code: &str,
+    name: &str,
+    deadline: Duration,
+    model: DeviceModel,
+) -> Result<String, String> {
+    let command = recall_command(name, code)?;
+    timeout(deadline, async {
+        let mut stream = TcpStream::connect(address)
+            .await
+            .map_err(|e| e.to_string())?;
+        let mut banner = Vec::new();
+        while !banner.ends_with(b"\n\r") && !banner.ends_with(b"\r\n") {
+            if banner.len() > 255 {
+                return Err("Oversized terminal banner".to_owned());
+            }
+            banner.push(stream.read_u8().await.map_err(|e| e.to_string())?);
+        }
+        let banner = std::str::from_utf8(&banner).map_err(|_| "Invalid terminal banner")?;
+        if AdapterRegistry::identify_terminal_banner(banner)? != model {
+            return Err("Terminal model does not match the PC Remote session".into());
+        }
+        stream
+            .write_all(command.as_bytes())
+            .await
+            .map_err(|e| e.to_string())?;
+        // The reply is one short line; wait briefly for it, then close
+        // normally so the unit's terminal server is not left half-open.
+        let mut reply = Vec::new();
+        let _ = timeout(Duration::from_millis(1500), async {
+            let mut chunk = [0; 512];
+            while let Ok(n) = stream.read(&mut chunk).await {
+                if n == 0 {
+                    break;
+                }
+                reply.extend_from_slice(&chunk[..n]);
+                if reply.len() > 4096 || reply.ends_with(b"\r\n") || reply.ends_with(b"\n\r") {
+                    break;
+                }
+            }
+        })
+        .await;
+        let _ = stream.write_all(b"disconnect\r\n").await;
+        let _ = stream.shutdown().await;
+        let _ = timeout(Duration::from_millis(500), async {
+            let mut tail = [0; 128];
+            while let Ok(n) = stream.read(&mut tail).await {
+                if n == 0 {
+                    break;
+                }
+            }
+        })
+        .await;
+        let reply = String::from_utf8_lossy(&reply).trim().to_owned();
+        match reply_refusal(&reply) {
+            Some(refusal) => Err(format!("The processor refused: {refusal}")),
+            None => Ok(reply),
+        }
+    })
+    .await
+    .map_err(|_| "Terminal response timed out; the recall may have been applied".to_owned())?
+}

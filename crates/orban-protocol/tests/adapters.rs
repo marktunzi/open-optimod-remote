@@ -189,8 +189,7 @@ fn the_8700hd_is_its_own_model_and_is_found_by_its_terminal_banner() {
         "\"optimod-8700hd\""
     );
     assert_eq!(
-        AdapterRegistry::identify_terminal_banner("Welcome to the Orban Optimod-FM 8700HD.")
-            .unwrap(),
+        AdapterRegistry::identify_terminal_banner("Orban Optimod 8700HD V 1.0.2.161").unwrap(),
         DeviceModel::Optimod8700Hd
     );
     assert_ne!(

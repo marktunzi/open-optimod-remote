@@ -167,8 +167,130 @@ pub struct AdapterDescriptor {
     /// Opcode 239 returns the on-air processing document whole, the same
     /// fields as the terminal AP, over the PC Remote session itself.
     pub on_air_archive: bool,
+    /// The opcodes of this model's PC Remote session.
+    pub wire: Wire,
     pub evidence: Evidence,
 }
+
+/// Opcodes that differ between PC Remote generations.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Wire {
+    /// The ordered response boundary: the request and the unit's answer.
+    pub boundary: (u16, u16),
+    /// The request answered with the on-air processing file (opcode 229).
+    pub on_air_request: u16,
+    /// The request answered with the system settings file, and that answer's opcode.
+    pub setup_request: Option<(u16, u16)>,
+    /// The request answered with one file per user preset, and those answers' opcode.
+    pub user_presets_request: Option<(u16, u16)>,
+    /// Settings, presets, readback and Recall use files over the PC Remote
+    /// session; the status (terminal) port is used only for a factory Recall.
+    pub file_sync: bool,
+    /// Factory preset names, where the firmware's list cannot be read over
+    /// the PC Remote session.
+    pub factory_presets: &'static [&'static str],
+    /// The opcode that ends a file sent without a request, in either
+    /// direction; the receiver answers it with the same opcode, which is also
+    /// the boundary answer. `None` where this was not observed.
+    pub file_end: Option<u16>,
+}
+
+/// 5700i 3.0.1.20 (reference unit and virtual 5700i).
+pub const WIRE_5700I: Wire = Wire {
+    boundary: (250, 251),
+    on_air_request: 239,
+    setup_request: None,
+    user_presets_request: None,
+    file_sync: false,
+    factory_presets: &[],
+    file_end: None,
+};
+
+/// 8700HD 1.0.2.161: captured from the original PC Remote 1.0.2.161 and the
+/// original firmware (virtual 8700, 20-21 October 2026). F9h is answered by
+/// FAh, EEh by `OnAir.orb86onair`, EFh by `Setup.orb86setup` (E8h) and F2h by
+/// every `.orb86user` file (E7h). The terminal `LP` labels user presets as
+/// factory presets, so factory names come from the PC Remote installer.
+pub const WIRE_8700HD: Wire = Wire {
+    boundary: (249, 250),
+    on_air_request: 238,
+    setup_request: Some((239, 232)),
+    user_presets_request: Some((242, 231)),
+    file_sync: true,
+    factory_presets: &FACTORY_8700HD,
+    // The unit follows the on-air file it pushes after a terminal `RP` with
+    // FAh; the original PC Remote follows its Recall upload with FAh, and
+    // the unit answers it with FAh (captures, 21 October 2026).
+    file_end: Some(250),
+};
+
+/// Preset names of the factory `.orb86f50` files of PC Remote 1.0.2.161.
+const FACTORY_8700HD: [&str; 64] = [
+    "CLASSICAL-2 BAND",
+    "CLASSICAL-2B MX",
+    "CLASSICAL-2B+AGC",
+    "CLASSICAL-2B+AGC MX",
+    "CLASSICAL-5 BAND",
+    "CLASSICAL-5B MX",
+    "CLASSICAL-5B+AGC",
+    "CLASSICAL-5B+AGC MX",
+    "COUNTRY UL",
+    "COUNTRY-LIGHT",
+    "COUNTRY-MEDIUM",
+    "CRISP",
+    "CRISP+LOWBASS MX",
+    "CRISP+MIDBASS MX",
+    "DANCE ENERGY",
+    "EDGE",
+    "EDGE MX",
+    "FOLK-TRADITIONAL",
+    "GOLD",
+    "GOLD HEAVY BASS MX",
+    "GOLD HEAVY MX",
+    "GOLD OPEN MX",
+    "GREGG",
+    "GREGG LL",
+    "GREGG MX",
+    "GREGG OPEN",
+    "GREGG OPEN MX",
+    "IMPACT",
+    "IMPACT LL",
+    "IMPACT MX",
+    "INSTRUMENTAL",
+    "JAZZ",
+    "LOUD-BIG",
+    "LOUD-COMPRESSED",
+    "LOUD-FAT",
+    "LOUD-HOT",
+    "LOUD-HOT LL",
+    "LOUD-HOT+BASS",
+    "LOUD-HOT+BASS LL",
+    "LOUD-PUNCHY",
+    "LOUD-WIDE",
+    "LOUD+SLAM",
+    "MELLOW JAZZ MX",
+    "NEWS-TALK",
+    "PROTECT-0DB",
+    "ROCK-DENSE",
+    "ROCK-GEN UL",
+    "ROCK-LIGHT",
+    "ROCK-MEDIUM",
+    "ROCK-MEDIUM MX",
+    "ROCK-MEDIUM+LOWBASS",
+    "ROCK-MEDIUM+MIDBASS",
+    "ROCK-OPEN",
+    "ROCK-OPEN UL",
+    "ROCK-SMOOTH",
+    "ROCK-SMOOTH MX",
+    "ROCK-SOFT",
+    "ROCK-SOFT MX",
+    "SMOOTH JAZZ",
+    "SMOOTH JAZZ MX",
+    "SPORTS",
+    "URBAN UL",
+    "URBAN-HEAVY",
+    "URBAN-LIGHT",
+];
 
 const READ_ONLY: Capabilities = Capabilities {
     connect: true,
@@ -215,6 +337,7 @@ const VERIFIED_5700I: AdapterDescriptor = AdapterDescriptor {
     // Reference unit (archive) and the virtual 5700i with original firmware
     // (archive equals AP field for field), 20 October 2026.
     on_air_archive: true,
+    wire: WIRE_5700I,
     evidence: Evidence::Hardware,
 };
 
@@ -263,6 +386,7 @@ const EXACT: [(&str, AdapterDescriptor); 3] = [
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
             on_air_archive: false,
+            wire: WIRE_5700I,
             evidence: Evidence::Static,
         },
     ),
@@ -280,7 +404,8 @@ const EXACT: [(&str, AdapterDescriptor); 3] = [
             capabilities: STATIC_FULL,
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
-            on_air_archive: false,
+            on_air_archive: true,
+            wire: WIRE_8700HD,
             evidence: Evidence::Static,
         },
     ),
@@ -300,6 +425,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -315,6 +441,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -330,6 +457,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -345,6 +473,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -360,6 +489,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -375,6 +505,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -390,6 +521,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -405,6 +537,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -420,6 +553,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -435,6 +569,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_8700HD,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -450,6 +585,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -465,6 +601,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
+        wire: WIRE_5700I,
         evidence: Evidence::None,
     },
 ];
@@ -502,7 +639,8 @@ impl AdapterRegistry {
             ("orban optimod 6300", DeviceModel::Optimod6300),
             ("orban optimod 8600", DeviceModel::Optimod8600),
             ("orban optimod 8700i", DeviceModel::Optimod8700i),
-            ("orban optimod-fm 8700hd", DeviceModel::Optimod8700Hd),
+            // The 8700HD 1.0.2.161 terminal banner: "Orban Optimod 8700HD V 1.0.2.161".
+            ("orban optimod 8700hd", DeviceModel::Optimod8700Hd),
             ("orban optimod 9300", DeviceModel::Optimod9300),
             ("orban optimod 9400", DeviceModel::Optimod9400),
         ] {

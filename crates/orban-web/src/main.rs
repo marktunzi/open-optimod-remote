@@ -15,6 +15,7 @@ use orban_protocol::{
     control::Scope,
     document::{Document, Field, Value},
     message::Message,
+    presets::{Preset, PresetKind},
     profile::Profile,
     session::Session,
     terminal::read_snapshot_for_model,
@@ -22,7 +23,11 @@ use orban_protocol::{
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as JsonValue, json};
 use std::{
-    collections::BTreeSet, convert::Infallible, ffi::OsStr, net::SocketAddr, sync::Arc,
+    collections::{BTreeMap, BTreeSet},
+    convert::Infallible,
+    ffi::OsStr,
+    net::SocketAddr,
+    sync::Arc,
     time::Duration,
 };
 use tokio::{
@@ -55,6 +60,10 @@ const UNANSWERED_LIMIT: Duration = Duration::from_secs(20);
 /// unit saves the archive file a moment after the change.
 const ARCHIVE_READS: u8 = 5;
 const ARCHIVE_RETRY: Duration = Duration::from_secs(2);
+/// The 8700HD saves its on-air file 4 to 7 s after a change (original
+/// firmware 1.0.2.161, 21 October 2026); a readback waits this long for it.
+const FILE_READBACK_LIMIT: Duration = Duration::from_secs(15);
+const FILE_READBACK_INTERVAL: Duration = Duration::from_secs(1);
 /// PC Remote login including the TCP connection, and each wait for a reply
 /// on the session (such as a response boundary).
 const SESSION_DEADLINE: Duration = Duration::from_secs(4);
@@ -295,6 +304,12 @@ struct Device {
     /// The next read of the on-air archive after one that failed, and how
     /// many reads are left.
     archive_retry: Option<(tokio::time::Instant, u8)>,
+    /// The opcode of the files a request is waiting for, and those received.
+    wanted_files: Option<u16>,
+    files: Vec<(String, Vec<u8>)>,
+    /// The documents of the user presets read over the PC Remote session,
+    /// by preset name; a Recall sends one of them back (file-sync models).
+    user_presets: BTreeMap<String, Zeroizing<Vec<u8>>>,
     terminal: SocketAddr,
     code: Zeroizing<String>,
     processing_baseline: Option<Document>,
@@ -642,6 +657,9 @@ async fn with_meter_polling<T>(
     }
 }
 async fn live_snapshot(device: &mut Device, app: &App, scope: Scope) -> Result<Document, String> {
+    if device.session.adapter().wire.file_sync {
+        return read_file_document(app, device, scope).await;
+    }
     let address = device.terminal;
     let code = device.code.clone();
     with_meter_polling(
@@ -738,6 +756,9 @@ fn is_definite_disconnect(message: &str) -> bool {
 /// Reads the current settings and presets from the status (terminal) port.
 /// The first failure ends the attempt: the remaining reads use the same port.
 async fn synchronize(app: &App, device: &mut Device) -> Result<(), String> {
+    if device.session.adapter().wire.file_sync {
+        return synchronize_files(app, device).await;
+    }
     let capabilities = device.session.info.capabilities;
     if capabilities.parameter_reads {
         let system = live_snapshot(device, app, Scope::System).await?;
@@ -755,6 +776,9 @@ async fn synchronize(app: &App, device: &mut Device) -> Result<(), String> {
 /// Reads the on-air processing again (with the preset list where the model
 /// has one: LP is followed by AP in the same exchange).
 async fn reload_processing(app: &App, device: &mut Device) -> Result<(), String> {
+    if device.session.adapter().wire.file_sync {
+        return synchronize_files(app, device).await;
+    }
     let capabilities = device.session.info.capabilities;
     if capabilities.preset_catalog {
         refresh_presets(app, device).await?;
@@ -786,7 +810,8 @@ async fn read_on_air_archive(app: &App, device: &mut Device) -> Result<Document,
         if meters {
             device.session.send(223, b"").await?;
         }
-        device.session.send(239, b"").await?;
+        let request = device.session.adapter().wire.on_air_request;
+        device.session.send(request, b"").await?;
         drain(device, app).await
     }
     .await;
@@ -803,7 +828,275 @@ async fn read_on_air_archive(app: &App, device: &mut Device) -> Result<Document,
         .take()
         .ok_or("The processor did not send its on-air document")?;
     let plain = Zeroizing::new(device.session.decrypt_file(&data)?);
+    if device.session.adapter().wire.file_sync {
+        return file_document(&plain, device.session.info.model);
+    }
     Document::parse_for_model(&plain, device.session.info.model)
+}
+
+/// A file of a file-sync model as a document. The 8700HD saves a preset
+/// that a Recall sent with the LF line ends of that upload (the original
+/// PC Remote's too); its own files end lines with CR LF.
+fn file_document(plain: &[u8], model: DeviceModel) -> Result<Document, String> {
+    if plain.windows(2).any(|w| w == b"\r\n") {
+        return Document::parse_for_model(plain, model);
+    }
+    let text = Zeroizing::new(
+        std::str::from_utf8(plain)
+            .map_err(|_| "Unsupported document encoding")?
+            .replace('\n', "\r\n"),
+    );
+    Document::parse_for_model(text.as_bytes(), model)
+}
+
+/// The files the unit sends in answer to `request` (opcode `reply`), read
+/// before the response boundary with session meters off, as the original
+/// PC Remote does around its file requests.
+async fn read_files(
+    app: &App,
+    device: &mut Device,
+    request: u16,
+    reply: u16,
+) -> Result<Vec<(String, Vec<u8>)>, String> {
+    device.files.clear();
+    device.wanted_files = Some(reply);
+    let meters = device.session.info.capabilities.live_meters;
+    let read = async {
+        if meters {
+            device.session.send(223, b"").await?;
+        }
+        device.session.send(request, b"").await?;
+        drain(device, app).await
+    }
+    .await;
+    device.wanted_files = None;
+    let resumed = if meters {
+        device.session.send(222, b"").await
+    } else {
+        Ok(())
+    };
+    read?;
+    resumed?;
+    Ok(std::mem::take(&mut device.files))
+}
+
+/// The system settings (setup file) or the on-air processing (on-air file)
+/// over the PC Remote session.
+async fn read_file_document(
+    app: &App,
+    device: &mut Device,
+    scope: Scope,
+) -> Result<Document, String> {
+    if scope == Scope::Processing {
+        return read_on_air_archive(app, device).await;
+    }
+    let (request, reply) = device
+        .session
+        .adapter()
+        .wire
+        .setup_request
+        .ok_or("The system settings cannot be read over this connection")?;
+    let (_, data) = read_files(app, device, request, reply)
+        .await?
+        .into_iter()
+        .next()
+        .ok_or("The processor did not send its system settings")?;
+    let plain = Zeroizing::new(device.session.decrypt_file(&data)?);
+    file_document(&plain, device.session.info.model)
+}
+
+/// Reads `scope` until `accept` holds. A file-sync model saves its files a
+/// few seconds after a change, so a read right after it can show the
+/// previous state; the last document read is returned either way.
+async fn read_back(
+    app: &App,
+    device: &mut Device,
+    scope: Scope,
+    accept: impl Fn(&Document) -> bool,
+) -> Result<Document, String> {
+    if !device.session.adapter().wire.file_sync {
+        return live_snapshot(device, app, scope).await;
+    }
+    let end = tokio::time::Instant::now() + FILE_READBACK_LIMIT;
+    loop {
+        let read = read_file_document(app, device, scope).await;
+        let last = tokio::time::Instant::now() + FILE_READBACK_INTERVAL > end;
+        match read {
+            Ok(document) if accept(&document) || last => return Ok(document),
+            Err(error) if last || session_lost(device, &error).is_some() => return Err(error),
+            _ => sleep(FILE_READBACK_INTERVAL).await,
+        }
+    }
+}
+
+/// The preset list of a file-sync model: the factory presets of its PC
+/// Remote installer and the user presets whose files the unit sends. The
+/// firmware's `modif` working copies are listed as unsaved.
+async fn read_preset_files(app: &App, device: &mut Device) -> Result<Vec<Preset>, String> {
+    let wire = device.session.adapter().wire;
+    let mut presets: Vec<Preset> = wire
+        .factory_presets
+        .iter()
+        .map(|name| Preset {
+            name: (*name).to_owned(),
+            kind: PresetKind::Factory,
+        })
+        .collect();
+    device.user_presets.clear();
+    let Some((request, reply)) = wire.user_presets_request else {
+        return Ok(presets);
+    };
+    let model = device.session.info.model;
+    for (name, data) in read_files(app, device, request, reply).await? {
+        // The unit also sends its setup file and files of other models.
+        if !name.to_ascii_lowercase().ends_with(".orb86user") {
+            continue;
+        }
+        let plain = Zeroizing::new(device.session.decrypt_file(&data)?);
+        // A file copied onto the unit from another model keeps its own
+        // document version (seen: a 6300 preset renamed `.orb86user`); it is
+        // not a preset of this processor.
+        let Ok(document) = file_document(&plain, model) else {
+            continue;
+        };
+        // The 8700HD sends its `modif` working copy twice.
+        if device
+            .user_presets
+            .get(&document.name)
+            .is_some_and(|known| **known == *plain)
+        {
+            continue;
+        }
+        if presets.iter().any(|p| p.name == document.name) {
+            return Err(format!("Ambiguous duplicate preset name {}", document.name));
+        }
+        let kind = if document.name.to_ascii_lowercase().starts_with("modif ") {
+            PresetKind::Unsaved
+        } else {
+            PresetKind::User
+        };
+        presets.push(Preset {
+            name: document.name.clone(),
+            kind,
+        });
+        device.user_presets.insert(document.name, plain);
+    }
+    Ok(presets)
+}
+
+/// Settings, presets and on-air processing of a file-sync model, read over
+/// the PC Remote session without the status (terminal) port.
+async fn synchronize_files(app: &App, device: &mut Device) -> Result<(), String> {
+    let system = if device.session.info.capabilities.parameter_reads {
+        Some(read_file_document(app, device, Scope::System).await?)
+    } else {
+        None
+    };
+    let presets = read_preset_files(app, device).await?;
+    let processing = read_on_air_archive(app, device).await?;
+    let mut state = app.state.write().await;
+    if system.is_some() {
+        state.system = system;
+    }
+    let previous_name = state.processing.as_ref().map(|d| d.name.clone());
+    let previous_less_more = state.less_more_available;
+    let (base_name, modified_fields) =
+        refresh_processing_identity(&processing, &presets, &mut device.processing_baseline);
+    state.less_more_available = refreshed_less_more_availability(
+        &processing,
+        previous_name.as_deref(),
+        previous_less_more,
+        &presets,
+    );
+    state.presets = presets;
+    state.processing = Some(processing);
+    state.preset_base_name = base_name;
+    state.modified_fields = modified_fields;
+    state.error = None;
+    state.sync_error = None;
+    state.revision += 1;
+    Ok(())
+}
+
+/// Recall on a file-sync model, as the original PC Remote does it: a user
+/// preset's document is sent back as an unnamed on-air file (229). A factory
+/// preset is recalled by the firmware itself (terminal `RP`): PC Remote
+/// converts its installer's factory file with its own tables, which this app
+/// does not have. Either way the on-air file read over the PC Remote session
+/// confirms the result.
+async fn recall_with_files(
+    device: &mut Device,
+    app: &App,
+    name: &str,
+    kind: &PresetKind,
+) -> Result<Document, OperationError> {
+    let expected = match kind {
+        PresetKind::User => {
+            let plain = device
+                .user_presets
+                .get(name)
+                .ok_or_else(|| OperationError::safe("Refresh the preset list first"))?;
+            // The original client sends the document with LF line ends.
+            let text = String::from_utf8_lossy(plain).replace("\r\n", "\n");
+            let iv = *uuid::Uuid::new_v4().as_bytes();
+            let sealed = orban_protocol::archive::encrypt(text.as_bytes(), &device.code, iv)
+                .map_err(OperationError::safe)?;
+            let mut body = format!("0\n0\n\n{}\n", sealed.len()).into_bytes();
+            body.extend(sealed);
+            device
+                .session
+                .send(229, &body)
+                .await
+                .map_err(OperationError::uncertain)?;
+            if let Some(end) = device.session.adapter().wire.file_end {
+                device
+                    .session
+                    .send(end, b"")
+                    .await
+                    .map_err(OperationError::uncertain)?;
+                device.boundaries.sent();
+            }
+            Some(file_document(plain, device.session.info.model).map_err(OperationError::safe)?)
+        }
+        PresetKind::Factory => {
+            orban_protocol::terminal::send_recall_for_model(
+                device.terminal,
+                &device.code,
+                name,
+                RECALL_DEADLINE,
+                device.session.info.model,
+            )
+            .await
+            .map_err(|e| {
+                OperationError::uncertain(format!("The recall of {name} could not be sent. {e}"))
+            })?;
+            None
+        }
+        PresetKind::Unsaved => return Err(OperationError::safe("Select a saved preset")),
+    };
+    let confirmed = read_back(app, device, Scope::Processing, |document| {
+        document.name == name
+            && expected
+                .as_ref()
+                .is_none_or(|expected| expected.fields == document.fields)
+    })
+    .await
+    .map_err(|e| {
+        OperationError::uncertain(format!(
+            "The recall of {name} could not be confirmed; the connection remains active. {e}"
+        ))
+    })?;
+    if confirmed.name != name
+        || expected
+            .as_ref()
+            .is_some_and(|expected| expected.fields != confirmed.fields)
+    {
+        return Err(OperationError::uncertain(format!(
+            "The processor did not confirm the recall of {name}; it reports {} on air",
+            confirmed.name
+        )));
+    }
+    Ok(confirmed)
 }
 
 /// Whether `document` agrees with every field of `start`, the start of
@@ -937,13 +1230,19 @@ async fn read_pushed_on_air(app: &App, device: &mut Device) {
 }
 
 fn sync_failure(device: &Device, error: &str) -> String {
+    if device.session.adapter().wire.file_sync {
+        return format!(
+            "Connected, but the current settings and presets could not be read over the PC Remote connection. Use Refresh to try again. {error}"
+        );
+    }
     format!(
         "Connected, but the status port (TCP {}) did not answer, so current settings and presets are unavailable. Use Refresh to try again. {error}",
         device.terminal.port()
     )
 }
 async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
-    device.session.send(250, b"").await?;
+    let (boundary, answer) = device.session.adapter().wire.boundary;
+    device.session.send(boundary, b"").await?;
     device.boundaries.sent();
     // One deadline for the whole wait: unrelated pushes (247 about every
     // 0.85 s) must not keep the owner here past it.
@@ -973,7 +1272,12 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
                         .send_replace(json!({"live":true,"bank":bank,"values":values}));
                 }
             }
-            Message::Other { kind: 251, .. } if device.boundaries.answered() => return Ok(()),
+            Message::Other { kind, .. } if kind == answer && device.boundaries.answered() => {
+                return Ok(());
+            }
+            Message::File { kind, name, data } if device.wanted_files == Some(kind) => {
+                device.files.push((name, data));
+            }
             // The requested archive is a named file; the push has no name.
             Message::File {
                 kind: 229,
@@ -990,7 +1294,13 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
             }
             Message::File {
                 kind: 229, data, ..
-            } => device.pushed = Some(Pushed::Whole(data)),
+            } => {
+                // Its end marker arrives as one more boundary answer.
+                if device.session.adapter().wire.file_end.is_some() {
+                    device.boundaries.sent();
+                }
+                device.pushed = Some(Pushed::Whole(data));
+            }
             Message::Truncated {
                 kind: 229, data, ..
             } => {
@@ -1025,6 +1335,9 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
         archive_requested: false,
         archive: None,
         archive_retry: None,
+        wanted_files: None,
+        files: Vec::new(),
+        user_presets: BTreeMap::new(),
         terminal: SocketAddr::new(ip, body.terminal_port),
         code,
         processing_baseline: None,
@@ -1065,6 +1378,9 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
     Ok(device)
 }
 async fn refresh_presets(app: &App, device: &mut Device) -> Result<(), String> {
+    if device.session.adapter().wire.file_sync {
+        return synchronize_files(app, device).await;
+    }
     let address = device.terminal;
     let code = device.code.clone();
     let (presets, processing) = with_meter_polling(
@@ -1142,6 +1458,32 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
                 "Select an available factory or user preset",
             ));
         }
+    }
+    if device.session.adapter().wire.file_sync {
+        let kind = app
+            .state
+            .read()
+            .await
+            .presets
+            .iter()
+            .find(|p| p.name == body.name)
+            .map(|p| p.kind.clone())
+            .ok_or_else(|| OperationError::safe("Select an available factory or user preset"))?;
+        let recalled = recall_with_files(device, app, &body.name, &kind).await?;
+        let mut baseline = recalled.clone();
+        if let Some(name) = baseline.name.strip_prefix("modif ") {
+            baseline.name = name.to_owned();
+        }
+        device.processing_baseline = Some(baseline);
+        let mut state = app.state.write().await;
+        state.less_more_available =
+            recalled.fields.contains_key("LESS MORE") && kind == PresetKind::Factory;
+        state.processing = Some(recalled);
+        state.preset_base_name = Some(body.name);
+        state.modified_fields.clear();
+        state.error = None;
+        state.revision += 1;
+        return Ok(());
     }
     let address = device.terminal;
     let code = device.code.clone();
@@ -1518,9 +1860,14 @@ async fn apply_preset(
 
     let mut after = None;
     for attempt in 0..4 {
-        let snapshot = live_snapshot(device, app, Scope::Processing)
-            .await
-            .map_err(OperationError::uncertain)?;
+        let snapshot = read_back(app, device, Scope::Processing, |document| {
+            imported
+                .fields
+                .iter()
+                .all(|(name, expected)| document.fields.get(name) == Some(expected))
+        })
+        .await
+        .map_err(OperationError::uncertain)?;
         let matches = imported
             .fields
             .iter()
@@ -1661,9 +2008,13 @@ async fn restore_setup(
     }
     let mut after = None;
     for attempt in 0..4 {
-        let snapshot = live_snapshot(device, app, Scope::System)
-            .await
-            .map_err(OperationError::uncertain)?;
+        let snapshot = read_back(app, device, Scope::System, |document| {
+            changes
+                .iter()
+                .all(|(name, expected)| document.fields.get(name) == Some(expected))
+        })
+        .await
+        .map_err(OperationError::uncertain)?;
         let matches = changes
             .iter()
             .all(|(name, expected)| snapshot.fields.get(name) == Some(expected));
@@ -1784,8 +2135,10 @@ async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), Oper
             // statically derived profile is not yet proven on hardware. Both use
             // the slower exact terminal readback. The 5700i pauses its meter
             // stream while producing a full AP/AS document.
-            let snapshot = live_snapshot(device, app, body.scope)
-                .await
+            let snapshot = read_back(app, device, body.scope, |document| {
+                document.fields.get(&body.name) == Some(&expected)
+            })
+            .await
                 .map_err(|read_error| {
                     OperationError::safe(match &boundary {
                         Err(boundary_error) => format!(
@@ -2362,6 +2715,9 @@ mod tests {
             archive_requested: false,
             archive: None,
             archive_retry: None,
+            wanted_files: None,
+            files: Vec::new(),
+            user_presets: BTreeMap::new(),
             terminal: "127.0.0.1:1".parse().unwrap(),
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
@@ -2472,6 +2828,9 @@ mod tests {
             archive_requested: false,
             archive: None,
             archive_retry: None,
+            wanted_files: None,
+            files: Vec::new(),
+            user_presets: BTreeMap::new(),
             terminal: "127.0.0.1:1".parse().unwrap(),
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(processing),
@@ -2630,6 +2989,9 @@ mod tests {
             archive_requested: false,
             archive: None,
             archive_retry: None,
+            wanted_files: None,
+            files: Vec::new(),
+            user_presets: BTreeMap::new(),
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
@@ -3616,6 +3978,430 @@ mod tests {
         assert!(app.state.read().await.connected);
     }
 
+    /// A synthetic 8700HD 1.0.2.161 speaking the opcodes captured from the
+    /// original PC Remote and firmware: F9h/FAh boundaries, the on-air file
+    /// (EEh), the setup file (EFh), user preset files (F2h), Recall by an
+    /// unnamed on-air file followed by FAh, files saved a few reads after a
+    /// change, and a pushed on-air file followed by its own FAh.
+    struct Fake8700 {
+        pc: std::net::SocketAddr,
+        terminal: std::net::SocketAddr,
+        /// The on-air document the unit runs and the one its file still holds.
+        running: Arc<std::sync::Mutex<String>>,
+        saved: Arc<std::sync::Mutex<String>>,
+        /// Requests and messages the unit received, by opcode.
+        received: Arc<std::sync::Mutex<Vec<Received>>>,
+        terminal_sessions: Arc<AtomicUsize>,
+        push: Arc<watch::Sender<u64>>,
+        /// The user preset file `LATE NIGHT`; a Recall of it saves the
+        /// document it sent, with the upload's LF line ends.
+        late_night: Arc<std::sync::Mutex<String>>,
+    }
+
+    /// One message the synthetic unit received: its opcode and body.
+    type Received = (u16, Vec<u8>);
+
+    const CODE_8700: &str = "ADMIN";
+
+    fn doc_8700(name: &str, drive: i32) -> String {
+        format!(
+            "OptimodVersion=<8700.51>\r\nPreset Name=<{name}> size=3\r\nFactory Preset Name=<GREGG>\r\nPreset Type= <MULTIBAND PRESET>\r\nC:<AGC DRIVE>Int:{drive};D:{};\r\nC:<HD COUPLING>String:<FM->HD>;D:0;\r\nEnd Preset<end>\r\n",
+            drive + 10
+        )
+    }
+
+    fn file_8700(kind: u16, name: &str, text: &str) -> Vec<u8> {
+        let sealed = orban_protocol::archive::encrypt(text.as_bytes(), CODE_8700, [7; 16]).unwrap();
+        let mut body = format!("0\n0\n{name}\n{}\n", sealed.len()).into_bytes();
+        body.extend(sealed);
+        orban_protocol::message::encode(kind, &body).unwrap()
+    }
+
+    impl Fake8700 {
+        async fn start() -> Self {
+            let pc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let terminal_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let unit = Self {
+                pc: pc_listener.local_addr().unwrap(),
+                terminal: terminal_listener.local_addr().unwrap(),
+                running: Arc::new(std::sync::Mutex::new(doc_8700("Test01", 10))),
+                saved: Arc::new(std::sync::Mutex::new(doc_8700("Test01", 10))),
+                received: Arc::default(),
+                terminal_sessions: Arc::default(),
+                push: Arc::new(watch::channel(0).0),
+                late_night: Arc::new(std::sync::Mutex::new(doc_8700("Late Night", 14))),
+            };
+            let (running, saved, received, pushes, late_night) = (
+                unit.running.clone(),
+                unit.saved.clone(),
+                unit.received.clone(),
+                unit.push.clone(),
+                unit.late_night.clone(),
+            );
+            tokio::spawn(async move {
+                while let Ok((stream, _)) = pc_listener.accept().await {
+                    let (running, saved, received) =
+                        (running.clone(), saved.clone(), received.clone());
+                    let late_night = late_night.clone();
+                    let mut pushed = pushes.subscribe();
+                    tokio::spawn(async move {
+                        let (mut reader, mut writer) = stream.into_split();
+                        while reader.read_u8().await.is_ok_and(|byte| byte != 0) {}
+                        writer
+                            .write_all(b"connect ok\n0\n8700HD V 1.0.2.161\n123\n")
+                            .await
+                            .unwrap();
+                        let mut decoder = orban_protocol::framing::Decoder::default();
+                        let mut buffer = [0_u8; 16384];
+                        // On-air reads still answered from the file saved before a change.
+                        let mut lag = 0_usize;
+                        loop {
+                            let count = tokio::select! {
+                                read = reader.read(&mut buffer) => match read {
+                                    Ok(0) | Err(_) => return,
+                                    Ok(count) => count,
+                                },
+                                _ = pushed.changed() => {
+                                    let text = running.lock().unwrap().clone();
+                                    let mut bytes = file_8700(229, "", &text);
+                                    bytes.extend(orban_protocol::message::encode(250, b"").unwrap());
+                                    if writer.write_all(&bytes).await.is_err() { return; }
+                                    continue;
+                                }
+                            };
+                            for frame in decoder.feed(&buffer[..count]).unwrap() {
+                                let message =
+                                    orban_protocol::message::decode_for(&frame, None).unwrap();
+                                let (kind, data) = match message {
+                                    Message::Other { kind, data } => (kind, data),
+                                    // A file is recorded as its name line and its bytes.
+                                    Message::File { kind, name, data } => {
+                                        let mut named = format!("{name}\n").into_bytes();
+                                        named.extend(data);
+                                        (kind, named)
+                                    }
+                                    _ => continue,
+                                };
+                                received.lock().unwrap().push((kind, data.clone()));
+                                let reply: Vec<u8> = match kind {
+                                    249 | 250 => orban_protocol::message::encode(250, b"").unwrap(),
+                                    219 => {
+                                        let mut meter = vec![1];
+                                        meter.extend(b"104\n");
+                                        meter.extend([0x55; 104]);
+                                        orban_protocol::message::encode(228, &meter).unwrap()
+                                    }
+                                    238 => {
+                                        if lag > 0 {
+                                            lag -= 1;
+                                            if lag == 0 {
+                                                let now = running.lock().unwrap().clone();
+                                                *saved.lock().unwrap() = now;
+                                            }
+                                        }
+                                        let text = saved.lock().unwrap().clone();
+                                        file_8700(229, "OnAir.orb86onair", &text)
+                                    }
+                                    239 => file_8700(
+                                        232,
+                                        "Setup.orb86setup",
+                                        "OptimodVersion=<8700.51>\r\nPreset Name=<SYSTEM PRESET> size=2\r\nC:<CONTRAST>Int:2;D:2;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nEnd Preset<end>\r\n",
+                                    ),
+                                    242 => {
+                                        let modif = doc_8700("modif Test01", 11);
+                                        let mut bytes = file_8700(
+                                            231,
+                                            "TEST01.ORB86USER",
+                                            &doc_8700("Test01", 10),
+                                        );
+                                        bytes.extend(file_8700(
+                                            231,
+                                            "LATE NIGHT.ORB86USER",
+                                            &late_night.lock().unwrap().clone(),
+                                        ));
+                                        bytes.extend(file_8700(
+                                            231,
+                                            "MODIF TEST01.ORB86USER",
+                                            &modif,
+                                        ));
+                                        bytes.extend(file_8700(
+                                            231,
+                                            "MODIF TEST01.ORB86USER",
+                                            &modif,
+                                        ));
+                                        bytes.extend(file_8700(
+                                            231,
+                                            "FROM 6300.ORB86USER",
+                                            "OptimodVersion=<6300.50>\r\nPreset Name=<FROM 6300> size=1\r\nC:<AGC>String:<On>;D:1;\r\nEnd Preset<end>\r\n",
+                                        ));
+                                        bytes.extend(file_8700(
+                                            231,
+                                            "SETUP.ORB86SETUP",
+                                            "OptimodVersion=<8700.51>\r\nEnd Preset<end>\r\n",
+                                        ));
+                                        bytes
+                                    }
+                                    227 => {
+                                        let text = String::from_utf8(data).unwrap();
+                                        let mut parts = text.split(';');
+                                        let (name, _, value) = (
+                                            parts.next().unwrap(),
+                                            parts.next(),
+                                            parts.next().unwrap(),
+                                        );
+                                        if name == "AGC DRIVE" {
+                                            let drive: i32 = value
+                                                .strip_prefix("Int:")
+                                                .unwrap()
+                                                .parse()
+                                                .unwrap();
+                                            let current = running.lock().unwrap().clone();
+                                            let base = current.lines().nth(1).unwrap().to_owned();
+                                            let name = base
+                                                .strip_prefix("Preset Name=<")
+                                                .and_then(|r| r.split_once('>'))
+                                                .unwrap()
+                                                .0
+                                                .trim_start_matches("modif ")
+                                                .to_owned();
+                                            *running.lock().unwrap() =
+                                                doc_8700(&format!("modif {name}"), drive);
+                                            lag = 2;
+                                        }
+                                        continue;
+                                    }
+                                    229 => {
+                                        let start =
+                                            data.iter().position(|b| *b == b'\n').unwrap() + 1;
+                                        let sealed = &data[start..];
+                                        let plain =
+                                            orban_protocol::archive::decrypt(sealed, CODE_8700)
+                                                .unwrap();
+                                        let text = String::from_utf8(plain).unwrap();
+                                        if text.contains("Preset Name=<Late Night>") {
+                                            *late_night.lock().unwrap() = text.clone();
+                                        }
+                                        *running.lock().unwrap() = text.replace('\n', "\r\n");
+                                        lag = 2;
+                                        continue;
+                                    }
+                                    218 => return,
+                                    _ => continue,
+                                };
+                                if writer.write_all(&reply).await.is_err() {
+                                    return;
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+            let (running, saved, sessions) = (
+                unit.running.clone(),
+                unit.saved.clone(),
+                unit.terminal_sessions.clone(),
+            );
+            tokio::spawn(async move {
+                while let Ok((mut stream, _)) = terminal_listener.accept().await {
+                    sessions.fetch_add(1, Ordering::SeqCst);
+                    let (running, saved) = (running.clone(), saved.clone());
+                    tokio::spawn(async move {
+                        let _ = stream
+                            .write_all(b"Orban Optimod 8700HD V 1.0.2.161\n\r")
+                            .await;
+                        let mut command = Vec::new();
+                        while !command.ends_with(b"\r\n") {
+                            match stream.read_u8().await {
+                                Ok(byte) => command.push(byte),
+                                Err(_) => return,
+                            }
+                        }
+                        let command = String::from_utf8(command).unwrap();
+                        if let Some(name) = command
+                            .strip_prefix("RP ")
+                            .and_then(|r| r.split_once('['))
+                            .map(|(n, _)| n.to_owned())
+                        {
+                            let text = doc_8700(&name, 12);
+                            *running.lock().unwrap() = text.clone();
+                            *saved.lock().unwrap() = text;
+                            let _ = stream
+                                .write_all(format!("ON AIR: {name}\n\r").as_bytes())
+                                .await;
+                        }
+                        let mut tail = [0_u8; 64];
+                        let _ = stream.read(&mut tail).await;
+                    });
+                }
+            });
+            unit
+        }
+
+        fn connect(&self) -> Connect {
+            Connect {
+                host: "127.0.0.1".into(),
+                code: CODE_8700.into(),
+                port: self.pc.port(),
+                terminal_port: self.terminal.port(),
+                model: DeviceModel::Optimod8700Hd,
+                device_id: None,
+            }
+        }
+
+        fn received(&self, kind: u16) -> Vec<Vec<u8>> {
+            self.received
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|(k, _)| *k == kind)
+                .map(|(_, d)| d.clone())
+                .collect()
+        }
+    }
+
+    #[tokio::test]
+    async fn the_8700hd_synchronizes_over_pc_remote_without_its_terminal() {
+        let unit = Fake8700::start().await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let state = app.state.read().await;
+        assert_eq!(state.sync_error, None);
+        assert_eq!(state.processing.as_ref().unwrap().name, "Test01");
+        assert_eq!(
+            state.system.as_ref().unwrap().fields["PILOT SYNC"].value,
+            Value::Choice("REF IN".into())
+        );
+        let factory = state
+            .presets
+            .iter()
+            .filter(|p| p.kind == PresetKind::Factory)
+            .count();
+        let named: Vec<_> = state
+            .presets
+            .iter()
+            .filter(|p| p.kind != PresetKind::Factory)
+            .map(|p| (p.name.as_str(), p.kind.clone()))
+            .collect();
+        assert_eq!(factory, 64);
+        assert_eq!(
+            named,
+            [
+                ("Test01", PresetKind::User),
+                ("Late Night", PresetKind::User),
+                ("modif Test01", PresetKind::Unsaved),
+            ]
+        );
+        drop(state);
+        assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
+        // The 8700HD boundary is F9h; the 5700i's FAh request is never sent.
+        sleep(Duration::from_millis(300)).await;
+        assert!(!unit.received(249).is_empty());
+        assert!(unit.received(250).is_empty());
+        assert!(!unit.received(219).is_empty());
+    }
+
+    #[tokio::test]
+    async fn an_8700hd_write_is_confirmed_once_the_unit_saves_its_on_air_file() {
+        let unit = Fake8700::start().await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let session = app.state.read().await.session_id.clone().unwrap();
+        let change = Change {
+            scope: Scope::Processing,
+            name: "AGC DRIVE".into(),
+            index: 21,
+            expected: Field {
+                index: 20,
+                value: Value::Int(10),
+            },
+            requested: None,
+            expected_host: "127.0.0.1".into(),
+            expected_session: session,
+            expected_preset: Some("Test01".into()),
+        };
+        command(&app, |r| Command::Change(change, r)).await.unwrap();
+        assert_eq!(unit.received(227), [b"AGC DRIVE;21;Int:11;1;".to_vec()]);
+        let state = app.state.read().await;
+        let processing = state.processing.as_ref().unwrap();
+        assert_eq!(processing.name, "modif Test01");
+        assert_eq!(processing.fields["AGC DRIVE"].value, Value::Int(11));
+        assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn an_8700hd_recall_sends_a_user_preset_back_and_lets_the_firmware_load_a_factory_one() {
+        let unit = Fake8700::start().await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let recall = |name: &str, on_air: &str, session: &str| Recall {
+            name: name.into(),
+            expected_name: on_air.into(),
+            confirmed: true,
+            expected_host: "127.0.0.1".into(),
+            expected_session: session.into(),
+        };
+        let session = app.state.read().await.session_id.clone().unwrap();
+        command(&app, |r| {
+            Command::Recall(recall("Late Night", "Test01", &session), r)
+        })
+        .await
+        .unwrap();
+        // The original client sends the document with LF line ends, then FAh.
+        let uploads = unit.received(229);
+        assert_eq!(uploads.len(), 1);
+        // An unnamed file: its name line is empty.
+        assert_eq!(uploads[0][0], b'\n');
+        let sealed = &uploads[0][1..];
+        let plain = orban_protocol::archive::decrypt(sealed, CODE_8700).unwrap();
+        assert_eq!(
+            plain,
+            doc_8700("Late Night", 14)
+                .replace("\r\n", "\n")
+                .into_bytes()
+        );
+        assert_eq!(unit.received(250).len(), 1);
+        assert_eq!(
+            app.state.read().await.processing.as_ref().unwrap().name,
+            "Late Night"
+        );
+        assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
+
+        command(&app, |r| {
+            Command::Recall(recall("GREGG", "Late Night", &session), r)
+        })
+        .await
+        .unwrap();
+        assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            app.state.read().await.processing.as_ref().unwrap().name,
+            "GREGG"
+        );
+
+        // A change made elsewhere: the pushed file and its FAh do not answer
+        // the next request in place of the unit's real answer.
+        unit.push.send_modify(|n| *n += 1);
+        sleep(Duration::from_millis(200)).await;
+        command(&app, Command::Refresh).await.unwrap();
+        let state = app.state.read().await;
+        assert!(state.connected);
+        assert_eq!(state.sync_error, None);
+        assert_eq!(state.processing.as_ref().unwrap().name, "GREGG");
+        // The recalled user preset is still listed, now saved with LF.
+        assert!(
+            state
+                .presets
+                .iter()
+                .any(|p| p.name == "Late Night" && p.kind == PresetKind::User)
+        );
+        assert!(!unit.late_night.lock().unwrap().contains('\r'));
+    }
+
     fn test_app() -> (App, tempfile::TempDir) {
         let (commands, _) = mpsc::channel(1);
         let (meters, _) = watch::channel(json!({"live":false}));
@@ -3705,6 +4491,9 @@ mod tests {
             archive_requested: false,
             archive: None,
             archive_retry: None,
+            wanted_files: None,
+            files: Vec::new(),
+            user_presets: BTreeMap::new(),
             terminal: address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
@@ -3738,6 +4527,9 @@ mod tests {
             archive_requested: false,
             archive: None,
             archive_retry: None,
+            wanted_files: None,
+            files: Vec::new(),
+            user_presets: BTreeMap::new(),
             terminal: address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
@@ -3836,6 +4628,9 @@ mod tests {
                 archive_requested: false,
                 archive: None,
                 archive_retry: None,
+                wanted_files: None,
+                files: Vec::new(),
+                user_presets: BTreeMap::new(),
                 terminal: address,
                 code: Zeroizing::new("1234".to_owned()),
                 processing_baseline: None,
@@ -3895,6 +4690,9 @@ mod tests {
             archive_requested: false,
             archive: None,
             archive_retry: None,
+            wanted_files: None,
+            files: Vec::new(),
+            user_presets: BTreeMap::new(),
             terminal: address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
@@ -4037,6 +4835,9 @@ mod tests {
             archive_requested: false,
             archive: None,
             archive_retry: None,
+            wanted_files: None,
+            files: Vec::new(),
+            user_presets: BTreeMap::new(),
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
@@ -4420,6 +5221,9 @@ mod tests {
             archive_requested: false,
             archive: None,
             archive_retry: None,
+            wanted_files: None,
+            files: Vec::new(),
+            user_presets: BTreeMap::new(),
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(before),
@@ -4706,6 +5510,9 @@ mod tests {
             archive_requested: false,
             archive: None,
             archive_retry: None,
+            wanted_files: None,
+            files: Vec::new(),
+            user_presets: BTreeMap::new(),
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
@@ -4898,10 +5705,7 @@ mod tests {
     async fn models_without_a_documented_save_command_refuse_preset_changes() {
         for (banner, terminal_banner) in [
             ("5700i V 3.0.1.20", "Orban Optimod 5700i test"),
-            (
-                "8700HD V 1.0.2.161",
-                "Welcome to the Orban Optimod-FM 8700HD.",
-            ),
+            ("8700HD V 1.0.2.161", "Orban Optimod 8700HD V 1.0.2.161"),
         ] {
             let outcome = simulated_preset_file(PresetFileCase {
                 banner,
@@ -5089,6 +5893,9 @@ mod tests {
             archive_requested: false,
             archive: None,
             archive_retry: None,
+            wanted_files: None,
+            files: Vec::new(),
+            user_presets: BTreeMap::new(),
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
