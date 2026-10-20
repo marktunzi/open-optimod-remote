@@ -373,7 +373,7 @@ function App() {
   const openPresets = () => setArea('Presets');
   // Shown in every view: after a lost session the app may wait minutes.
   const reconnectBanner = !snapshot.connected && snapshot.reconnect
-    ? <div className="development" role="status">{reconnectMessage(snapshot.reconnect, Date.now())} <button disabled={busy} onClick={() => void api('reconnect/cancel', {}).then(load).catch(e => reportError('Cancel reconnect', e))}>Cancel</button></div>
+    ? <div className="development" role="status">{reconnectMessage(snapshot.reconnect, Date.now())} <button disabled={busy || snapshot.reconnect.in_progress} onClick={() => void api('reconnect/cancel', {}).then(load).catch(e => reportError('Cancel reconnect', e))}>Cancel</button></div>
     : null;
   return (
     <main className={area === 'Connections' ? 'connection-mode' : ''} data-skin={skin.id} data-material={skin.material}>
