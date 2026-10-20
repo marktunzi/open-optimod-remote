@@ -38,6 +38,15 @@ const METER_POLL_PERIOD: Duration = Duration::from_millis(50);
 /// serving the session. Slow or failed ticks before that are not a lost
 /// connection: the original PC Remote waits about 42 s without any byte.
 const UNANSWERED_LIMIT: Duration = Duration::from_secs(20);
+/// PC Remote login, including the TCP connection.
+const LOGIN_DEADLINE: Duration = Duration::from_secs(4);
+/// Terminal reads after login: the system document, then the preset list
+/// with the processing document in one exchange.
+const SYSTEM_READ_DEADLINE: Duration = Duration::from_secs(4);
+const CATALOG_READ_DEADLINE: Duration = Duration::from_secs(6);
+/// Recall: one RP/AP exchange plus at most one confirming AP read.
+const RECALL_DEADLINE: Duration = Duration::from_secs(10);
+const RECALL_CONFIRM_DEADLINE: Duration = Duration::from_secs(6);
 fn should_open_default_browser(value: Option<&OsStr>) -> bool {
     value != Some(OsStr::new("1"))
 }
@@ -67,6 +76,9 @@ struct Snapshot {
     capabilities: Option<Capabilities>,
     /// Hardware-verified or statically derived profile, for the status display.
     evidence: Option<Evidence>,
+    /// Set while the PC Remote session is connected but the current settings
+    /// or presets could not be read from the status (terminal) port.
+    sync_error: Option<String>,
 }
 #[derive(Clone)]
 struct App {
@@ -209,6 +221,8 @@ impl Boundaries {
 struct Device {
     session: Session,
     boundaries: Boundaries,
+    /// Set when a poll during other work found the PC Remote session lost.
+    lost: Option<String>,
     terminal: SocketAddr,
     code: Zeroizing<String>,
     processing_baseline: Option<Document>,
@@ -536,6 +550,7 @@ async fn with_meter_polling<T>(
                 if let Err(error) = polled
                     && let Some(lost) = session_lost(device, &error)
                 {
+                    device.lost = Some(lost.clone());
                     return Err(lost);
                 }
             }
@@ -552,16 +567,11 @@ async fn live_snapshot(device: &mut Device, app: &App, scope: Scope) -> Result<D
             address,
             &code,
             scope,
-            Duration::from_secs(4),
+            SYSTEM_READ_DEADLINE,
             device.session.info.model,
         ),
     )
     .await
-}
-async fn documents(device: &mut Device, app: &App) -> Result<(Document, Document), String> {
-    let system = live_snapshot(device, app, Scope::System).await?;
-    let processing = live_snapshot(device, app, Scope::Processing).await?;
-    Ok((system, processing))
 }
 fn processing_modifications(current: &Document, baseline: Option<&Document>) -> BTreeSet<String> {
     let Some(baseline) = baseline else {
@@ -641,18 +651,43 @@ fn is_definite_disconnect(message: &str) -> bool {
         || lower.contains("not connected")
 }
 
-async fn publish_documents(app: &App, device: &mut Device) -> Result<(), String> {
-    let (system, processing) = documents(device, app).await?;
+/// Reads the current settings and presets from the status (terminal) port.
+/// The first failure ends the attempt: the remaining reads use the same port.
+async fn synchronize(app: &App, device: &mut Device) -> Result<(), String> {
+    let capabilities = device.session.info.capabilities;
+    if capabilities.parameter_reads {
+        let system = live_snapshot(device, app, Scope::System).await?;
+        let mut state = app.state.write().await;
+        state.system = Some(system);
+        state.revision += 1;
+    }
+    if capabilities.preset_catalog {
+        // LP is followed by AP in the same exchange; no separate AP is needed.
+        refresh_presets(app, device).await?;
+    } else if capabilities.parameter_reads {
+        let processing = live_snapshot(device, app, Scope::Processing).await?;
+        let mut state = app.state.write().await;
+        let (base_name, modified_fields) = refresh_processing_identity(
+            &processing,
+            &state.presets,
+            &mut device.processing_baseline,
+        );
+        state.processing = Some(processing);
+        state.preset_base_name = base_name;
+        state.modified_fields = modified_fields;
+        state.revision += 1;
+    }
     let mut state = app.state.write().await;
-    let (base_name, modified_fields) =
-        refresh_processing_identity(&processing, &state.presets, &mut device.processing_baseline);
-    state.system = Some(system);
-    state.processing = Some(processing);
-    state.preset_base_name = base_name;
-    state.modified_fields = modified_fields;
-    state.revision += 1;
     state.error = None;
+    state.sync_error = None;
     Ok(())
+}
+
+fn sync_failure(device: &Device, error: &str) -> String {
+    format!(
+        "Connected, but the status port (TCP {}) did not answer, so current settings and presets are unavailable. Use Refresh to try again. {error}",
+        device.terminal.port()
+    )
 }
 async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
     device.session.send(250, b"").await?;
@@ -677,7 +712,7 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
     let session = Session::connect_for_model(
         SocketAddr::new(ip, body.port),
         &code,
-        Duration::from_secs(4),
+        LOGIN_DEADLINE,
         body.model,
     )
     .await?;
@@ -685,27 +720,25 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
     let mut device = Device {
         session,
         boundaries: Boundaries::default(),
+        lost: None,
         terminal: SocketAddr::new(ip, body.terminal_port),
         code,
         processing_baseline: None,
         profile,
     };
-    let init = async {
-        if device.session.info.capabilities.parameter_reads {
-            publish_documents(app, &mut device).await?;
-        }
-        if device.session.info.capabilities.preset_catalog {
-            refresh_presets(app, &mut device).await?;
-        }
-        if device.session.info.capabilities.live_meters {
-            device.session.send(222, b"").await?;
-        }
-        Ok::<(), String>(())
-    }
-    .await;
-    if let Err(e) = init {
+    // The PC Remote login is the connection. Reading the current settings
+    // over the status port is a separate step: when it fails, the session
+    // stays connected without settings, and Refresh tries again.
+    let synced = synchronize(app, &mut device).await;
+    if let Some(lost) = device.lost.take() {
         let _ = device.session.disconnect().await;
-        return Err(e);
+        return Err(lost);
+    }
+    if device.session.info.capabilities.live_meters
+        && let Err(error) = device.session.send(222, b"").await
+    {
+        let _ = device.session.disconnect().await;
+        return Err(error);
     }
     if let Ok(mut active) = app.profile.write() {
         *active = device.profile.clone().unwrap_or_else(reference_profile);
@@ -724,6 +757,7 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
     state.device_id = body.device_id;
     state.session_id = Some(uuid::Uuid::new_v4().to_string());
     state.error = None;
+    state.sync_error = synced.err().map(|error| sync_failure(&device, &error));
     Ok(device)
 }
 async fn refresh_presets(app: &App, device: &mut Device) -> Result<(), String> {
@@ -735,7 +769,7 @@ async fn refresh_presets(app: &App, device: &mut Device) -> Result<(), String> {
         orban_protocol::terminal::read_presets_for_model(
             address,
             &code,
-            Duration::from_secs(6),
+            CATALOG_READ_DEADLINE,
             device.session.info.model,
         ),
     )
@@ -816,7 +850,7 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
         address,
         &code,
         &body.name,
-        Duration::from_secs(10),
+        RECALL_DEADLINE,
         model,
     )
     .await
@@ -830,7 +864,7 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
                 address,
                 &code,
                 Scope::Processing,
-                Duration::from_secs(6),
+                RECALL_CONFIRM_DEADLINE,
                 model,
             )
             .await
@@ -1519,7 +1553,14 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
             let result=if let Some(d)=disconnecting{d.session.disconnect().await}else{Ok(())};
             let _=reply.send(result);
            }
-           Command::Refresh(reply)=>{let result=if let Some(d)=&mut device{async { publish_documents(&app,d).await?; refresh_presets(&app,d).await }.await}else{Err("Not connected".into())};let _=reply.send(result);}
+           Command::Refresh(reply)=>{
+            let result=if let Some(d)=&mut device{
+             let result=synchronize(&app,d).await;
+             if let Err(e)=&result{app.state.write().await.sync_error=Some(sync_failure(d,e));}
+             result
+            }else{Err("Not connected".into())};
+            let _=reply.send(result);
+           }
            Command::Recall(body,reply)=>{
             let result=if let Some(d)=&mut device{recall(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             tick.reset();
@@ -1559,12 +1600,15 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
             }
            }
           }
+          // A poll during the command may have found the session lost.
+          if let Some(lost)=device.as_mut().and_then(|d| d.lost.take()) {
+             end_session(&app,&mut device,lost).await;
+          }
          }
          _=tick.tick(),if device.as_ref().is_some_and(|d| d.session.info.capabilities.live_meters)=>{
           let d=device.as_mut().unwrap();let result=async{d.session.send(219,b"").await?;drain(d,&app).await}.await;
           if let Err(e)=result && let Some(lost)=session_lost(d,&e) {
-             if let Some(d)=device.take(){let _=d.session.disconnect().await;}
-             let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=Some(lost);app.meters.send_replace(json!({"live":false}));
+             end_session(&app,&mut device,lost).await;
           }
          }
         }
@@ -1572,6 +1616,17 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
     if let Some(d) = device {
         let _ = d.session.disconnect().await;
     }
+}
+
+async fn end_session(app: &App, device: &mut Option<Device>, error: String) {
+    if let Some(d) = device.take() {
+        let _ = d.session.disconnect().await;
+    }
+    let mut state = app.state.write().await;
+    state.connected = false;
+    state.session_id = None;
+    state.error = Some(error);
+    app.meters.send_replace(json!({"live":false}));
 }
 
 fn ensure_session(state: &Snapshot, expected: &str) -> Result<(), String> {
@@ -1772,6 +1827,7 @@ mod tests {
         let mut device = Device {
             session,
             boundaries: Boundaries::default(),
+            lost: None,
             terminal: "127.0.0.1:1".parse().unwrap(),
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
@@ -1876,6 +1932,7 @@ mod tests {
         let mut device = Device {
             session,
             boundaries: Boundaries::default(),
+            lost: None,
             terminal: "127.0.0.1:1".parse().unwrap(),
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(processing),
@@ -2028,6 +2085,7 @@ mod tests {
         let mut device = Device {
             session,
             boundaries: Boundaries::default(),
+            lost: None,
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
@@ -2058,6 +2116,323 @@ mod tests {
         assert_eq!(state.preset_base_name.as_deref(), Some("TARGET"));
         terminal_server.abort();
         pc_server.abort();
+    }
+
+    /// How the synthetic unit's status (terminal) port behaves.
+    #[derive(Clone, Copy, PartialEq)]
+    enum Terminal {
+        /// Accepts and closes at once, like a disabled or wrong port.
+        Closed,
+        /// Accepts, sends a banner and never answers.
+        Stalled,
+        /// Answers AS, AP and LP/AP with small valid documents.
+        Answering,
+    }
+
+    #[derive(Default)]
+    struct UnitCounts {
+        logins: AtomicUsize,
+        subscriptions: AtomicUsize,
+        disconnects: AtomicUsize,
+        writes: AtomicUsize,
+        polls: AtomicUsize,
+    }
+
+    /// A synthetic 5700i that accepts any number of consecutive PC Remote
+    /// sessions. `stall_once` delays the answer to one 250 boundary, as a
+    /// temporary network problem would.
+    struct FakeUnit {
+        pc: std::net::SocketAddr,
+        terminal: std::net::SocketAddr,
+        terminal_mode: Arc<std::sync::Mutex<Terminal>>,
+        counts: Arc<UnitCounts>,
+        stall_once: Arc<std::sync::Mutex<Option<Duration>>>,
+    }
+
+    impl FakeUnit {
+        async fn start(terminal: Terminal) -> Self {
+            let pc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let terminal_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let unit = Self {
+                pc: pc_listener.local_addr().unwrap(),
+                terminal: terminal_listener.local_addr().unwrap(),
+                terminal_mode: Arc::new(std::sync::Mutex::new(terminal)),
+                counts: Arc::default(),
+                stall_once: Arc::default(),
+            };
+            let counts = unit.counts.clone();
+            let stall = unit.stall_once.clone();
+            tokio::spawn(async move {
+                while let Ok((stream, _)) = pc_listener.accept().await {
+                    let counts = counts.clone();
+                    let stall = stall.clone();
+                    tokio::spawn(async move {
+                        let (mut reader, mut writer) = stream.into_split();
+                        while reader.read_u8().await.is_ok_and(|byte| byte != 0) {}
+                        counts.logins.fetch_add(1, Ordering::SeqCst);
+                        if writer
+                            .write_all(b"connect ok\n0\n5700i V 3.0.1.20\n123\n")
+                            .await
+                            .is_err()
+                        {
+                            return;
+                        }
+                        let mut decoder = orban_protocol::framing::Decoder::default();
+                        let mut buffer = [0_u8; 4096];
+                        loop {
+                            let count = match reader.read(&mut buffer).await {
+                                Ok(0) | Err(_) => return,
+                                Ok(count) => count,
+                            };
+                            for frame in decoder.feed(&buffer[..count]).unwrap() {
+                                let reply = match orban_protocol::message::decode(&frame).unwrap() {
+                                    Message::Other { kind: 219, .. } => {
+                                        counts.polls.fetch_add(1, Ordering::SeqCst);
+                                        let mut meter = vec![1];
+                                        meter.extend(b"112\n");
+                                        meter.extend([5; 112]);
+                                        orban_protocol::message::encode(228, &meter).unwrap()
+                                    }
+                                    Message::Other { kind: 222, .. } => {
+                                        counts.subscriptions.fetch_add(1, Ordering::SeqCst);
+                                        continue;
+                                    }
+                                    Message::Other { kind: 227, .. } => {
+                                        counts.writes.fetch_add(1, Ordering::SeqCst);
+                                        continue;
+                                    }
+                                    Message::Other { kind: 218, .. } => {
+                                        counts.disconnects.fetch_add(1, Ordering::SeqCst);
+                                        return;
+                                    }
+                                    Message::Other { kind: 250, .. } => {
+                                        let delay = stall.lock().unwrap().take();
+                                        if let Some(delay) = delay {
+                                            sleep(delay).await;
+                                        }
+                                        orban_protocol::message::encode(251, b"").unwrap()
+                                    }
+                                    _ => continue,
+                                };
+                                if writer.write_all(&reply).await.is_err() {
+                                    return;
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+            let mode = unit.terminal_mode.clone();
+            tokio::spawn(async move {
+                while let Ok((mut stream, _)) = terminal_listener.accept().await {
+                    let mode = *mode.lock().unwrap();
+                    tokio::spawn(async move {
+                        if mode == Terminal::Closed {
+                            return;
+                        }
+                        let _ = stream.write_all(b"Orban Optimod 5700i test\r\n").await;
+                        let mut request = Vec::new();
+                        let mut byte = [0_u8; 1];
+                        while !request.ends_with(b"??\r\n") {
+                            if stream.read_exact(&mut byte).await.is_err() {
+                                return;
+                            }
+                            request.push(byte[0]);
+                        }
+                        if mode == Terminal::Stalled {
+                            sleep(Duration::from_secs(60)).await;
+                            return;
+                        }
+                        let request = String::from_utf8_lossy(&request);
+                        let mut reply = String::new();
+                        if request.starts_with("LP ") {
+                            reply.push_str("TARGET factory\r\nCURRENT user\r\n");
+                        }
+                        reply.push_str(&if request.starts_with("AS ") {
+                            document_text("SYSTEM PRESET", &[("CONTRAST", "Int:3;D:3;")])
+                        } else {
+                            document_text("CURRENT", &[("AGC DRIVE", "Int:10;D:20;")])
+                        });
+                        let _ = stream.write_all(reply.as_bytes()).await;
+                        let mut tail = [0_u8; 64];
+                        let _ = stream.read(&mut tail).await;
+                    });
+                }
+            });
+            unit
+        }
+
+        fn connect(&self) -> Connect {
+            Connect {
+                host: "127.0.0.1".into(),
+                code: "1234".into(),
+                port: self.pc.port(),
+                terminal_port: self.terminal.port(),
+                model: DeviceModel::Auto,
+                device_id: None,
+            }
+        }
+
+        fn count(&self, field: fn(&UnitCounts) -> &AtomicUsize) -> usize {
+            field(&self.counts).load(Ordering::SeqCst)
+        }
+    }
+
+    /// The real session owner, driven through its command channel.
+    async fn running_owner() -> (App, tempfile::TempDir) {
+        let (mut app, storage) = test_app();
+        let (commands, rx) = mpsc::channel(8);
+        app.commands = commands;
+        tokio::spawn(owner(app.clone(), rx));
+        (app, storage)
+    }
+
+    async fn command(app: &App, build: impl FnOnce(Reply) -> Command) -> Result<(), String> {
+        let (reply, result) = oneshot::channel();
+        app.commands.send(build(reply)).await.unwrap();
+        result.await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn a_closed_status_port_still_connects_and_refuses_writes() {
+        let unit = FakeUnit::start(Terminal::Closed).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        sleep(Duration::from_millis(300)).await;
+        let (session, host) = {
+            let state = app.state.read().await;
+            assert!(state.connected);
+            assert!(state.processing.is_none() && state.system.is_none());
+            let sync = state.sync_error.as_deref().unwrap();
+            assert!(sync.contains("status port"), "{sync}");
+            (state.session_id.clone().unwrap(), state.host.clone())
+        };
+        assert_eq!(unit.count(|c| &c.subscriptions), 1);
+        assert!(unit.count(|c| &c.polls) > 2, "meters keep running");
+        assert_eq!(app.meters.borrow()["live"], true);
+
+        let refused = command(&app, |r| {
+            Command::Change(
+                Change {
+                    scope: Scope::Processing,
+                    name: "AGC DRIVE".into(),
+                    index: 21,
+                    expected: Field {
+                        index: 20,
+                        value: Value::Int(10),
+                    },
+                    requested: None,
+                    expected_host: host,
+                    expected_session: session,
+                    expected_preset: Some("CURRENT".into()),
+                },
+                r,
+            )
+        })
+        .await;
+        assert!(refused.unwrap_err().contains("not available"));
+        assert_eq!(unit.count(|c| &c.writes), 0);
+
+        // A failed Refresh is not a lost session.
+        assert!(command(&app, Command::Refresh).await.is_err());
+        assert!(app.state.read().await.connected);
+
+        *unit.terminal_mode.lock().unwrap() = Terminal::Answering;
+        command(&app, Command::Refresh).await.unwrap();
+        let state = app.state.read().await;
+        assert!(state.connected && state.sync_error.is_none());
+        assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
+        assert_eq!(state.system.as_ref().unwrap().name, "SYSTEM PRESET");
+        assert_eq!(state.presets.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn a_silent_status_port_does_not_hold_the_connection_beyond_its_budget() {
+        let unit = FakeUnit::start(Terminal::Stalled).await;
+        let (app, _storage) = running_owner().await;
+        let started = tokio::time::Instant::now();
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        // The first silent read ends the attempt; the catalog read is skipped.
+        let took = started.elapsed();
+        assert!(
+            took < SYSTEM_READ_DEADLINE + Duration::from_secs(1),
+            "{took:?}"
+        );
+        let state = app.state.read().await;
+        assert!(state.connected && state.sync_error.is_some());
+    }
+
+    #[tokio::test]
+    async fn a_hundred_connect_and_disconnect_cycles_leave_no_session_behind() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = running_owner().await;
+        let mut sessions = BTreeSet::new();
+        for cycle in 0..100 {
+            command(&app, |r| Command::Connect(unit.connect(), r))
+                .await
+                .unwrap_or_else(|e| panic!("cycle {cycle}: {e}"));
+            {
+                let state = app.state.read().await;
+                assert!(
+                    state.connected && state.sync_error.is_none(),
+                    "cycle {cycle}"
+                );
+                assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
+                assert!(sessions.insert(state.session_id.clone().unwrap()));
+            }
+            command(&app, Command::Disconnect).await.unwrap();
+            assert!(!app.state.read().await.connected);
+        }
+        sleep(Duration::from_millis(100)).await;
+        assert_eq!(unit.count(|c| &c.logins), 100);
+        assert_eq!(unit.count(|c| &c.subscriptions), 100);
+        assert_eq!(unit.count(|c| &c.disconnects), 100);
+        assert_eq!(unit.count(|c| &c.writes), 0);
+    }
+
+    #[tokio::test]
+    async fn a_temporary_stall_does_not_end_a_healthy_session() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        // Fourteen seconds without a response boundary: three read timeouts in
+        // a row, which used to end the session.
+        *unit.stall_once.lock().unwrap() = Some(Duration::from_secs(14));
+        sleep(Duration::from_secs(15)).await;
+        let polls = unit.count(|c| &c.polls);
+        sleep(Duration::from_millis(500)).await;
+        let state = app.state.read().await;
+        assert!(state.connected, "{:?}", state.error);
+        assert!(unit.count(|c| &c.polls) > polls + 3, "polling resumed");
+        assert_eq!(unit.count(|c| &c.logins), 1, "no reconnect");
+    }
+
+    #[tokio::test]
+    async fn a_closed_pc_remote_port_fails_the_connection_cleanly() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let closed = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = closed.local_addr().unwrap().port();
+        drop(closed);
+        let (app, _storage) = running_owner().await;
+        let mut connect = unit.connect();
+        connect.port = port;
+        assert!(
+            command(&app, |r| Command::Connect(connect, r))
+                .await
+                .is_err()
+        );
+        assert!(!app.state.read().await.connected);
+        // The same owner then connects normally on the configured ports.
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        assert!(app.state.read().await.connected);
     }
 
     fn test_app() -> (App, tempfile::TempDir) {
@@ -2143,6 +2518,7 @@ mod tests {
         let mut device = Device {
             session,
             boundaries: Boundaries::default(),
+            lost: None,
             terminal: address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
@@ -2170,6 +2546,7 @@ mod tests {
         let mut device = Device {
             session,
             boundaries: Boundaries::default(),
+            lost: None,
             terminal: address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
@@ -2309,6 +2686,7 @@ mod tests {
         let mut device = Device {
             session,
             boundaries: Boundaries::default(),
+            lost: None,
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
@@ -2648,6 +3026,7 @@ mod tests {
         let mut device = Device {
             session,
             boundaries: Boundaries::default(),
+            lost: None,
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(before),
@@ -2928,6 +3307,7 @@ mod tests {
         let mut device = Device {
             session,
             boundaries: Boundaries::default(),
+            lost: None,
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
@@ -3305,6 +3685,7 @@ mod tests {
         let device = Device {
             session,
             boundaries: Boundaries::default(),
+            lost: None,
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,

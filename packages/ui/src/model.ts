@@ -21,6 +21,8 @@ export type Snapshot = {
   preset_base_name?: string | null; modified_fields: string[]; less_more_available?: boolean;
   model?: string; skin_id?: string | null; adapter_id?: string | null; capabilities?: Capabilities | null;
   evidence?: 'hardware' | 'static' | 'none' | null;
+  /** Connected, but the current settings could not be read from the status port. */
+  sync_error?: string | null;
 };
 export type Definition = {
   scope: 'Processing' | 'System'; name: string; values: Value[]; unit?: string;

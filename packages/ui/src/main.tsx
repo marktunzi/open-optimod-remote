@@ -389,6 +389,7 @@ function App() {
             view={DEFAULT_METER_VIEW} onLiveChange={setMeterLive} model={meterModel}/>}
       <div className="app-body">
       <div className="workspace" id="main-workspace" tabIndex={-1}>
+      {snapshot.connected && snapshot.sync_error && <div className="development" role="status">{snapshot.sync_error} <button disabled={busy} onClick={() => void action('refresh', {})}>Refresh</button></div>}
       {snapshot.connected && !snapshot.write_enabled && <div className="development">Read-only access: this connection does not allow changes.</div>}
       {snapshot.connected && snapshot.write_enabled && snapshot.evidence === 'static' && <div className="development">Statically derived profile, not yet verified on this processor. Every change is confirmed by reading the processor back.</div>}
       {area === "Presets" ? <Presets key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} busy={busy} action={action} /> : area === "Outputs" ? <Outputs key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} definitions={definitions} busy={busy} action={action} /> : area === "Processing" ? (
