@@ -24,7 +24,8 @@ npm ci --prefix packages/ui
 npm run build --prefix packages/ui
 "$cargo_bin" build --release -p orban-web
 
-app_dir="$project_dir/dist/Open Optimod Remote.app"
+# OPEN_OPTIMOD_APP_DIR builds elsewhere, so a running dist/ app is not replaced.
+app_dir=${OPEN_OPTIMOD_APP_DIR:-"$project_dir/dist/Open Optimod Remote.app"}
 stage_root=$(mktemp -d "$project_dir/target/open-optimod-macos.XXXXXX")
 stage_app="$stage_root/Open Optimod Remote.app"
 trap 'rm -rf "$stage_root"' EXIT HUP INT TERM
@@ -122,7 +123,7 @@ fi
 /usr/bin/codesign --verify --deep --strict "$stage_app"
 /usr/bin/plutil -lint "$stage_app/Contents/Info.plist"
 
-mkdir -p "$project_dir/dist"
+mkdir -p "$(dirname "$app_dir")"
 if [ -e "$app_dir" ]; then mv "$app_dir" "$stage_root/previous.app"; fi
 mv "$stage_app" "$app_dir"
 
