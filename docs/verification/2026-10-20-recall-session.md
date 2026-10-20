@@ -55,6 +55,16 @@ Regression tests:
 - `crates/orban-protocol/tests/wire.rs`: a cut push followed by meter and clock frames, at every split point; requested archives longer than 4096 bytes arrive whole; a header without a message prefix at byte 4096 does not end the frame; without the cut the old behaviour is unchanged.
 - `crates/orban-web` `recall_survives_the_cut_document_the_5700i_pushes`: a synthetic 5700i pushes the cut document during the terminal Recall; five later ticks must each reach their response boundary. This test fails without the fix.
 
+## Session health
+
+The same failure path exposed three weaknesses in the session owner, fixed separately:
+
+- **Late boundaries.** A `251` that arrived after its tick timed out was taken as the next tick's boundary, and could confirm a later write before the unit had processed it. The owner now counts outstanding boundaries: every `250` is matched to exactly one `251`, oldest first.
+- **Disconnect rule.** Three failed ticks in a row (about 12 seconds of slow replies) closed the session. A session now ends only on transport loss (end of stream, reset), corrupt framing, or a `250` left unanswered for 20 seconds. The original client tolerates about 42 seconds without any byte. A slow tick during terminal work no longer fails the terminal read either.
+- **Malformed messages.** One undecodable message in a TCP segment discarded the frames behind it, possibly including a `251`. Each frame is now decoded and queued on its own.
+
+After a Recall the owner still sends `222` once, as before. A failed send is now reported instead of discarded.
+
 ## Hardware result after the fix
 
 The same backend API, one session, five consecutive Recalls, each followed by 30 seconds of observation:

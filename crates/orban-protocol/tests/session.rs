@@ -103,3 +103,36 @@ async fn model_is_detected_from_the_official_banner_and_a_wrong_hint_fails_close
     assert!(matches!(result, Err(error) if error.contains("does not match")));
     worker.await.unwrap();
 }
+
+#[tokio::test]
+async fn a_malformed_message_does_not_lose_the_frames_after_it() {
+    let server = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = server.local_addr().unwrap();
+    let worker = tokio::spawn(async move {
+        let (mut stream, _) = server.accept().await.unwrap();
+        let mut request = vec![0; 14];
+        stream.read_exact(&mut request).await.unwrap();
+        let mut reply = b"connect ok\n0\n5700i V 3.0.1.20\n12345\n".to_vec();
+        // Meter bank 9 does not exist on the 5700i; the 251 behind it in the
+        // same segment must still arrive.
+        reply.extend(message::encode(228, b"\x09112\n").unwrap());
+        reply.extend(message::encode(251, b"").unwrap());
+        stream.write_all(&reply).await.unwrap();
+        let mut end = [0; 21];
+        let _ = stream.read_exact(&mut end).await;
+    });
+    let mut session = Session::connect(address, "9876", Duration::from_secs(2))
+        .await
+        .unwrap();
+    assert!(session.next_event().await.is_err());
+    assert!(!session.is_broken());
+    assert_eq!(
+        session.next_event().await.unwrap(),
+        Message::Other {
+            kind: 251,
+            data: Vec::new()
+        }
+    );
+    session.disconnect().await.unwrap();
+    worker.await.unwrap();
+}

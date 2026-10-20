@@ -26,7 +26,7 @@ pub struct Session {
     adapter: &'static AdapterDescriptor,
     stream: TcpStream,
     decoder: Decoder,
-    pending: VecDeque<Message>,
+    pending: VecDeque<Result<Message, String>>,
     deadline: Duration,
     code: Zeroizing<String>,
 }
@@ -160,7 +160,7 @@ impl Session {
         let end = Instant::now() + self.deadline;
         loop {
             if let Some(message) = self.pending.pop_front() {
-                return Ok(message);
+                return message;
             }
             let mut buffer = [0; 4096];
             let count = timeout_at(end, self.stream.read(&mut buffer))
@@ -171,17 +171,23 @@ impl Session {
                 self.decoder.finish()?;
                 return Err("Device disconnected".into());
             }
+            // A malformed message does not lose the frames after it: framing
+            // is intact, so each frame is decoded and queued on its own.
             for frame in self.decoder.feed_frames(&buffer[..count])? {
                 self.pending.push_back(match frame {
                     Frame::Complete(payload) => {
-                        message::decode_for(&payload, self.adapter.meter_profile)?
+                        message::decode_for(&payload, self.adapter.meter_profile)
                     }
                     Frame::Truncated { payload, declared } => {
-                        message::decode_truncated(&payload, declared)?
+                        message::decode_truncated(&payload, declared)
                     }
                 });
             }
         }
+    }
+    /// Corrupt framing was received; only a new connection can recover.
+    pub fn is_broken(&self) -> bool {
+        self.decoder.is_failed()
     }
     pub fn decrypt_file(&self, data: &[u8]) -> Result<Vec<u8>, String> {
         crate::archive::decrypt(data, &self.code)

@@ -49,6 +49,8 @@ h4 = -(h0 + h1 + h2 + h3) modulo 256
 
 Validate both complement relationships, the zero-sum header checksum, and nonzero length. Decode incrementally because TCP may split or combine frames. Once framing is corrupt, reconnect rather than scanning for a possible next header.
 
+One exception is proven on firmware 3.0.1.20: after a preset change made elsewhere (terminal `RP`, front panel) the unit pushes the new on-air document as an unrequested opcode 229 file whose header announces the whole document (about 7.4 KB for a 5-band preset), but sends only the first 4096 wire bytes and then starts the next frame. A 229 frame longer than 4096 bytes is therefore cut exactly there when a valid header and a `%8d%8d` protocol-6 prefix start at byte 4096; the cut body is never decrypted. A 229 archive requested with opcode 239 arrives whole. Trusting the announced length swallows the following replies and loses the session about 14 seconds after a Recall. See `docs/verification/2026-10-20-recall-session.md`.
+
 The payload begins with two right-aligned eight-character decimal fields:
 
 ```text

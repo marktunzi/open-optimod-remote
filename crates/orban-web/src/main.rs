@@ -34,6 +34,10 @@ use tower_http::services::ServeDir;
 use zeroize::Zeroizing;
 const ORIGIN: &str = "http://127.0.0.1:5701";
 const METER_POLL_PERIOD: Duration = Duration::from_millis(50);
+/// A response boundary unanswered this long means the processor stopped
+/// serving the session. Slow or failed ticks before that are not a lost
+/// connection: the original PC Remote waits about 42 s without any byte.
+const UNANSWERED_LIMIT: Duration = Duration::from_secs(20);
 fn should_open_default_browser(value: Option<&OsStr>) -> bool {
     value != Some(OsStr::new("1"))
 }
@@ -182,8 +186,29 @@ impl OperationError {
         }
     }
 }
+/// Response boundaries (250) sent on the PC Remote session and not yet
+/// answered (251), oldest first. Every 250 gets exactly one 251, so a late
+/// answer to a timed-out tick can never confirm a later write.
+#[derive(Default)]
+struct Boundaries(std::collections::VecDeque<tokio::time::Instant>);
+
+impl Boundaries {
+    fn sent(&mut self) {
+        self.0.push_back(tokio::time::Instant::now());
+    }
+    /// Records one 251; true when no boundary is outstanding any more.
+    fn answered(&mut self) -> bool {
+        self.0.pop_front();
+        self.0.is_empty()
+    }
+    fn unanswered_for(&self) -> Duration {
+        self.0.front().map_or(Duration::ZERO, |sent| sent.elapsed())
+    }
+}
+
 struct Device {
     session: Session,
+    boundaries: Boundaries,
     terminal: SocketAddr,
     code: Zeroizing<String>,
     processing_baseline: Option<Document>,
@@ -501,8 +526,18 @@ async fn with_meter_polling<T>(
             biased;
             result = &mut work => return result,
             _ = tick.tick() => {
-                device.session.send(219, b"").await?;
-                drain(device, app).await?;
+                // Meters are secondary to the terminal work: only a lost
+                // session ends it, a slow tick does not.
+                let polled = async {
+                    device.session.send(219, b"").await?;
+                    drain(device, app).await
+                }
+                .await;
+                if let Err(error) = polled
+                    && let Some(lost) = session_lost(device, &error)
+                {
+                    return Err(lost);
+                }
             }
         }
     }
@@ -583,6 +618,21 @@ fn refreshed_less_more_availability(
     previous_available && same_modified_preset
 }
 
+/// Why a failed tick ends the session, or `None` when the session stays: a
+/// slow or malformed reply is not a lost connection.
+fn session_lost(device: &Device, error: &str) -> Option<String> {
+    if is_definite_disconnect(error) || device.session.is_broken() {
+        Some(error.to_owned())
+    } else if device.boundaries.unanswered_for() >= UNANSWERED_LIMIT {
+        Some(format!(
+            "The processor has not answered for {} seconds. {error}",
+            UNANSWERED_LIMIT.as_secs()
+        ))
+    } else {
+        None
+    }
+}
+
 fn is_definite_disconnect(message: &str) -> bool {
     let lower = message.to_ascii_lowercase();
     lower.contains("device disconnected")
@@ -606,6 +656,7 @@ async fn publish_documents(app: &App, device: &mut Device) -> Result<(), String>
 }
 async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
     device.session.send(250, b"").await?;
+    device.boundaries.sent();
     for _ in 0..256 {
         match device.session.next_event().await? {
             Message::Meters { bank, values } => {
@@ -614,7 +665,7 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
                         .send_replace(json!({"live":true,"bank":bank,"values":values}));
                 }
             }
-            Message::Other { kind: 251, .. } => return Ok(()),
+            Message::Other { kind: 251, .. } if device.boundaries.answered() => return Ok(()),
             _ => {}
         }
     }
@@ -633,6 +684,7 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
     let profile = Profile::for_adapter(session.info.adapter_id)?.map(Arc::new);
     let mut device = Device {
         session,
+        boundaries: Boundaries::default(),
         terminal: SocketAddr::new(ip, body.terminal_port),
         code,
         processing_baseline: None,
@@ -797,7 +849,7 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
     // A preset can reset the device's meter subscription. Re-enable it once,
     // after the processing document is complete, then let the normal owner
     // tick resume the 50 ms cadence.
-    let _ = device.session.send(222, b"").await;
+    let subscribed = device.session.send(222, b"").await;
     let recalled = recalled?;
     let mut baseline = recalled.clone();
     if let Some(name) = baseline.name.strip_prefix("modif ") {
@@ -813,7 +865,11 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
     state.preset_base_name = Some(body.name);
     state.modified_fields.clear();
     state.revision += 1;
-    state.error = None;
+    // The preset is confirmed on air either way; a failed send means the PC
+    // Remote session itself is in trouble, which the next tick reports.
+    state.error = subscribed
+        .err()
+        .map(|error| format!("Live meters could not be resumed after Recall. {error}"));
     Ok(())
 }
 
@@ -1446,7 +1502,6 @@ fn hd_control_tracks_fm(name: &str) -> bool {
 async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
     let mut device: Option<Device> = None;
     let mut tick = interval(METER_POLL_PERIOD);
-    let mut meter_failures = 0_u8;
     tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
     loop {
         tokio::select! {
@@ -1456,11 +1511,10 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
            Command::Connect(body,reply)=>{
             if device.is_some(){let _=reply.send(Err("Disconnect the current device first".into()));continue;}
             *app.state.write().await = Snapshot::default();
-            match make_device(body,&app).await{Ok(d)=>{device=Some(d);meter_failures=0;let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
+            match make_device(body,&app).await{Ok(d)=>{device=Some(d);let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
            }
            Command::Disconnect(reply)=>{
             let disconnecting=device.take();
-            meter_failures=0;
             let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=None;drop(state);app.meters.send_replace(json!({"live":false}));
             let result=if let Some(d)=disconnecting{d.session.disconnect().await}else{Ok(())};
             let _=reply.send(result);
@@ -1468,7 +1522,6 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
            Command::Refresh(reply)=>{let result=if let Some(d)=&mut device{async { publish_documents(&app,d).await?; refresh_presets(&app,d).await }.await}else{Err("Not connected".into())};let _=reply.send(result);}
            Command::Recall(body,reply)=>{
             let result=if let Some(d)=&mut device{recall(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
-            meter_failures=0;
             tick.reset();
            match result {
             Ok(())=>{let _=reply.send(Ok(()));}
@@ -1489,7 +1542,6 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
            }
            Command::PresetFile(body,reply)=>{
             let result=if let Some(d)=&mut device{manage_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
-            meter_failures=0;
             tick.reset();
             let _=reply.send(result.map_err(|e| e.message));
            }
@@ -1510,16 +1562,9 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
          }
          _=tick.tick(),if device.as_ref().is_some_and(|d| d.session.info.capabilities.live_meters)=>{
           let d=device.as_mut().unwrap();let result=async{d.session.send(219,b"").await?;drain(d,&app).await}.await;
-          match result {
-           Ok(())=>{meter_failures=0;}
-           Err(e)=>{
-            meter_failures=meter_failures.saturating_add(1);
-            if is_definite_disconnect(&e) || meter_failures>=3 {
+          if let Err(e)=result && let Some(lost)=session_lost(d,&e) {
              if let Some(d)=device.take(){let _=d.session.disconnect().await;}
-             let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=Some(e);app.meters.send_replace(json!({"live":false}));
-             meter_failures=0;
-            }
-           }
+             let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=Some(lost);app.meters.send_replace(json!({"live":false}));
           }
          }
         }
@@ -1726,6 +1771,7 @@ mod tests {
         };
         let mut device = Device {
             session,
+            boundaries: Boundaries::default(),
             terminal: "127.0.0.1:1".parse().unwrap(),
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
@@ -1829,6 +1875,7 @@ mod tests {
         };
         let mut device = Device {
             session,
+            boundaries: Boundaries::default(),
             terminal: "127.0.0.1:1".parse().unwrap(),
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(processing),
@@ -1980,6 +2027,7 @@ mod tests {
         };
         let mut device = Device {
             session,
+            boundaries: Boundaries::default(),
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
@@ -2010,6 +2058,137 @@ mod tests {
         assert_eq!(state.preset_base_name.as_deref(), Some("TARGET"));
         terminal_server.abort();
         pc_server.abort();
+    }
+
+    fn test_app() -> (App, tempfile::TempDir) {
+        let (commands, _) = mpsc::channel(1);
+        let (meters, _) = watch::channel(json!({"live":false}));
+        let storage = tempfile::tempdir().unwrap();
+        let app = App {
+            state: Arc::new(RwLock::new(Snapshot::default())),
+            meters,
+            commands,
+            profile: shared_profile(reference_profile()),
+            book: Arc::new(std::sync::Mutex::new(
+                devices::Book::open(
+                    storage.path().join("connections.json"),
+                    Box::new(devices::FileVault::new(
+                        storage.path().join("credentials.json"),
+                    )),
+                )
+                .unwrap(),
+            )),
+        };
+        (app, storage)
+    }
+
+    /// A PC Remote peer that answers the first 250 only after `late`, then
+    /// answers each later 250 with a meter record carrying its number.
+    async fn late_boundary_peer(
+        late: Duration,
+    ) -> (std::net::SocketAddr, tokio::task::JoinHandle<()>) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            while stream.read_u8().await.unwrap() != 0 {}
+            stream
+                .write_all(b"connect ok\n0\n5700i V 3.0.1.20\n123\n")
+                .await
+                .unwrap();
+            let mut decoder = orban_protocol::framing::Decoder::default();
+            let mut buffer = [0_u8; 4096];
+            let mut boundary = 0_u8;
+            loop {
+                let count = match stream.read(&mut buffer).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(count) => count,
+                };
+                for frame in decoder.feed(&buffer[..count]).unwrap() {
+                    if !matches!(
+                        orban_protocol::message::decode(&frame).unwrap(),
+                        Message::Other { kind: 250, .. }
+                    ) {
+                        continue;
+                    }
+                    boundary += 1;
+                    if boundary == 1 {
+                        sleep(late).await;
+                    } else {
+                        let mut meter = vec![1];
+                        meter.extend(b"112\n");
+                        meter.extend([boundary; 112]);
+                        stream
+                            .write_all(&orban_protocol::message::encode(228, &meter).unwrap())
+                            .await
+                            .unwrap();
+                    }
+                    stream
+                        .write_all(&orban_protocol::message::encode(251, b"").unwrap())
+                        .await
+                        .unwrap();
+                }
+            }
+        });
+        (address, server)
+    }
+
+    #[tokio::test]
+    async fn a_late_boundary_never_confirms_the_next_one() {
+        let (address, server) = late_boundary_peer(Duration::from_millis(400)).await;
+        let session = Session::connect(address, "1234", Duration::from_millis(250))
+            .await
+            .unwrap();
+        let (app, _storage) = test_app();
+        let mut device = Device {
+            session,
+            boundaries: Boundaries::default(),
+            terminal: address,
+            code: Zeroizing::new("1234".to_owned()),
+            processing_baseline: None,
+            profile: Some(reference_profile()),
+        };
+        assert_eq!(
+            drain(&mut device, &app).await.unwrap_err(),
+            "Receive timed out"
+        );
+        assert!(session_lost(&device, "Receive timed out").is_none());
+        // The first boundary's 251 arrives during this drain. It must not end
+        // it: only the second boundary's own 251, after its record, does.
+        drain(&mut device, &app).await.unwrap();
+        assert_eq!(app.meters.borrow()["values"][0], 2);
+        assert_eq!(device.boundaries.unanswered_for(), Duration::ZERO);
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn only_a_lost_connection_or_a_long_silence_ends_the_session() {
+        let (address, server) = late_boundary_peer(Duration::from_secs(60)).await;
+        let session = Session::connect(address, "1234", Duration::from_millis(100))
+            .await
+            .unwrap();
+        let mut device = Device {
+            session,
+            boundaries: Boundaries::default(),
+            terminal: address,
+            code: Zeroizing::new("1234".to_owned()),
+            processing_baseline: None,
+            profile: None,
+        };
+        assert!(session_lost(&device, "Receive timed out").is_none());
+        assert!(session_lost(&device, "Invalid meter count").is_none());
+        assert!(session_lost(&device, "Too many device events before response boundary").is_none());
+        assert!(session_lost(&device, "Device disconnected").is_some());
+        assert!(session_lost(&device, "Connection reset by peer").is_some());
+        device
+            .boundaries
+            .0
+            .push_back(tokio::time::Instant::now() - UNANSWERED_LIMIT + Duration::from_secs(1));
+        assert!(session_lost(&device, "Receive timed out").is_none());
+        device.boundaries.0[0] = tokio::time::Instant::now() - UNANSWERED_LIMIT;
+        let lost = session_lost(&device, "Receive timed out").unwrap();
+        assert!(lost.contains("has not answered for 20 seconds"), "{lost}");
+        server.abort();
     }
 
     /// Reference-unit behaviour (docs/verification/2026-10-20-recall-session.md):
@@ -2129,6 +2308,7 @@ mod tests {
         };
         let mut device = Device {
             session,
+            boundaries: Boundaries::default(),
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
@@ -2467,6 +2647,7 @@ mod tests {
         };
         let mut device = Device {
             session,
+            boundaries: Boundaries::default(),
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(before),
@@ -2746,6 +2927,7 @@ mod tests {
         };
         let mut device = Device {
             session,
+            boundaries: Boundaries::default(),
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
@@ -3122,6 +3304,7 @@ mod tests {
         };
         let device = Device {
             session,
+            boundaries: Boundaries::default(),
             terminal: terminal_address,
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,

@@ -175,6 +175,10 @@ impl Decoder {
             .get(limit + HEADER_SIZE..limit + HEADER_SIZE + PREFIX_SIZE)?;
         Some(is_message_prefix(prefix))
     }
+    /// Corrupt framing was seen; this connection can carry no more messages.
+    pub fn is_failed(&self) -> bool {
+        self.failed
+    }
     pub fn finish(&self) -> Result<(), String> {
         if self.failed || !self.buffer.is_empty() {
             Err("Stream ended with an incomplete or corrupt frame".into())

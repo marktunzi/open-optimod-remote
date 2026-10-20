@@ -69,3 +69,5 @@ Keep the first confirmed processing document as an immutable field baseline for 
 ## Concurrency pattern
 
 Use one actor/task as the only owner of the PC Remote session. Feed it bounded commands over a channel. A periodic 50 ms tick sends opcode 219 and drains to a 250/251 boundary. Ordinary read-only terminal work can coexist with that owner, although a full AP/AS response may still pause meter delivery inside the processor. During a write-capable RP/AP Recall exchange, pause PC Remote polling until confirmation, then resubscribe once and resume after 50 ms. Reject concurrent mutations instead of building an unverified replay queue.
+
+Count response boundaries: every 250 gets exactly one 251, so after a timed-out tick the late 251 must be matched to that tick and never confirm a later write. A slow or malformed reply is not a lost session. End the session only on transport loss (EOF, reset), corrupt framing, or a 250 unanswered for 20 seconds; the original PC Remote waits about 42 seconds without any received byte. After an `RP` the unit pushes the new on-air document cut at 4096 bytes; see `protocol.md` and `docs/verification/2026-10-20-recall-session.md`.
