@@ -66,7 +66,30 @@ Consequence for a future automatic reconnect: it must back off (tens of seconds,
 
 The unit's AS (178 fields) and AP (221 fields, `modif UFBS 15 09 2022`) documents were identical to the saved state after all runs.
 
+## Automatic reconnect
+
+A lost PC Remote session is restored automatically, with the waits the unit needs:
+
+- **When it runs.** Only after an unexpected loss: transport loss, corrupt framing or 20 s without an answer. A manual disconnect, a new manual connect, Cancel (a button in every view and `POST /api/reconnect/cancel`) or quitting the app stop it. A failure of the status (terminal) port never starts it; that stays a `sync_error` on a connected session.
+- **Schedule.** The first attempt comes 120 s after the loss, then 240, 480 and 960 s, then every 960 s, at most 6 attempts (about an hour). Each attempt is a single login. A login the unit does not finish is closed with a reset, as the original PC Remote closes sessions, so it cannot remain half-open on the unit.
+- **Same target.** Same device, address, ports, model and code. It stops if that saved connection was edited or removed, or if the unit refuses the code or reports another model.
+- **No replay.** A command sent while the app waits gets "Not connected". The new session has a new identity, so a request still addressed to the old one is refused. Nothing pending is sent again.
+- **Controls.** They return only after the normal connect: login, settings read, meters on. The interface shows the reason, the time to the next attempt and the attempt count.
+
+Tested against a synthetic unit with the same schedule shape and short waits (0.6, 1.2, 2.4 s):
+
+- recovery after the wait, with a new session and documents read before connecting; meters resume; no write is sent;
+- no reconnect after a manual disconnect, including one made while a reconnect is pending;
+- Cancel stops a pending reconnect, and a manual connect afterwards works;
+- one login per attempt, each wait as scheduled, no attempt after the limit;
+- recovery once the unit answers again after refused logins;
+- no replay of a command sent while waiting, or of one addressed to the old session;
+- a closed status port and a failed Refresh never start a reconnect;
+- a login the unit does not finish is closed with a reset.
+
+The banner was checked in a browser against the service with a lost session: the countdown, the attempt count and Cancel through the real endpoint work. **Not tested on the physical unit**, per instruction: the waits are based on the 2 minutes the reference 5700i needed after a reset (above), and the reset close of an unfinished login on the original client's behaviour.
+
 ## Still open
 
-- **Automatic reconnect** with a growing backoff (see above). The Phase 1 brief asks for a bounded reconnect, but none is implemented: a lost session ends with a clear message and the user reconnects.
-- **A long-duration soak** (the 8-hour run belongs to Phase 7).
+- A hardware check of the automatic reconnect on the physical 5700i (needs approval).
+- A long-duration soak (the 8-hour run belongs to Phase 7).
