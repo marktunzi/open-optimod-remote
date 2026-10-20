@@ -85,3 +85,7 @@ There was no reconnect, error or retry. The confirmed preset was the app's on-ai
 - The unit sends opcode 247 roughly every 0.85 s on an open session.
 - The original client sends a heartbeat at least every 2 s and declares the connection lost only after about 42 s without any received byte.
 
+
+## Restoring the unit
+
+Before the tests, the AS and AP documents were saved; on air was an unsaved modification of `UFBS 15 09 2022`. Afterwards `UFBS 15 09 2022` was recalled and the 6 processing fields that differed from the saved AP were each written once (`HD COUPLING` would have gone first; it did not differ). Fresh AS (178 fields) and AP (221 fields, `modif UFBS 15 09 2022`) documents then matched the saved ones field for field.
