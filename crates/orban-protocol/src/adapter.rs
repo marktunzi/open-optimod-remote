@@ -162,8 +162,11 @@ pub struct AdapterDescriptor {
     pub firmware_prefix: &'static str,
     pub capabilities: Capabilities,
     pub meter_profile: Option<MeterProfile>,
-    /// How the firmware cuts a pushed frame; see `framing::Decoder::with_cut`. `None` where this was not observed.
+    /// Whether the firmware ends frames early; see `framing::Decoder::with_cut`. `None` where this was not observed.
     pub frame_cut: Option<crate::framing::FrameCut>,
+    /// Opcode 239 returns the on-air processing document whole, the same
+    /// fields as the terminal AP, over the PC Remote session itself.
+    pub on_air_archive: bool,
     pub evidence: Evidence,
 }
 
@@ -204,12 +207,14 @@ const VERIFIED_5700I: AdapterDescriptor = AdapterDescriptor {
         min_values: 112,
         max_values: 112,
     }),
-    // Measured on the reference unit: the processing document pushed after a
-    // terminal RP is cut at 4096 wire bytes (docs/verification/2026-10-20-recall-session.md).
-    frame_cut: Some(crate::framing::FrameCut {
-        wire_bytes: 4096,
-        opcode: 229,
-    }),
+    // The firmware ends frames early when they do not fit its send buffer:
+    // the reference unit cut the document it pushes after a terminal RP at
+    // 4096 wire bytes, the virtual 5700i (same firmware) at 4075 bytes and
+    // meter records at arbitrary points (docs/protocol/5700i.md).
+    frame_cut: Some(crate::framing::FrameCut),
+    // Reference unit (archive) and the virtual 5700i with original firmware
+    // (archive equals AP field for field), 20 October 2026.
+    on_air_archive: true,
     evidence: Evidence::Hardware,
 };
 
@@ -257,6 +262,7 @@ const EXACT: [(&str, AdapterDescriptor); 3] = [
             capabilities: STATIC_FULL_WITH_PRESET_FILES,
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
+            on_air_archive: false,
             evidence: Evidence::Static,
         },
     ),
@@ -274,6 +280,7 @@ const EXACT: [(&str, AdapterDescriptor); 3] = [
             capabilities: STATIC_FULL,
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
+            on_air_archive: false,
             evidence: Evidence::Static,
         },
     ),
@@ -292,6 +299,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -306,6 +314,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -320,6 +329,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -334,6 +344,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -348,6 +359,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -362,6 +374,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -376,6 +389,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -390,6 +404,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -404,6 +419,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -418,6 +434,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -432,6 +449,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -446,6 +464,7 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
+        on_air_archive: false,
         evidence: Evidence::None,
     },
 ];

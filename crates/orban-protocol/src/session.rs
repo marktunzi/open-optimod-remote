@@ -146,21 +146,13 @@ impl Session {
     /// No automatic retry: a timed-out control write has an unknown outcome.
     pub async fn send(&mut self, kind: u16, data: &[u8]) -> Result<(), String> {
         let bytes = message::encode(kind, data)?;
-        if kind == 239 {
-            // The on-air archive arrives whole, as the opcode a cut push uses.
-            self.decoder.expect_requested();
-        }
-        let sent = timeout_at(
+        timeout_at(
             Instant::now() + self.deadline,
             self.stream.write_all(&bytes),
         )
         .await
-        .map_err(|_| "Send timed out; outcome unknown".to_owned())
-        .and_then(|written| written.map_err(|e| e.to_string()));
-        if kind == 239 && sent.is_err() {
-            self.decoder.withdraw_requested();
-        }
-        sent
+        .map_err(|_| "Send timed out; outcome unknown")?
+        .map_err(|e| e.to_string())
     }
     pub async fn change(
         &mut self,
@@ -214,6 +206,10 @@ impl Session {
                 });
             }
         }
+    }
+    /// The adapter selected from the login banner.
+    pub fn adapter(&self) -> &'static AdapterDescriptor {
+        self.adapter
     }
     /// How long one send or receive may take.
     pub fn deadline(&self) -> Duration {

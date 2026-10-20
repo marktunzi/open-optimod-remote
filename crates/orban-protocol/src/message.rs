@@ -75,9 +75,10 @@ fn opcode(bytes: &[u8]) -> Result<u16, String> {
     Ok(kind)
 }
 
+/// A cut frame may end inside its own prefix; its opcode is then unknown (0).
 pub fn decode_truncated(bytes: &[u8], declared: usize) -> Result<Message, String> {
     Ok(Message::Truncated {
-        kind: opcode(bytes)?,
+        kind: opcode(bytes).unwrap_or(0),
         declared,
         received: bytes.len(),
     })

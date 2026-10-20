@@ -77,10 +77,7 @@ fn login_preserves_delimiters_and_uses_legacy_obfuscation() {
     }
 }
 
-const CUT: FrameCut = FrameCut {
-    wire_bytes: 4096,
-    opcode: 229,
-};
+const CUT: FrameCut = FrameCut;
 
 /// The on-air document a 5700i pushes after a terminal `RP`, as captured on the
 /// reference unit: the header announces the whole file, the wire carries only
@@ -182,85 +179,115 @@ fn without_a_cut_the_decoder_still_reads_the_announced_length() {
 }
 
 #[test]
-fn only_the_pushed_document_opcode_can_be_cut() {
-    // A long frame of another kind is never ended early, even when a real
-    // frame header and prefix appear inside its body at byte 4096.
-    let meter = encode(b"      24       6\x01").unwrap();
-    let mut payload = format!("{:8}{:8}", 216 - 204, 6).into_bytes();
-    payload.resize(4091, b'x');
-    payload.extend(&meter);
-    payload.resize(6000, b'y');
-    let mut decoder = Decoder::with_cut(CUT);
-    assert_eq!(
-        decoder.feed_frames(&encode(&payload).unwrap()).unwrap(),
-        vec![Frame::Complete(payload)]
-    );
-}
-
-#[test]
-fn a_requested_archive_is_read_whole_even_if_its_body_looks_like_a_cut() {
+fn any_frame_ends_where_a_real_frame_starts_inside_it() {
+    // The virtual 5700i cut meter records at arbitrary points while it
+    // switched presets; the next frame started where the bytes stopped.
     let meter = [b"      24       6\x01112\n".as_slice(), &[7; 112]].concat();
-    let mut payload = format!("{:8}{:8}0\n0\n\n5974\n", 229 - 204, 6).into_bytes();
-    payload.resize(4091, b'x');
-    payload.extend(encode(&meter).unwrap());
-    payload.resize(6000, b'y');
-    let pushed = pushed_document(7417);
-    let stream = [encode(&payload).unwrap(), pushed.0, encode(&meter).unwrap()].concat();
-    let mut decoder = Decoder::with_cut(CUT);
-    decoder.expect_requested();
-    assert_eq!(
-        decoder.feed_frames(&stream).unwrap(),
-        vec![
-            Frame::Complete(payload),
-            Frame::Truncated {
-                payload: pushed.1,
-                declared: 7417
-            },
-            Frame::Complete(meter),
+    let whole = encode(&meter).unwrap();
+    for sent in [6, 22, 97, 116, whole.len() - 1] {
+        let stream = [
+            &whole[..sent],
+            &whole[..],
+            &encode(b"      47       6").unwrap(),
         ]
-    );
+        .concat();
+        let mut decoder = Decoder::with_cut(CUT);
+        let frames = decoder.feed_frames(&stream).unwrap();
+        assert_eq!(frames.len(), 3, "sent {sent}");
+        assert!(
+            matches!(&frames[0], Frame::Truncated { declared: 133, .. }),
+            "sent {sent}"
+        );
+        assert_eq!(frames[1], Frame::Complete(meter.clone()));
+    }
 }
 
 #[test]
-fn a_short_requested_archive_still_answers_its_request() {
-    // A requested 229 that fits in 4096 bytes answers the request too: a
-    // later pushed document must still be recognised as cut.
-    let mut payload = format!("{:8}{:8}0\n0\n\n100\n", 229 - 204, 6).into_bytes();
-    payload.resize(126, b'z');
-    let pushed = pushed_document(7417);
-    let clock = encode(b"      47       6").unwrap();
-    let stream = [encode(&payload).unwrap(), pushed.0, clock].concat();
-    let mut decoder = Decoder::with_cut(CUT);
-    decoder.expect_requested();
-    assert_eq!(
-        decoder.feed_frames(&stream).unwrap(),
-        vec![
-            Frame::Complete(payload),
-            Frame::Truncated {
-                payload: pushed.1,
-                declared: 7417
-            },
-            Frame::Complete(b"      47       6".to_vec()),
-        ]
-    );
+fn a_push_cut_before_4096_bytes_keeps_the_boundary_behind_it() {
+    // Virtual 5700i, 20 October 2026: the pushed document ended at 4075 wire
+    // bytes, a 21-byte 251 followed, and the next frame began at 4096. A rule
+    // that cuts only at 4096 swallowed that 251.
+    let (cut, _) = pushed_document(7381);
+    let boundary = encode(b"      47       6").unwrap();
+    let meter = [b"      24       6\x01112\n".as_slice(), &[7; 112]].concat();
+    let stream = [&cut[..4075], &boundary[..], &encode(&meter).unwrap()].concat();
+    for split in [4075, 4080, 4096, 4100, stream.len()] {
+        let mut decoder = Decoder::with_cut(CUT);
+        let mut frames = decoder.feed_frames(&stream[..split]).unwrap();
+        frames.extend(decoder.feed_frames(&stream[split..]).unwrap());
+        assert_eq!(
+            frames,
+            vec![
+                Frame::Truncated {
+                    payload: cut[5..4075].to_vec(),
+                    declared: 7381
+                },
+                Frame::Complete(b"      47       6".to_vec()),
+                Frame::Complete(meter.clone()),
+            ],
+            "split at {split}"
+        );
+    }
 }
 
 #[test]
-fn a_withdrawn_request_does_not_shield_a_pushed_document() {
-    let pushed = pushed_document(7417);
+fn a_frame_not_followed_by_a_frame_is_corrupt() {
     let mut decoder = Decoder::with_cut(CUT);
-    decoder.expect_requested();
-    decoder.withdraw_requested();
-    assert_eq!(
-        decoder
-            .feed_frames(&[pushed.0, encode(b"      47       6").unwrap()].concat())
-            .unwrap(),
-        vec![
-            Frame::Truncated {
-                payload: pushed.1,
-                declared: 7417
-            },
-            Frame::Complete(b"      47       6".to_vec()),
-        ]
-    );
+    let stream = [encode(b"      47       6").unwrap(), vec![0; 30]].concat();
+    assert!(decoder.feed_frames(&stream).is_err());
+    assert!(decoder.is_failed());
+}
+
+/// A raw PC Remote capture of the virtual 5700i (original firmware 3.0.1.20)
+/// while a terminal RP recalled GREGG: the pushed document (announced 7381
+/// bytes) is cut at 4075 wire bytes and five later meter records are cut
+/// short; two of those cuts (4075, 117) end exactly 21 bytes, one 251, before
+/// the announced end, so only a search inside the frame finds them.
+#[test]
+fn the_virtual_5700i_recall_capture_decodes_without_losing_a_frame() {
+    let stream = include_bytes!("fixtures/5700i-virtual-recall-capture.bin");
+    for chunk in [1, 7, 1460, stream.len()] {
+        let mut decoder = Decoder::with_cut(CUT);
+        let mut frames = Vec::new();
+        for part in stream.chunks(chunk) {
+            frames.extend(decoder.feed_frames(part).unwrap());
+        }
+        let cut: Vec<_> = frames
+            .iter()
+            .filter_map(|f| match f {
+                Frame::Truncated { payload, declared } => Some((payload.len() + 5, *declared)),
+                Frame::Complete(_) => None,
+            })
+            .collect();
+        assert_eq!(
+            cut,
+            [
+                (4075, 7381),
+                (97, 133),
+                (117, 133),
+                (22, 133),
+                (116, 133),
+                (76, 133)
+            ],
+            "chunk {chunk}"
+        );
+        // Counted independently: 193 whole meter records, 98 boundaries and
+        // one 247 between the cuts; the capture ends on a frame boundary.
+        let count = |prefix: &[u8]| {
+            frames
+                .iter()
+                .filter(|f| matches!(f, Frame::Complete(p) if p.starts_with(prefix)))
+                .count()
+        };
+        assert_eq!(
+            (
+                count(b"      24       6"),
+                count(b"      47       6"),
+                count(b"      43       6")
+            ),
+            (193, 98, 1),
+            "chunk {chunk}"
+        );
+        decoder.finish().unwrap();
+    }
 }
