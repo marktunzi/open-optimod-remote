@@ -180,3 +180,25 @@ async fn disconnect_reads_until_the_unit_closes_and_never_waits_long() {
         }
     }
 }
+
+#[tokio::test]
+async fn an_unfinished_login_is_closed_with_a_reset() {
+    // The 5700i keeps a half-closed session open and then answers no new
+    // login; a reset frees it at once.
+    let server = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = server.local_addr().unwrap();
+    let worker = tokio::spawn(async move {
+        let (mut stream, _) = server.accept().await.unwrap();
+        let mut request = vec![0; 14];
+        stream.read_exact(&mut request).await.unwrap();
+        let mut rest = [0; 16];
+        stream.read(&mut rest).await
+    });
+    let result = Session::connect(address, "9876", Duration::from_millis(300)).await;
+    assert!(matches!(result, Err(error) if error.contains("Login timed out")));
+    let closed = worker.await.unwrap();
+    assert_eq!(
+        closed.map_err(|error| error.kind()),
+        Err(std::io::ErrorKind::ConnectionReset)
+    );
+}

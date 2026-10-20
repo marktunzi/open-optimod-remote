@@ -71,34 +71,18 @@ impl Session {
             .map_err(|_| "Connection timed out")?
             .map_err(|e| e.to_string())?;
         stream.set_nodelay(true).map_err(|e| e.to_string())?;
-        timeout_at(end, stream.write_all(&request))
-            .await
-            .map_err(|_| "Login timed out")?
-            .map_err(|e| e.to_string())?;
-        let status = login_line(&mut stream, end).await?;
-        if status != "connect ok" {
-            return Err(match status.as_str() {
-                "password failed" | "no password set" | "in use" | "busy" => status,
-                _ => "Unrecognized login response".into(),
-            });
-        }
-        let access_level = login_line(&mut stream, end)
-            .await?
-            .parse::<u8>()
-            .map_err(|_| "Invalid access level")?;
-        let firmware = login_line(&mut stream, end).await?;
-        let adapter = AdapterRegistry::identify_banner(&firmware)?;
-        if model_hint != DeviceModel::Auto && model_hint != adapter.model {
-            return Err(format!(
-                "Detected {} does not match saved model {}",
-                adapter.model.label(),
-                model_hint.label()
-            ));
-        }
-        login_line(&mut stream, end)
-            .await?
-            .parse::<u32>()
-            .map_err(|_| "Invalid session seed")?;
+        let adapter_and_level = Self::login(&mut stream, &request, end, model_hint).await;
+        let (access_level, firmware, adapter) = match adapter_and_level {
+            Ok(login) => login,
+            Err(error) => {
+                // A login the unit did not finish must not linger as a
+                // half-open session: the 5700i keeps those open and stops
+                // answering new logins. Close with a reset, as the original
+                // PC Remote closes every session.
+                let _ = stream.set_zero_linger();
+                return Err(error);
+            }
+        };
         Ok(Self {
             info: Info {
                 access_level,
@@ -118,6 +102,42 @@ impl Session {
             deadline,
             code: Zeroizing::new(code.to_ascii_uppercase()),
         })
+    }
+    async fn login(
+        stream: &mut TcpStream,
+        request: &[u8],
+        end: Instant,
+        model_hint: DeviceModel,
+    ) -> Result<(u8, String, &'static AdapterDescriptor), String> {
+        timeout_at(end, stream.write_all(request))
+            .await
+            .map_err(|_| "Login timed out")?
+            .map_err(|e| e.to_string())?;
+        let status = login_line(stream, end).await?;
+        if status != "connect ok" {
+            return Err(match status.as_str() {
+                "password failed" | "no password set" | "in use" | "busy" => status,
+                _ => "Unrecognized login response".into(),
+            });
+        }
+        let access_level = login_line(stream, end)
+            .await?
+            .parse::<u8>()
+            .map_err(|_| "Invalid access level")?;
+        let firmware = login_line(stream, end).await?;
+        let adapter = AdapterRegistry::identify_banner(&firmware)?;
+        if model_hint != DeviceModel::Auto && model_hint != adapter.model {
+            return Err(format!(
+                "Detected {} does not match saved model {}",
+                adapter.model.label(),
+                model_hint.label()
+            ));
+        }
+        login_line(stream, end)
+            .await?
+            .parse::<u32>()
+            .map_err(|_| "Invalid session seed")?;
+        Ok((access_level, firmware, adapter))
     }
     /// No automatic retry: a timed-out control write has an unknown outcome.
     pub async fn send(&mut self, kind: u16, data: &[u8]) -> Result<(), String> {

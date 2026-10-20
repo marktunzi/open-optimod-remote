@@ -80,6 +80,21 @@ struct Snapshot {
     /// Set while the PC Remote session is connected but the current settings
     /// or presets could not be read from the status (terminal) port.
     sync_error: Option<String>,
+    /// Set while the app waits to reconnect after an unexpected session loss.
+    reconnect: Option<ReconnectStatus>,
+}
+
+#[derive(Clone, Serialize)]
+struct ReconnectStatus {
+    /// The attempt that comes next, counted from 1.
+    attempt: u32,
+    attempts: u32,
+    /// Wall-clock time of that attempt, in milliseconds since the Unix epoch.
+    next_attempt_at_ms: u64,
+    /// True while that attempt is running.
+    in_progress: bool,
+    /// Why the session was lost, or why the last attempt failed.
+    reason: String,
 }
 #[derive(Clone)]
 struct App {
@@ -101,6 +116,7 @@ enum Command {
     ApplyPreset(ApplyPreset, Reply),
     PresetFile(PresetFile, Reply),
     RestoreSetup(RestoreSetup, Reply),
+    CancelReconnect(Reply),
 }
 #[derive(Deserialize)]
 struct Connect {
@@ -274,6 +290,7 @@ async fn main() {
         .route("/api/meters", get(meters_handler))
         .route("/api/connect", post(connect_handler))
         .route("/api/disconnect", post(disconnect_handler))
+        .route("/api/reconnect/cancel", post(cancel_reconnect_handler))
         .route("/api/change", post(change_handler))
         .route("/api/refresh", post(refresh_handler))
         .route("/api/presets/recall", post(recall_handler))
@@ -378,6 +395,9 @@ async fn connect_handler(State(app): State<App>, Json(body): Json<Connect>) -> A
 }
 async fn disconnect_handler(State(app): State<App>) -> ApiResult {
     dispatch(app, Command::Disconnect).await
+}
+async fn cancel_reconnect_handler(State(app): State<App>) -> ApiResult {
+    dispatch(app, Command::CancelReconnect).await
 }
 async fn refresh_handler(State(app): State<App>) -> ApiResult {
     dispatch(app, Command::Refresh).await
@@ -1534,8 +1554,122 @@ fn hd_control_tracks_fm(name: &str) -> bool {
     name.starts_with("HD ") && !matches!(name, "HD COUPLING" | "HD DE ESS")
 }
 
-async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
+/// Automatic reconnection after an unexpected loss of the PC Remote session.
+/// After a hard disconnect the reference 5700i answers no login while new
+/// attempts keep arriving, and needs about two minutes without any; so the
+/// first attempt waits two minutes and each failure doubles the wait.
+#[derive(Clone, Copy)]
+struct ReconnectPolicy {
+    first: Duration,
+    longest: Duration,
+    attempts: u32,
+}
+
+const RECONNECT: ReconnectPolicy = ReconnectPolicy {
+    first: Duration::from_secs(120),
+    longest: Duration::from_secs(960),
+    attempts: 6,
+};
+
+impl ReconnectPolicy {
+    /// Wait before attempt `attempt` (counted from 1).
+    fn delay(&self, attempt: u32) -> Duration {
+        self.first
+            .saturating_mul(1 << attempt.saturating_sub(1).min(16))
+            .min(self.longest)
+    }
+}
+
+/// The connection to restore: the same device, address, ports, model and code.
+struct ReconnectTarget {
+    host: String,
+    port: u16,
+    terminal_port: u16,
+    model: DeviceModel,
+    device_id: Option<String>,
+    code: Zeroizing<String>,
+}
+
+impl ReconnectTarget {
+    fn from(connect: &Connect) -> Self {
+        Self {
+            host: connect.host.clone(),
+            port: connect.port,
+            terminal_port: connect.terminal_port,
+            model: connect.model,
+            device_id: connect.device_id.clone(),
+            code: Zeroizing::new(connect.code.clone()),
+        }
+    }
+    fn connect(&self) -> Connect {
+        Connect {
+            host: self.host.clone(),
+            code: self.code.to_string(),
+            port: self.port,
+            terminal_port: self.terminal_port,
+            model: self.model,
+            device_id: self.device_id.clone(),
+        }
+    }
+    /// A saved connection that was edited or removed meanwhile is not
+    /// reconnected with its old settings.
+    fn still_saved(&self, app: &App) -> bool {
+        let Some(id) = &self.device_id else {
+            return true;
+        };
+        let Ok(book) = app.book.lock() else {
+            return false;
+        };
+        book.find(id).is_ok_and(|saved| {
+            saved.host == self.host
+                && saved.port == self.port
+                && saved.terminal_port == self.terminal_port
+                && saved.model == self.model
+        })
+    }
+}
+
+struct PendingReconnect {
+    target: ReconnectTarget,
+    attempt: u32,
+    at: tokio::time::Instant,
+    reason: String,
+}
+
+fn unix_ms_after(delay: Duration) -> u64 {
+    (std::time::SystemTime::now() + delay)
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |since| since.as_millis() as u64)
+}
+
+async fn publish_reconnect(
+    app: &App,
+    policy: &ReconnectPolicy,
+    pending: &PendingReconnect,
+    in_progress: bool,
+) {
+    app.state.write().await.reconnect = Some(ReconnectStatus {
+        attempt: pending.attempt,
+        attempts: policy.attempts,
+        next_attempt_at_ms: unix_ms_after(
+            pending
+                .at
+                .saturating_duration_since(tokio::time::Instant::now()),
+        ),
+        in_progress,
+        reason: pending.reason.clone(),
+    });
+}
+
+async fn owner(app: App, rx: mpsc::Receiver<Command>) {
+    owner_with(app, rx, RECONNECT).await
+}
+
+async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: ReconnectPolicy) {
     let mut device: Option<Device> = None;
+    // What a lost session reconnects to; set by a successful connect.
+    let mut target: Option<ReconnectTarget> = None;
+    let mut pending: Option<PendingReconnect> = None;
     let mut tick = interval(METER_POLL_PERIOD);
     tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
     loop {
@@ -1545,12 +1679,19 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
           match command{
            Command::Connect(body,reply)=>{
             if device.is_some(){let _=reply.send(Err("Disconnect the current device first".into()));continue;}
+            // A manual connection replaces any pending automatic one.
+            pending=None;
+            target=None;
             *app.state.write().await = Snapshot::default();
-            match make_device(body,&app).await{Ok(d)=>{device=Some(d);let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
+            let remembered=ReconnectTarget::from(&body);
+            match make_device(body,&app).await{Ok(d)=>{device=Some(d);target=Some(remembered);let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
            }
            Command::Disconnect(reply)=>{
+            // A manual disconnect is never followed by an automatic reconnect.
+            pending=None;
+            target=None;
             let disconnecting=device.take();
-            let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=None;drop(state);app.meters.send_replace(json!({"live":false}));
+            let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=None;state.reconnect=None;drop(state);app.meters.send_replace(json!({"live":false}));
             let result=if let Some(d)=disconnecting{d.session.disconnect().await}else{Ok(())};
             let _=reply.send(result);
            }
@@ -1591,6 +1732,12 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
             let result=if let Some(d)=&mut device{restore_setup(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             let _=reply.send(result.map_err(|e| e.message));
            }
+           Command::CancelReconnect(reply)=>{
+            pending=None;
+            target=None;
+            app.state.write().await.reconnect=None;
+            let _=reply.send(Ok(()));
+           }
            Command::ApplyPreset(body,reply)=>{
             let result=if let Some(d)=&mut device{apply_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             match result {
@@ -1603,13 +1750,52 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
           }
           // A poll during the command may have found the session lost.
           if let Some(lost)=device.as_mut().and_then(|d| d.lost.take()) {
-             end_session(&app,&mut device,lost).await;
+             end_session(&app,&mut device,lost.clone()).await;
+             pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
           }
          }
          _=tick.tick(),if device.as_ref().is_some_and(|d| d.session.info.capabilities.live_meters)=>{
           let d=device.as_mut().unwrap();let result=async{d.session.send(219,b"").await?;drain(d,&app).await}.await;
           if let Err(e)=result && let Some(lost)=session_lost(d,&e) {
-             end_session(&app,&mut device,lost).await;
+             end_session(&app,&mut device,lost.clone()).await;
+             pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
+          }
+         }
+         _=tokio::time::sleep_until(pending.as_ref().map_or_else(tokio::time::Instant::now,|p| p.at)),if pending.is_some()=>{
+          let mut attempt=pending.take().unwrap();
+          if !attempt.target.still_saved(&app) {
+           let mut state=app.state.write().await;
+           state.reconnect=None;
+           state.error=Some("Automatic reconnection stopped: the saved connection was changed or removed".into());
+           continue;
+          }
+          publish_reconnect(&app,&policy,&attempt,true).await;
+          // The same reset of the visible state as a manual connect, keeping the status.
+          let status=app.state.read().await.reconnect.clone();
+          *app.state.write().await=Snapshot{reconnect:status,..Snapshot::default()};
+          match make_device(attempt.target.connect(),&app).await {
+           Ok(d)=>{
+            device=Some(d);
+            target=Some(attempt.target);
+            app.state.write().await.reconnect=None;
+           }
+           Err(e)=>{
+            if attempt.attempt>=policy.attempts || refuses_this_target(&e) {
+             let mut state=app.state.write().await;
+             state.reconnect=None;
+             state.error=Some(if refuses_this_target(&e) {
+              format!("Automatic reconnection stopped: the processor refused this connection. {e}")
+             } else {
+              format!("Automatic reconnection stopped after {} attempts. Connect again when the processor is reachable. {e}",policy.attempts)
+             });
+            } else {
+             attempt.attempt+=1;
+             attempt.at=tokio::time::Instant::now()+policy.delay(attempt.attempt);
+             attempt.reason=e;
+             publish_reconnect(&app,&policy,&attempt,false).await;
+             pending=Some(attempt);
+            }
+           }
           }
          }
         }
@@ -1617,6 +1803,38 @@ async fn owner(app: App, mut rx: mpsc::Receiver<Command>) {
     if let Some(d) = device {
         let _ = d.session.disconnect().await;
     }
+}
+
+/// A refusal that another attempt cannot change: the code or the processor
+/// identity no longer match. Retrying would only repeat the login.
+fn refuses_this_target(error: &str) -> bool {
+    [
+        "password failed",
+        "no password set",
+        "does not match saved model",
+        "Unsupported device model",
+    ]
+    .iter()
+    .any(|refusal| error.contains(refusal))
+}
+
+/// After an unexpected loss: wait, then reconnect to the same target. Nothing
+/// that was pending on the lost session is replayed; a reconnect is a new
+/// session that must synchronize before any control is enabled again.
+async fn schedule_reconnect(
+    app: &App,
+    policy: &ReconnectPolicy,
+    target: Option<ReconnectTarget>,
+    reason: String,
+) -> Option<PendingReconnect> {
+    let pending = PendingReconnect {
+        target: target?,
+        attempt: 1,
+        at: tokio::time::Instant::now() + policy.delay(1),
+        reason,
+    };
+    publish_reconnect(app, policy, &pending, false).await;
+    Some(pending)
 }
 
 async fn end_session(app: &App, device: &mut Option<Device>, error: String) {
@@ -2176,6 +2394,9 @@ mod tests {
 
     #[derive(Default)]
     struct UnitCounts {
+        /// Logins still to refuse by closing without an answer.
+        refuse: AtomicUsize,
+        login_times: std::sync::Mutex<Vec<tokio::time::Instant>>,
         logins: AtomicUsize,
         subscriptions: AtomicUsize,
         disconnects: AtomicUsize,
@@ -2192,6 +2413,8 @@ mod tests {
         terminal_mode: Arc<std::sync::Mutex<Terminal>>,
         counts: Arc<UnitCounts>,
         stall_once: Arc<std::sync::Mutex<Option<Duration>>>,
+        /// Bumped to drop every open PC Remote session, like a lost link.
+        drop_sessions: Arc<watch::Sender<u64>>,
     }
 
     impl FakeUnit {
@@ -2204,16 +2427,31 @@ mod tests {
                 terminal_mode: Arc::new(std::sync::Mutex::new(terminal)),
                 counts: Arc::default(),
                 stall_once: Arc::default(),
+                drop_sessions: Arc::new(watch::channel(0).0),
             };
             let counts = unit.counts.clone();
             let stall = unit.stall_once.clone();
+            let drops = unit.drop_sessions.clone();
             tokio::spawn(async move {
                 while let Ok((stream, _)) = pc_listener.accept().await {
                     let counts = counts.clone();
                     let stall = stall.clone();
+                    let mut dropped = drops.subscribe();
                     tokio::spawn(async move {
                         let (mut reader, mut writer) = stream.into_split();
                         while reader.read_u8().await.is_ok_and(|byte| byte != 0) {}
+                        counts
+                            .login_times
+                            .lock()
+                            .unwrap()
+                            .push(tokio::time::Instant::now());
+                        if counts
+                            .refuse
+                            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1))
+                            .is_ok()
+                        {
+                            return;
+                        }
                         counts.logins.fetch_add(1, Ordering::SeqCst);
                         if writer
                             .write_all(b"connect ok\n0\n5700i V 3.0.1.20\n123\n")
@@ -2225,9 +2463,12 @@ mod tests {
                         let mut decoder = orban_protocol::framing::Decoder::default();
                         let mut buffer = [0_u8; 4096];
                         loop {
-                            let count = match reader.read(&mut buffer).await {
-                                Ok(0) | Err(_) => return,
-                                Ok(count) => count,
+                            let count = tokio::select! {
+                                read = reader.read(&mut buffer) => match read {
+                                    Ok(0) | Err(_) => return,
+                                    Ok(count) => count,
+                                },
+                                _ = dropped.changed() => return,
                             };
                             for frame in decoder.feed(&buffer[..count]).unwrap() {
                                 let reply = match orban_protocol::message::decode(&frame).unwrap() {
@@ -2321,21 +2562,295 @@ mod tests {
         fn count(&self, field: fn(&UnitCounts) -> &AtomicUsize) -> usize {
             field(&self.counts).load(Ordering::SeqCst)
         }
+
+        /// Ends every open session from the unit's side, like a lost link.
+        fn drop_sessions(&self) {
+            self.drop_sessions
+                .send_modify(|generation| *generation += 1);
+        }
+
+        fn login_times(&self) -> Vec<tokio::time::Instant> {
+            self.counts.login_times.lock().unwrap().clone()
+        }
     }
 
     /// The real session owner, driven through its command channel.
     async fn running_owner() -> (App, tempfile::TempDir) {
+        owner_with_policy(RECONNECT).await
+    }
+
+    async fn owner_with_policy(policy: ReconnectPolicy) -> (App, tempfile::TempDir) {
         let (mut app, storage) = test_app();
         let (commands, rx) = mpsc::channel(8);
         app.commands = commands;
-        tokio::spawn(owner(app.clone(), rx));
+        tokio::spawn(owner_with(app.clone(), rx, policy));
         (app, storage)
+    }
+
+    /// The real schedule shape with short waits.
+    const FAST: ReconnectPolicy = ReconnectPolicy {
+        first: Duration::from_millis(600),
+        longest: Duration::from_millis(2400),
+        attempts: 4,
+    };
+
+    async fn unit_counted(
+        unit: &FakeUnit,
+        field: fn(&UnitCounts) -> &AtomicUsize,
+        n: usize,
+    ) -> bool {
+        for _ in 0..200 {
+            if unit.count(field) == n {
+                return true;
+            }
+            sleep(Duration::from_millis(10)).await;
+        }
+        false
+    }
+
+    async fn wait_until(app: &App, limit: Duration, done: impl Fn(&Snapshot) -> bool) -> bool {
+        let end = tokio::time::Instant::now() + limit;
+        while tokio::time::Instant::now() < end {
+            if done(&*app.state.read().await) {
+                return true;
+            }
+            sleep(Duration::from_millis(20)).await;
+        }
+        false
     }
 
     async fn command(app: &App, build: impl FnOnce(Reply) -> Command) -> Result<(), String> {
         let (reply, result) = oneshot::channel();
         app.commands.send(build(reply)).await.unwrap();
         result.await.unwrap()
+    }
+
+    fn change_request(session: &str) -> Change {
+        Change {
+            scope: Scope::Processing,
+            name: "AGC DRIVE".into(),
+            index: 21,
+            expected: Field {
+                index: 20,
+                value: Value::Int(10),
+            },
+            requested: None,
+            expected_host: "127.0.0.1".into(),
+            expected_session: session.into(),
+            expected_preset: Some("CURRENT".into()),
+        }
+    }
+
+    #[tokio::test]
+    async fn an_unexpected_loss_reconnects_after_the_wait_and_synchronizes_first() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = owner_with_policy(FAST).await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let first = app.state.read().await.session_id.clone().unwrap();
+        // Let the unit take the first session's 222 before the link drops.
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 1).await);
+        unit.drop_sessions();
+        let lost = tokio::time::Instant::now();
+        assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
+        {
+            let state = app.state.read().await;
+            assert!(!state.connected);
+            let status = state.reconnect.as_ref().unwrap();
+            assert_eq!(
+                (status.attempt, status.attempts, status.in_progress),
+                (1, 4, false)
+            );
+            assert!(!status.reason.is_empty());
+            assert_eq!(state.error.as_deref(), Some(status.reason.as_str()));
+            let now_ms = unix_ms_after(Duration::ZERO);
+            assert!((now_ms + 300..=now_ms + 700).contains(&status.next_attempt_at_ms));
+        }
+        assert!(wait_until(&app, Duration::from_secs(3), |s| s.connected).await);
+        let logins = unit.login_times();
+        assert_eq!(logins.len(), 2);
+        assert!(logins[1] - lost >= FAST.first, "{:?}", logins[1] - lost);
+        // Controls come back only with a synchronized new session and meters.
+        let state = app.state.read().await.clone();
+        assert!(state.reconnect.is_none() && state.sync_error.is_none() && state.error.is_none());
+        assert_ne!(state.session_id.as_deref(), Some(first.as_str()));
+        assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
+        assert_eq!(state.presets.len(), 2);
+        // The unit counts the new session's 222 as it arrives.
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 2).await);
+        let polls = unit.count(|c| &c.polls);
+        sleep(Duration::from_millis(300)).await;
+        assert!(unit.count(|c| &c.polls) > polls && app.meters.borrow()["live"] == true);
+        assert_eq!(unit.count(|c| &c.writes), 0);
+    }
+
+    #[tokio::test]
+    async fn a_manual_disconnect_is_never_followed_by_a_reconnect() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = owner_with_policy(FAST).await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        command(&app, Command::Disconnect).await.unwrap();
+        sleep(FAST.first * 3).await;
+        assert_eq!(unit.login_times().len(), 1);
+        assert!(app.state.read().await.reconnect.is_none());
+
+        // Disconnecting while a reconnect is pending cancels it as well.
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        unit.drop_sessions();
+        assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
+        command(&app, Command::Disconnect).await.unwrap();
+        sleep(FAST.first * 3).await;
+        assert_eq!(unit.login_times().len(), 2);
+        let state = app.state.read().await;
+        assert!(!state.connected && state.reconnect.is_none());
+    }
+
+    #[tokio::test]
+    async fn cancel_stops_a_pending_reconnect() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = owner_with_policy(FAST).await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        unit.drop_sessions();
+        assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
+        command(&app, Command::CancelReconnect).await.unwrap();
+        sleep(FAST.first * 3).await;
+        assert_eq!(unit.login_times().len(), 1);
+        let state = app.state.read().await;
+        assert!(!state.connected && state.reconnect.is_none());
+        drop(state);
+        // A manual connect afterwards works as usual.
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        assert!(app.state.read().await.connected);
+    }
+
+    #[tokio::test]
+    async fn failed_attempts_back_off_and_stop_at_the_limit() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = owner_with_policy(FAST).await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        unit.counts.refuse.store(100, Ordering::SeqCst);
+        unit.drop_sessions();
+        let lost = tokio::time::Instant::now();
+        assert!(
+            wait_until(&app, Duration::from_secs(12), |s| s.reconnect.is_none()
+                && s.error.is_some())
+            .await
+        );
+        let error = app.state.read().await.error.clone().unwrap();
+        assert!(error.contains("stopped after 4 attempts"), "{error}");
+        let mut previous = lost;
+        let attempts: Vec<_> = unit.login_times()[1..].to_vec();
+        assert_eq!(attempts.len(), 4, "one login per attempt");
+        for (n, at) in attempts.iter().enumerate() {
+            let wait = *at - previous;
+            let expected = FAST.delay(n as u32 + 1);
+            assert!(
+                wait >= expected && wait < expected + Duration::from_millis(400),
+                "attempt {}: {wait:?}",
+                n + 1
+            );
+            previous = *at;
+        }
+        assert_eq!(
+            [1, 2, 3, 4, 5].map(|n| FAST.delay(n).as_millis()),
+            [600, 1200, 2400, 2400, 2400]
+        );
+        sleep(FAST.longest * 2).await;
+        assert_eq!(unit.login_times().len(), 5, "no attempt after the limit");
+        assert!(!app.state.read().await.connected);
+    }
+
+    #[tokio::test]
+    async fn a_reconnect_succeeds_once_the_unit_answers_again() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = owner_with_policy(FAST).await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        unit.counts.refuse.store(2, Ordering::SeqCst);
+        unit.drop_sessions();
+        assert!(
+            wait_until(&app, Duration::from_secs(3), |s| s
+                .reconnect
+                .as_ref()
+                .is_some_and(|r| r.attempt == 3 && !r.in_progress))
+            .await
+        );
+        assert!(
+            !app.state
+                .read()
+                .await
+                .reconnect
+                .as_ref()
+                .unwrap()
+                .reason
+                .is_empty()
+        );
+        assert!(wait_until(&app, Duration::from_secs(4), |s| s.connected).await);
+        let state = app.state.read().await;
+        assert!(state.reconnect.is_none() && state.sync_error.is_none());
+        assert_eq!(unit.login_times().len(), 4);
+    }
+
+    #[tokio::test]
+    async fn nothing_from_the_lost_session_is_replayed() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = owner_with_policy(FAST).await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let old = app.state.read().await.session_id.clone().unwrap();
+        unit.drop_sessions();
+        assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
+        // A change while the app waits is refused, not queued.
+        let waiting = command(&app, |r| Command::Change(change_request(&old), r)).await;
+        assert_eq!(waiting.unwrap_err(), "Not connected");
+        assert!(wait_until(&app, Duration::from_secs(3), |s| s.connected).await);
+        sleep(Duration::from_millis(200)).await;
+        assert_eq!(unit.count(|c| &c.writes), 0);
+        // A request still carrying the old session is refused by the new one.
+        let stale = command(&app, |r| Command::Change(change_request(&old), r)).await;
+        assert!(stale.unwrap_err().contains("session changed"));
+        assert_eq!(unit.count(|c| &c.writes), 0);
+    }
+
+    #[tokio::test]
+    async fn status_port_failures_never_start_a_reconnect() {
+        let unit = FakeUnit::start(Terminal::Closed).await;
+        let (app, _storage) = owner_with_policy(FAST).await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        assert!(command(&app, Command::Refresh).await.is_err());
+        sleep(FAST.first * 3).await;
+        let state = app.state.read().await;
+        assert!(state.connected && state.sync_error.is_some() && state.reconnect.is_none());
+        assert_eq!(unit.login_times().len(), 1);
+    }
+
+    #[test]
+    fn refusals_that_cannot_change_end_the_reconnect() {
+        assert!(refuses_this_target("password failed"));
+        assert!(refuses_this_target(
+            "Detected OPTIMOD 8700i does not match saved model OPTIMOD 5700i"
+        ));
+        assert!(!refuses_this_target("Login timed out"));
+        assert!(!refuses_this_target("Connection timed out"));
+        assert!(!refuses_this_target("Connection refused (os error 61)"));
+        assert_eq!(RECONNECT.delay(1), Duration::from_secs(120));
+        assert_eq!(RECONNECT.delay(2), Duration::from_secs(240));
+        assert_eq!(RECONNECT.delay(5), Duration::from_secs(960));
     }
 
     #[tokio::test]
