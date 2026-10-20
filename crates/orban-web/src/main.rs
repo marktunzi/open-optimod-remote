@@ -32,7 +32,20 @@ use tokio::{
 use tokio_stream::{StreamExt, wrappers::WatchStream};
 use tower_http::services::ServeDir;
 use zeroize::Zeroizing;
-const ORIGIN: &str = "http://127.0.0.1:5701";
+/// The loopback port of the service. `OPEN_OPTIMOD_PORT` moves a
+/// development or test instance next to an installed app, which keeps 5701.
+static SERVICE_PORT: std::sync::LazyLock<u16> =
+    std::sync::LazyLock::new(|| service_port(std::env::var("OPEN_OPTIMOD_PORT").ok().as_deref()));
+static ORIGIN: std::sync::LazyLock<String> =
+    std::sync::LazyLock::new(|| format!("http://127.0.0.1:{}", *SERVICE_PORT));
+static HOST: std::sync::LazyLock<String> =
+    std::sync::LazyLock::new(|| format!("127.0.0.1:{}", *SERVICE_PORT));
+fn service_port(value: Option<&str>) -> u16 {
+    value
+        .and_then(|v| v.parse::<u16>().ok())
+        .filter(|port| *port >= 1024)
+        .unwrap_or(5701)
+}
 const METER_POLL_PERIOD: Duration = Duration::from_millis(50);
 /// A response boundary unanswered this long means the processor stopped
 /// serving the session. Slow or failed ticks before that are not a lost
@@ -349,9 +362,9 @@ async fn main() {
         .fallback_service(ServeDir::new(assets))
         .layer(middleware::from_fn(local_origin))
         .with_state(app);
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:5701")
+    let listener = tokio::net::TcpListener::bind(HOST.as_str())
         .await
-        .expect("Local port 5701 available");
+        .unwrap_or_else(|_| panic!("Local port {} available", *SERVICE_PORT));
     if bundled {
         if let Some(home) = std::env::var_os("HOME") {
             let cache = std::path::PathBuf::from(home).join("Library/Caches/OpenOptimodRemote");
@@ -363,12 +376,12 @@ async fn main() {
             tokio::spawn(async {
                 tokio::time::sleep(Duration::from_millis(250)).await;
                 let _ = std::process::Command::new("/usr/bin/open")
-                    .arg(ORIGIN)
+                    .arg(ORIGIN.as_str())
                     .spawn();
             });
         }
     }
-    println!("Open Optimod Remote development build: {ORIGIN}");
+    println!("Open Optimod Remote development build: {}", *ORIGIN);
     axum::serve(listener, routes).await.unwrap();
 }
 async fn local_origin(req: Request, next: Next) -> Response {
@@ -380,7 +393,7 @@ async fn local_origin(req: Request, next: Next) -> Response {
         .headers()
         .get(header::ORIGIN)
         .and_then(|v| v.to_str().ok());
-    let valid_host = host == Some("127.0.0.1:5701");
+    let valid_host = host == Some(HOST.as_str());
     let mutation =
         req.method() != axum::http::Method::GET && req.method() != axum::http::Method::HEAD;
     // A GET from an image or link on another site carries no Origin, but a
@@ -392,8 +405,8 @@ async fn local_origin(req: Request, next: Next) -> Response {
         .is_some_and(|site| site != "same-origin" && site != "none");
     if !valid_host
         || foreign_site
-        || (origin.is_some() && origin != Some(ORIGIN))
-        || (mutation && origin != Some(ORIGIN))
+        || (origin.is_some() && origin != Some(ORIGIN.as_str()))
+        || (mutation && origin != Some(ORIGIN.as_str()))
     {
         return Response::builder()
             .status(StatusCode::FORBIDDEN)
@@ -4143,13 +4156,17 @@ mod tests {
     #[tokio::test]
     async fn foreign_websites_and_rebound_hosts_cannot_send_device_commands() {
         for (host, origin, expected) in [
-            ("127.0.0.1:5701", Some(ORIGIN), StatusCode::OK),
+            ("127.0.0.1:5701", Some(ORIGIN.as_str()), StatusCode::OK),
             (
                 "127.0.0.1:5701",
                 Some("https://foreign.invalid"),
                 StatusCode::FORBIDDEN,
             ),
-            ("rebound.invalid:5701", Some(ORIGIN), StatusCode::FORBIDDEN),
+            (
+                "rebound.invalid:5701",
+                Some(ORIGIN.as_str()),
+                StatusCode::FORBIDDEN,
+            ),
             ("127.0.0.1:5701", None, StatusCode::FORBIDDEN),
         ] {
             let router = Router::new()
@@ -4168,6 +4185,13 @@ mod tests {
                 .unwrap();
             assert_eq!(response.status(), expected);
         }
+    }
+    #[test]
+    fn only_an_unprivileged_port_moves_the_service() {
+        assert_eq!(service_port(None), 5701);
+        assert_eq!(service_port(Some("15701")), 15701);
+        assert_eq!(service_port(Some("80")), 5701);
+        assert_eq!(service_port(Some("x")), 5701);
     }
     /// `GET /api/presets/current-file` and `/api/backup` read from the
     /// processor; an image tag on another site must not trigger them.

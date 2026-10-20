@@ -357,7 +357,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             return
         }
         if url.scheme == "about"
-            || (url.scheme == "http" && url.host == "127.0.0.1" && url.port == 5701)
+            || (url.scheme == "http" && url.host == "127.0.0.1" && url.port == BackendHealth.port)
         {
             decisionHandler(.allow)
             return
