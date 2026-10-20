@@ -352,7 +352,15 @@ async fn local_origin(req: Request, next: Next) -> Response {
     let valid_host = host == Some("127.0.0.1:5701");
     let mutation =
         req.method() != axum::http::Method::GET && req.method() != axum::http::Method::HEAD;
+    // A GET from an image or link on another site carries no Origin, but a
+    // browser marks it cross-site. Some GETs read from the processor.
+    let foreign_site = req
+        .headers()
+        .get("sec-fetch-site")
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|site| site != "same-origin" && site != "none");
     if !valid_host
+        || foreign_site
         || (origin.is_some() && origin != Some(ORIGIN))
         || (mutation && origin != Some(ORIGIN))
     {
@@ -3557,6 +3565,33 @@ mod tests {
                 .await
                 .unwrap();
             assert_eq!(response.status(), expected);
+        }
+    }
+    /// `GET /api/presets/current-file` and `/api/backup` read from the
+    /// processor; an image tag on another site must not trigger them.
+    #[tokio::test]
+    async fn foreign_websites_cannot_trigger_reads_without_an_origin() {
+        for (site, expected) in [
+            (None, StatusCode::OK),
+            (Some("same-origin"), StatusCode::OK),
+            (Some("none"), StatusCode::OK),
+            (Some("cross-site"), StatusCode::FORBIDDEN),
+            (Some("same-site"), StatusCode::FORBIDDEN),
+        ] {
+            let router = Router::new()
+                .route("/test", get(|| async { "ok" }))
+                .layer(middleware::from_fn(local_origin));
+            let mut req = Request::builder()
+                .uri("/test")
+                .header("host", "127.0.0.1:5701");
+            if let Some(site) = site {
+                req = req.header("sec-fetch-site", site);
+            }
+            let response = router
+                .oneshot(req.body(axum::body::Body::empty()).unwrap())
+                .await
+                .unwrap();
+            assert_eq!(response.status(), expected, "{site:?}");
         }
     }
     #[tokio::test]
