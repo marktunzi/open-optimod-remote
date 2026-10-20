@@ -28,7 +28,19 @@ impl Document {
         bytes: &[u8],
         model: crate::adapter::DeviceModel,
     ) -> Result<Self, String> {
-        let prefix = match model {
+        Self::parse_with_prefix(bytes, Self::version_prefix(model)?)
+    }
+
+    /// `parse_prefix` for the document family of `model`.
+    pub fn parse_prefix_for_model(
+        bytes: &[u8],
+        model: crate::adapter::DeviceModel,
+    ) -> Result<Self, String> {
+        Self::parse_prefix(bytes, Self::version_prefix(model)?)
+    }
+
+    fn version_prefix(model: crate::adapter::DeviceModel) -> Result<&'static str, String> {
+        Ok(match model {
             crate::adapter::DeviceModel::Optimod5700i
             | crate::adapter::DeviceModel::Optimod5700Fm
             | crate::adapter::DeviceModel::Optimod5700Hd => "OptimodVersion=<5700.",
@@ -44,8 +56,21 @@ impl Document {
             crate::adapter::DeviceModel::Auto => {
                 return Err("A detected processor model is required".into());
             }
-        };
-        Self::parse_with_prefix(bytes, prefix)
+        })
+    }
+
+    /// The complete lines at the start of a document that arrived cut: the
+    /// preset name and the fields before the cut. Its `raw` is that text.
+    pub fn parse_prefix(bytes: &[u8], version_prefix: &str) -> Result<Self, String> {
+        let text = std::str::from_utf8(bytes).unwrap_or_else(|error| {
+            std::str::from_utf8(&bytes[..error.valid_up_to()]).unwrap_or_default()
+        });
+        // The pushed file ends its lines with \n, terminal documents with \r\n.
+        let complete = text.rfind('\n').map_or("", |end| &text[..=end]);
+        if !complete.starts_with(version_prefix) {
+            return Err("Invalid or unsupported Optimod document".into());
+        }
+        Self::parse_lines(complete, true)
     }
 
     fn parse_with_prefix(bytes: &[u8], version_prefix: &str) -> Result<Self, String> {
@@ -56,6 +81,10 @@ impl Document {
         if !raw.starts_with(version_prefix) || !raw.ends_with("End Preset<end>\r\n") {
             return Err("Invalid or unsupported Optimod document".into());
         }
+        Self::parse_lines(raw, false)
+    }
+
+    fn parse_lines(raw: &str, partial: bool) -> Result<Self, String> {
         let mut fields = BTreeMap::new();
         let mut name = None;
         for line in raw.lines() {
@@ -94,7 +123,7 @@ impl Document {
                 }
             }
         }
-        if fields.is_empty() {
+        if fields.is_empty() && !partial {
             return Err("Document has no fields".into());
         }
         Ok(Self {

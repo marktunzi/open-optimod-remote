@@ -291,3 +291,40 @@ fn the_virtual_5700i_recall_capture_decodes_without_losing_a_frame() {
         decoder.finish().unwrap();
     }
 }
+
+/// The cut push in the capture still carries the start of the new on-air
+/// document: its complete CBC blocks decrypt (virtual unit code 1234) to the
+/// preset name and the fields before the cut.
+#[test]
+fn the_start_of_a_cut_push_names_the_new_on_air_preset() {
+    let stream = include_bytes!("fixtures/5700i-virtual-recall-capture.bin");
+    let mut decoder = Decoder::with_cut(CUT);
+    let push = decoder
+        .feed_frames(stream)
+        .unwrap()
+        .into_iter()
+        .find_map(|frame| match frame {
+            Frame::Truncated { payload, declared } if payload.starts_with(b"      25       6") => {
+                Some(orban_protocol::message::decode_truncated(&payload, declared).unwrap())
+            }
+            _ => None,
+        })
+        .unwrap();
+    let orban_protocol::message::Message::Truncated {
+        kind: 229, data, ..
+    } = push
+    else {
+        panic!("{push:?}");
+    };
+    let (name, sealed) = orban_protocol::message::file_prefix(&data).unwrap();
+    assert_eq!(name, "");
+    let plain = orban_protocol::archive::decrypt_prefix(sealed, "1234").unwrap();
+    let start = orban_protocol::document::Document::parse_prefix_for_model(
+        &plain,
+        orban_protocol::adapter::DeviceModel::Optimod5700i,
+    )
+    .unwrap();
+    assert_eq!(start.name, "GREGG");
+    assert!(start.fields.len() > 50, "{}", start.fields.len());
+    assert!(start.raw.ends_with('\n'));
+}

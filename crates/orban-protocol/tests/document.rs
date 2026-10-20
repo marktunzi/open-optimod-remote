@@ -53,3 +53,19 @@ fn malformed_decrypted_documents_never_become_device_state() {
         assert!(Document::parse(doc.as_bytes()).is_err());
     }
 }
+
+#[test]
+fn a_document_prefix_keeps_only_complete_lines() {
+    let text = "OptimodVersion=<5700.51>\nPreset Name=<GREGG> size=306\nC:<AGC>String:<On>;D:1;\nC:<AGC DRIVE>Int:15;D:2";
+    let start =
+        orban_protocol::document::Document::parse_prefix(text.as_bytes(), "OptimodVersion=<5700.")
+            .unwrap();
+    assert_eq!(start.name, "GREGG");
+    assert_eq!(start.fields.len(), 1);
+    assert!(start.fields.contains_key("AGC"));
+    // A cut inside the first line has no usable start.
+    assert!(
+        orban_protocol::document::Document::parse_prefix(b"OptimodVer", "OptimodVersion=<5700.")
+            .is_err()
+    );
+}

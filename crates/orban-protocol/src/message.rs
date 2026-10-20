@@ -20,6 +20,8 @@ pub enum Message {
         kind: u16,
         declared: usize,
         received: usize,
+        /// The body bytes that did arrive, after the opcode prefix.
+        data: Vec<u8>,
     },
 }
 
@@ -81,7 +83,22 @@ pub fn decode_truncated(bytes: &[u8], declared: usize) -> Result<Message, String
         kind: opcode(bytes).unwrap_or(0),
         declared,
         received: bytes.len(),
+        data: bytes.get(16..).unwrap_or_default().to_vec(),
     })
+}
+
+/// The file name and the start of the file in the body of a cut file
+/// message (opcodes 229-235): `0\n0\n<name>\n<size>\n` and what arrived of
+/// the file. `None` when the cut fell inside those lines.
+pub fn file_prefix(mut data: &[u8]) -> Option<(String, &[u8])> {
+    decimal(line(&mut data).ok()?).ok()?;
+    decimal(line(&mut data).ok()?).ok()?;
+    let name = std::str::from_utf8(line(&mut data).ok()?).ok()?;
+    if name.chars().any(char::is_control) {
+        return None;
+    }
+    let size = decimal(line(&mut data).ok()?).ok()? as usize;
+    (data.len() <= size).then(|| (name.to_owned(), data))
 }
 
 pub fn decode_for(

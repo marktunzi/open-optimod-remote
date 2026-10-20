@@ -46,6 +46,25 @@ pub fn encrypt(plain: &[u8], code: &str, iv: [u8; 16]) -> Result<Vec<u8>, String
     Ok(out)
 }
 
+/// The start of an archive that arrived cut: every complete block after the
+/// IV, decrypted as plain CBC. Valid only for a prefix that ends before the
+/// last two blocks of the whole archive, where CTS swaps them.
+pub fn decrypt_prefix(bytes: &[u8], code: &str) -> Result<Vec<u8>, String> {
+    if bytes.len() < 32 || bytes.len() > 65535 || code.is_empty() || !code.is_ascii() {
+        return Err("Invalid archive length or access code".into());
+    }
+    let aes = cipher(code)?;
+    let mut previous: [u8; 16] = bytes[..16].try_into().unwrap();
+    let mut plaintext = Vec::with_capacity(bytes.len());
+    for chunk in bytes[16..].chunks_exact(16) {
+        let mut block = aes::Block::clone_from_slice(chunk);
+        aes.decrypt_block(&mut block);
+        plaintext.extend(block.iter().zip(previous).map(|(a, b)| a ^ b));
+        previous.copy_from_slice(chunk);
+    }
+    Ok(plaintext)
+}
+
 pub fn decrypt(bytes: &[u8], code: &str) -> Result<Vec<u8>, String> {
     if bytes.len() < 32 || bytes.len() > 65535 || code.is_empty() || !code.is_ascii() {
         return Err("Invalid archive length or access code".into());
