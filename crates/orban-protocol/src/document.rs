@@ -118,8 +118,15 @@ impl Document {
                 } else {
                     return Err("Unsupported field type".into());
                 };
-                if fields.insert(key.into(), Field { value, index }).is_some() {
-                    return Err("Duplicate field".into());
+                let field = Field { value, index };
+                match fields.get(key) {
+                    // The 8700HD 1.0.2.161 firmware writes `PILOT SYNC` twice,
+                    // identically, in its setup file.
+                    Some(existing) if *existing == field => {}
+                    Some(_) => return Err("Duplicate field".into()),
+                    None => {
+                        fields.insert(key.into(), field);
+                    }
                 }
             }
         }
