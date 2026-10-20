@@ -89,7 +89,20 @@ Tested against a synthetic unit with the same schedule shape and short waits (0.
 
 The banner was checked in a browser against the service with a lost session: the countdown, the attempt count and Cancel through the real endpoint work. **Not tested on the physical unit**, per instruction: the waits are based on the 2 minutes the reference 5700i needed after a reset (above), and the reset close of an unfinished login on the original client's behaviour.
 
+### Automatic reconnect on the reference 5700i (read-only)
+
+The backend ran with the real schedule, connected through local fault proxies:
+
+| Scenario | Result |
+|---|---|
+| H1: hard reset on both sides | PASS: loss seen at once; one login 122.5 s later; same on-air document, 76 presets, new session, 168 meter events in 10 s |
+| H2: PC Remote path stalled 30 s | PASS: session ended after 21 s; one login 122.1 s after the loss; state and meters restored |
+| H3: reset, first attempt meets a silent path | PASS: attempt 1 failed with "Login timed out" at 124 s; next one 240 s later; restored at 365.9 s with two logins in total |
+| H4: reset, then Cancel | PASS: no attempt in the following 130 s |
+
+Afterwards the unit's AS (178) and AP (221) fields equalled the saved state.
+
 ## Still open
 
-- A hardware check of the automatic reconnect on the physical 5700i (needs approval).
+- Emulator regression (original firmware): no virtual unit was available.
 - A long-duration soak (the 8-hour run belongs to Phase 7).
