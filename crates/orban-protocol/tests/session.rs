@@ -60,6 +60,29 @@ async fn rejected_login_does_not_wait_for_three_more_lines() {
     worker.await.unwrap();
 }
 
+/// The unit answers `busy` while it still closes a previous session (seen on
+/// the virtual 5700i with original firmware, 20 October 2026) and `in use`
+/// in the same place; the original client names both to the operator.
+#[tokio::test]
+async fn busy_and_in_use_logins_are_named_for_the_operator() {
+    for (answer, expected) in [
+        ("busy", "The processor is busy. Try again in a few seconds."),
+        ("in use", "The processor is in use."),
+    ] {
+        let server = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = server.local_addr().unwrap();
+        let worker = tokio::spawn(async move {
+            let (mut s, _) = server.accept().await.unwrap();
+            let mut b = [0; 14];
+            s.read_exact(&mut b).await.unwrap();
+            s.write_all(format!("{answer}\n").as_bytes()).await.unwrap();
+        });
+        let result = Session::connect(address, "9876", Duration::from_secs(1)).await;
+        assert_eq!(result.err().as_deref(), Some(expected));
+        worker.await.unwrap();
+    }
+}
+
 #[tokio::test]
 async fn model_is_detected_from_the_official_banner_and_a_wrong_hint_fails_closed() {
     async fn serve(banner: &'static str) -> (std::net::SocketAddr, tokio::task::JoinHandle<()>) {

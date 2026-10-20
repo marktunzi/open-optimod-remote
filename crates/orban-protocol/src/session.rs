@@ -116,7 +116,11 @@ impl Session {
         let status = login_line(stream, end).await?;
         if status != "connect ok" {
             return Err(match status.as_str() {
-                "password failed" | "no password set" | "in use" | "busy" => status,
+                "password failed" | "no password set" => status,
+                // The original client reports these as "<unit> is busy." and
+                // "<unit> is in use."; the unit refuses only this login.
+                "busy" => "The processor is busy. Try again in a few seconds.".into(),
+                "in use" => "The processor is in use.".into(),
                 _ => "Unrecognized login response".into(),
             });
         }
@@ -206,6 +210,10 @@ impl Session {
                 });
             }
         }
+    }
+    /// How long one send or receive may take.
+    pub fn deadline(&self) -> Duration {
+        self.deadline
     }
     /// Corrupt framing was received; only a new connection can recover.
     pub fn is_broken(&self) -> bool {
