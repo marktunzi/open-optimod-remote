@@ -45,6 +45,9 @@ const ARCHIVE_RETRY: Duration = Duration::from_secs(2);
 /// PC Remote login including the TCP connection, and each wait for a reply
 /// on the session (such as a response boundary).
 const SESSION_DEADLINE: Duration = Duration::from_secs(4);
+/// A login the unit answers with `busy` (it is still closing the previous
+/// session) is tried once more after this wait; nothing was sent yet.
+const BUSY_RETRY: Duration = Duration::from_secs(1);
 /// Terminal reads after login: the system document, then the preset list
 /// with the processing document in one exchange.
 const SYSTEM_READ_DEADLINE: Duration = Duration::from_secs(4);
@@ -990,13 +993,15 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
 async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
     let code = Zeroizing::new(body.code);
     let ip = body.host.parse().map_err(|_| "Enter an IP address")?;
-    let session = Session::connect_for_model(
-        SocketAddr::new(ip, body.port),
-        &code,
-        SESSION_DEADLINE,
-        body.model,
-    )
-    .await?;
+    let address = SocketAddr::new(ip, body.port);
+    let session =
+        match Session::connect_for_model(address, &code, SESSION_DEADLINE, body.model).await {
+            Err(error) if error.starts_with("The processor is busy") => {
+                sleep(BUSY_RETRY).await;
+                Session::connect_for_model(address, &code, SESSION_DEADLINE, body.model).await?
+            }
+            result => result?,
+        };
     let profile = Profile::for_adapter(session.info.adapter_id)?.map(Arc::new);
     let mut device = Device {
         session,
@@ -2669,7 +2674,11 @@ mod tests {
                 value("timeoutIntervalForResource"),
             )
         }
-        let connect = SESSION_DEADLINE + SYSTEM_READ_DEADLINE + CATALOG_READ_DEADLINE;
+        let connect = SESSION_DEADLINE
+            + BUSY_RETRY
+            + SESSION_DEADLINE
+            + SYSTEM_READ_DEADLINE
+            + CATALOG_READ_DEADLINE;
         let recall = RECALL_DEADLINE + RECALL_CONFIRM_DEADLINE;
         let change = SESSION_DEADLINE + SYSTEM_READ_DEADLINE;
         for (file, budget) in [
@@ -2703,6 +2712,8 @@ mod tests {
     struct UnitCounts {
         /// Logins still to refuse by closing without an answer.
         refuse: AtomicUsize,
+        /// Logins still to answer with `busy`.
+        busy: AtomicUsize,
         login_times: std::sync::Mutex<Vec<tokio::time::Instant>>,
         logins: AtomicUsize,
         subscriptions: AtomicUsize,
@@ -2781,6 +2792,14 @@ mod tests {
                             .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1))
                             .is_ok()
                         {
+                            return;
+                        }
+                        if counts
+                            .busy
+                            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1))
+                            .is_ok()
+                        {
+                            let _ = writer.write_all(b"busy\n").await;
                             return;
                         }
                         counts.logins.fetch_add(1, Ordering::SeqCst);
@@ -3124,6 +3143,26 @@ mod tests {
             .await
             .unwrap();
         assert!(app.state.read().await.connected);
+    }
+
+    /// Virtual 5700i under load: a login 1 s after the previous session
+    /// closed was answered `busy` (5 of 100). One more login follows 1 s
+    /// later; a second `busy` is reported.
+    #[tokio::test]
+    async fn a_busy_login_is_tried_once_more() {
+        for (busy, connects) in [(1, true), (2, false)] {
+            let unit = FakeUnit::start(Terminal::Answering).await;
+            let (app, _storage) = running_owner().await;
+            unit.counts.busy.store(busy, Ordering::SeqCst);
+            let result = command(&app, |r| Command::Connect(unit.connect(), r)).await;
+            assert_eq!(result.is_ok(), connects, "{result:?}");
+            if !connects {
+                assert!(result.unwrap_err().starts_with("The processor is busy"));
+            }
+            let logins = unit.login_times();
+            assert_eq!(logins.len(), 2);
+            assert!(logins[1] - logins[0] >= BUSY_RETRY);
+        }
     }
 
     /// A Cancel that waited behind an attempt that succeeded finds nothing
