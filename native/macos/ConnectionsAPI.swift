@@ -108,6 +108,16 @@ enum ConnectionSelection {
     static func mustDisconnect(connected: Bool, activeID: String?, deletingID: String) -> Bool {
         connected && activeID == deletingID
     }
+
+    /// The service keeps a saved code across name and port edits only; a new
+    /// address or processor model may be another device.
+    static func savedCodeSurvivesEdit(
+        hasCode: Bool, savedHost: String, savedModel: ProcessorModel, host: String, model: ProcessorModel
+    ) -> Bool {
+        hasCode
+            && savedHost.trimmingCharacters(in: .whitespacesAndNewlines) == host.trimmingCharacters(in: .whitespacesAndNewlines)
+            && savedModel == model
+    }
 }
 
 enum ConnectionsAPIError: LocalizedError, Sendable {

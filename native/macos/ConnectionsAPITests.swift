@@ -27,6 +27,11 @@ struct ConnectionsAPITests {
         precondition(ConnectionSelection.mustDisconnect(connected: true, activeID: "a", deletingID: "a"))
         precondition(!ConnectionSelection.mustDisconnect(connected: true, activeID: "a", deletingID: "b"))
 
+        precondition(ConnectionSelection.savedCodeSurvivesEdit(hasCode: true, savedHost: "192.0.2.1", savedModel: .auto, host: " 192.0.2.1 ", model: .auto))
+        precondition(!ConnectionSelection.savedCodeSurvivesEdit(hasCode: true, savedHost: "192.0.2.1", savedModel: .auto, host: "192.0.2.2", model: .auto))
+        precondition(!ConnectionSelection.savedCodeSurvivesEdit(hasCode: true, savedHost: "192.0.2.1", savedModel: .auto, host: "192.0.2.1", model: ProcessorModel.allCases.last!))
+        precondition(!ConnectionSelection.savedCodeSurvivesEdit(hasCode: false, savedHost: "192.0.2.1", savedModel: .auto, host: "192.0.2.1", model: .auto))
+
         print("ConnectionsAPITests passed")
     }
 }

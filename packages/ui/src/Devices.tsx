@@ -3,6 +3,7 @@ import { api } from "./api";
 import {
   filterConnections,
   maskedCode,
+  savedCodeSurvivesEdit,
   nextSelectionAfterDelete,
   shouldDisconnectBeforeDelete,
 } from "./connection-behavior";
@@ -208,6 +209,7 @@ export function Devices({ connected, activeId, activeHost, busy, action, onConne
 
   const showEditor = editor !== null;
   const existing = editor?.id ? devices.find(device => device.id === editor.id) : undefined;
+  const keepsCode = editor ? savedCodeSurvivesEdit(existing, editor) : false;
 
   return <section className="connections" aria-label="Connection manager">
     <aside className="connection-sources" aria-label="Connection sources">
@@ -280,7 +282,7 @@ export function Devices({ connected, activeId, activeHost, busy, action, onConne
               <label>IP address<input name="connection-host" required value={editor.host} disabled={locked} placeholder="192.168.1.100" autoComplete="off" spellCheck={false} onChange={event => setEditor({ ...editor, host: event.target.value })}/></label>
               <label>PC Remote port<input name="connection-port" required type="number" min={1} max={65535} value={editor.port} disabled={locked} onChange={event => setEditor({ ...editor, port: Number(event.target.value) })}/></label>
               <label>Status port<input name="status-port" required type="number" min={1} max={65535} value={editor.terminal_port} disabled={locked} onChange={event => setEditor({ ...editor, terminal_port: Number(event.target.value) })}/></label>
-              <label className="connection-code-field">Access code<input name="connection-code" type="password" required={!existing?.has_code} value={code} disabled={locked} placeholder={maskedCode(Boolean(existing?.has_code)) || "Enter access code"} autoComplete="off" onChange={event => setCode(event.target.value)}/><small>{existing?.has_code ? "A code is saved. Leave blank to keep it." : "The code is stored privately on this Mac."}</small></label>
+              <label className="connection-code-field">Access code<input name="connection-code" type="password" required={!keepsCode} value={code} disabled={locked} placeholder={maskedCode(keepsCode) || "Enter access code"} autoComplete="off" onChange={event => setCode(event.target.value)}/><small>{keepsCode ? "A code is saved. Leave blank to keep it." : existing?.has_code ? "A new IP address or processor needs the access code again." : "The code is stored privately on this Mac."}</small></label>
             </div>
             <div className="connection-form-actions">
               <button type="button" disabled={locked} onClick={() => { setEditor(null); setCode(""); }}>Cancel</button>

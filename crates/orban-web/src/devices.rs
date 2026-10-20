@@ -260,8 +260,16 @@ impl Book {
             .as_ref()
             .filter(|d| account(d) != account(&device) && d.has_code)
         {
+            // The code belongs to one processor. A new address or a different
+            // processor model may be another device: never send it the code.
+            // A port change keeps the processor, so the code moves with it.
+            if old.host == device.host && old.model == device.model {
+                let code = self.vault.get(&account(old))?;
+                self.vault.set(&account(&device), &code)?;
+            } else {
+                device.has_code = false;
+            }
             self.vault.delete(&account(old))?;
-            device.has_code = false;
         }
         let mut devices = self.devices.clone();
         if let Some(i) = devices.iter().position(|d| d.id == device.id) {
@@ -378,7 +386,7 @@ mod tests {
         assert_eq!(book.list().len(), 1);
     }
     #[test]
-    fn changing_endpoint_forgets_code_but_renaming_keeps_it() {
+    fn changing_address_forgets_code_but_renaming_keeps_it() {
         let temp = tempfile::tempdir().unwrap();
         let mut book =
             Book::open(temp.path().join("c.json"), Box::<MemoryVault>::default()).unwrap();
@@ -390,6 +398,52 @@ mod tests {
         assert!(book.save(e).unwrap().has_code);
         let mut e = edit("New name", "203.0.113.11");
         e.id = Some(a.id.clone());
+        assert!(!book.save(e).unwrap().has_code);
+        assert!(book.code(&a.id).is_err());
+    }
+    #[test]
+    fn changing_a_port_keeps_the_code_and_leaves_no_copy_behind() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("credentials.json");
+        let mut book = Book::open(
+            temp.path().join("c.json"),
+            Box::new(FileVault::new(path.clone())),
+        )
+        .unwrap();
+        let a = book.save(edit("Studio", "203.0.113.10")).unwrap();
+        book.set_code(&a.id, Some(Zeroizing::new("TESTCODE9876".into())))
+            .unwrap();
+        for (port, terminal_port) in [(6202, 23), (6202, 2323), (6201, 23)] {
+            let mut e = edit("Studio", "203.0.113.10");
+            e.id = Some(a.id.clone());
+            e.port = port;
+            e.terminal_port = terminal_port;
+            let saved = book.save(e).unwrap();
+            assert!(saved.has_code);
+            assert_eq!(&**book.code(&a.id).unwrap(), "TESTCODE9876");
+            let disk = fs::read_to_string(&path).unwrap();
+            assert_eq!(
+                disk.matches("TESTCODE9876").count(),
+                1,
+                "{port}/{terminal_port}"
+            );
+            assert!(disk.contains(&format!("@203.0.113.10:{port}:{terminal_port}")));
+        }
+    }
+    #[test]
+    fn changing_the_processor_model_forgets_the_code() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut book =
+            Book::open(temp.path().join("c.json"), Box::<MemoryVault>::default()).unwrap();
+        let mut e = edit("Studio", "203.0.113.10");
+        e.model = DeviceModel::Optimod5700i;
+        let a = book.save(e).unwrap();
+        book.set_code(&a.id, Some(Zeroizing::new("TESTCODE9876".into())))
+            .unwrap();
+        let mut e = edit("Studio", "203.0.113.10");
+        e.id = Some(a.id.clone());
+        e.model = DeviceModel::Optimod8700Hd;
+        e.port = 6202;
         assert!(!book.save(e).unwrap().has_code);
         assert!(book.code(&a.id).is_err());
     }

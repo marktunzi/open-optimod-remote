@@ -731,6 +731,8 @@ private final class ConnectionEditorWindowController: NSWindowController {
     private let modelPopup = NSPopUpButton()
     private let validationLabel = NSTextField(wrappingLabelWithString: "")
     private let hasSavedCode: Bool
+    private let savedHost: String
+    private let savedModel: ProcessorModel
     var onCancel: (() -> Void)?
     var onSave: ((String, String, Int, Int, String, ProcessorModel) -> Void)?
 
@@ -741,6 +743,8 @@ private final class ConnectionEditorWindowController: NSWindowController {
         statusPortField = NSTextField(string: String(connection?.terminalPort ?? 23))
         codeField = NSSecureTextField(string: "")
         hasSavedCode = connection?.hasCode == true
+        savedHost = connection?.host ?? ""
+        savedModel = connection?.processorModel ?? .auto
         for model in ProcessorModel.allCases {
             modelPopup.addItem(withTitle: model.label)
         }
@@ -879,19 +883,26 @@ private final class ConnectionEditorWindowController: NSWindowController {
         let name = nameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let host = hostField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let code = codeField.stringValue
+        let model = ProcessorModel.allCases.indices.contains(modelPopup.indexOfSelectedItem)
+            ? ProcessorModel.allCases[modelPopup.indexOfSelectedItem]
+            : .auto
+        // The service keeps a saved code across name and port edits only. A new
+        // address or processor model may be another device and needs the code again.
+        let keepsCode = ConnectionSelection.savedCodeSurvivesEdit(
+            hasCode: hasSavedCode, savedHost: savedHost, savedModel: savedModel, host: host, model: model
+        )
         guard !name.isEmpty, !host.isEmpty,
               let remote = Int(remotePortField.stringValue), (1...65_535).contains(remote),
               let terminal = Int(statusPortField.stringValue), (1...65_535).contains(terminal),
-              hasSavedCode || !code.isEmpty
+              keepsCode || !code.isEmpty
         else {
-            validationLabel.stringValue = "Enter a name, IP address, valid ports and an access code."
+            validationLabel.stringValue = hasSavedCode && !keepsCode
+                ? "A new IP address or processor needs the access code again."
+                : "Enter a name, IP address, valid ports and an access code."
             validationLabel.isHidden = false
             NSSound.beep()
             return
         }
-        let model = ProcessorModel.allCases.indices.contains(modelPopup.indexOfSelectedItem)
-            ? ProcessorModel.allCases[modelPopup.indexOfSelectedItem]
-            : .auto
         onSave?(name, host, remote, terminal, code, model)
     }
 }
