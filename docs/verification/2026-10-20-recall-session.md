@@ -55,6 +55,8 @@ Regression tests:
 - `crates/orban-protocol/tests/wire.rs`: a cut push followed by meter and clock frames, at every split point; requested archives longer than 4096 bytes arrive whole; a header without a message prefix at byte 4096 does not end the frame; without the cut the old behaviour is unchanged.
 - `crates/orban-web` `recall_survives_the_cut_document_the_5700i_pushes`: a synthetic 5700i pushes the cut document during the terminal Recall; five later ticks must each reach their response boundary. This test fails without the fix.
 
+> **Update, later on 20 October 2026.** The virtual 5700i with the same original firmware showed that the 4096-byte cut is a special case: while session meters are on, the unit ends any frame that no longer fits its send buffer (the push at 4075 bytes, meter records at arbitrary points) and can drop a `251` altogether. The rule above was replaced by a general one, and a requested archive is whole only with meters off. See [Frames the unit cuts or drops](../protocol/5700i.md#frames-the-unit-cuts-or-drops) and [Phase 1](2026-10-20-phase1-session.md#virtual-5700i-original-firmware).
+
 ## Session health
 
 The same failure path exposed three weaknesses in the session owner, fixed separately:
