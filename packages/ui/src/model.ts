@@ -23,6 +23,8 @@ export type Snapshot = {
   evidence?: 'hardware' | 'static' | 'none' | null;
   /** Connected, but the current settings could not be read from the status port. */
   sync_error?: string | null;
+  /** Set while the app waits to reconnect after an unexpected session loss. */
+  reconnect?: import('./reconnect-status').ReconnectStatus | null;
 };
 export type Definition = {
   scope: 'Processing' | 'System'; name: string; values: Value[]; unit?: string;

@@ -8,6 +8,7 @@ import layouts from "./layouts.json";
 import "./style.css";
 import "./main-interface.css";
 import { type Field, type Snapshot, type Definition, display } from './model';
+import { reconnectMessage } from './reconnect-status';
 import { SettingEditor } from './SettingEditor';
 import { Presets } from './Presets';
 import { Outputs } from './Outputs';
@@ -370,10 +371,15 @@ function App() {
   // The Presets workspace holds recall, on-device save/rename/delete, preset
   // files and backups for every model, so the macOS app uses it as well.
   const openPresets = () => setArea('Presets');
+  // Shown in every view: after a lost session the app may wait minutes.
+  const reconnectBanner = !snapshot.connected && snapshot.reconnect
+    ? <div className="development" role="status">{reconnectMessage(snapshot.reconnect, Date.now())} <button disabled={busy} onClick={() => void api('reconnect/cancel', {}).then(load).catch(e => reportError('Cancel reconnect', e))}>Cancel</button></div>
+    : null;
   return (
     <main className={area === 'Connections' ? 'connection-mode' : ''} data-skin={skin.id} data-material={skin.material}>
       <a className="skip-link" href="#main-workspace">Skip to Controls</a>
       {area === 'Connections' ? <div className="connection-workspace" id="main-workspace" tabIndex={-1}>
+        {reconnectBanner}
         <Devices connected={snapshot.connected} activeId={snapshot.device_id} activeHost={snapshot.host}
           busy={busy} action={action} onConnected={() => setArea('Processing')}/>
       </div> : <>
@@ -389,6 +395,7 @@ function App() {
             view={DEFAULT_METER_VIEW} onLiveChange={setMeterLive} model={meterModel}/>}
       <div className="app-body">
       <div className="workspace" id="main-workspace" tabIndex={-1}>
+      {reconnectBanner}
       {snapshot.connected && snapshot.sync_error && <div className="development" role="status">{snapshot.sync_error} <button disabled={busy} onClick={() => void action('refresh', {})}>Refresh</button></div>}
       {snapshot.connected && !snapshot.write_enabled && <div className="development">Read-only access: this connection does not allow changes.</div>}
       {snapshot.connected && snapshot.write_enabled && snapshot.evidence === 'static' && <div className="development">Statically derived profile, not yet verified on this processor. Every change is confirmed by reading the processor back.</div>}
