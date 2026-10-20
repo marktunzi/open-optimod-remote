@@ -111,7 +111,7 @@ impl Session {
             stream,
             decoder: adapter
                 .frame_cut
-                .map_or_else(Decoder::default, Decoder::with_cut_at),
+                .map_or_else(Decoder::default, Decoder::with_cut),
             pending: VecDeque::new(),
             deadline,
             code: Zeroizing::new(code.to_ascii_uppercase()),
@@ -120,6 +120,10 @@ impl Session {
     /// No automatic retry: a timed-out control write has an unknown outcome.
     pub async fn send(&mut self, kind: u16, data: &[u8]) -> Result<(), String> {
         let bytes = message::encode(kind, data)?;
+        if kind == 239 {
+            // The on-air archive arrives whole, as the opcode a cut push uses.
+            self.decoder.expect_requested();
+        }
         timeout_at(
             Instant::now() + self.deadline,
             self.stream.write_all(&bytes),

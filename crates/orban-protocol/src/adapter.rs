@@ -162,9 +162,8 @@ pub struct AdapterDescriptor {
     pub firmware_prefix: &'static str,
     pub capabilities: Capabilities,
     pub meter_profile: Option<MeterProfile>,
-    /// Wire size at which the firmware cuts a pushed frame; see
-    /// `framing::Decoder::with_cut_at`. `None` where this was not observed.
-    pub frame_cut: Option<usize>,
+    /// How the firmware cuts a pushed frame; see `framing::Decoder::with_cut`. `None` where this was not observed.
+    pub frame_cut: Option<crate::framing::FrameCut>,
     pub evidence: Evidence,
 }
 
@@ -207,7 +206,10 @@ const VERIFIED_5700I: AdapterDescriptor = AdapterDescriptor {
     }),
     // Measured on the reference unit: the processing document pushed after a
     // terminal RP is cut at 4096 wire bytes (docs/verification/2026-10-20-recall-session.md).
-    frame_cut: Some(4096),
+    frame_cut: Some(crate::framing::FrameCut {
+        wire_bytes: 4096,
+        opcode: 229,
+    }),
     evidence: Evidence::Hardware,
 };
 

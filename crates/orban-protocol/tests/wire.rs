@@ -1,6 +1,6 @@
 use orban_protocol::{
     auth::login_request,
-    framing::{Decoder, Frame, encode},
+    framing::{Decoder, Frame, FrameCut, encode},
 };
 
 #[test]
@@ -77,6 +77,11 @@ fn login_preserves_delimiters_and_uses_legacy_obfuscation() {
     }
 }
 
+const CUT: FrameCut = FrameCut {
+    wire_bytes: 4096,
+    opcode: 229,
+};
+
 /// The on-air document a 5700i pushes after a terminal `RP`, as captured on the
 /// reference unit: the header announces the whole file, the wire carries only
 /// the first 4096 bytes, then the next frame starts.
@@ -101,7 +106,7 @@ fn a_pushed_document_cut_at_4096_bytes_keeps_the_following_frames() {
         .step_by(7)
         .chain([4095, 4096, 4097, 4101, 4117])
     {
-        let mut decoder = Decoder::with_cut_at(4096);
+        let mut decoder = Decoder::with_cut(CUT);
         let mut frames = decoder.feed_frames(&stream[..split]).unwrap();
         frames.extend(decoder.feed_frames(&stream[split..]).unwrap());
         assert_eq!(
@@ -135,7 +140,7 @@ fn a_requested_archive_longer_than_4096_bytes_arrives_whole() {
             .step_by(97)
             .chain([4096, 4101, stream.len() - 1])
         {
-            let mut decoder = Decoder::with_cut_at(4096);
+            let mut decoder = Decoder::with_cut(CUT);
             let mut frames = decoder.feed_frames(&stream[..split]).unwrap();
             frames.extend(decoder.feed_frames(&stream[split..]).unwrap());
             assert_eq!(
@@ -161,7 +166,7 @@ fn a_header_without_a_message_prefix_at_the_cut_does_not_end_the_frame() {
     payload.extend(b"not a prefix....");
     payload.resize(5000, 0x33);
     let stream = encode(&payload).unwrap();
-    let mut decoder = Decoder::with_cut_at(4096);
+    let mut decoder = Decoder::with_cut(CUT);
     assert_eq!(
         decoder.feed_frames(&stream).unwrap(),
         vec![Frame::Complete(payload)]
@@ -174,4 +179,44 @@ fn without_a_cut_the_decoder_still_reads_the_announced_length() {
     let stream = [cut, encode(b"      47       6clock").unwrap()].concat();
     let mut decoder = Decoder::default();
     assert!(decoder.feed(&stream).unwrap().is_empty());
+}
+
+#[test]
+fn only_the_pushed_document_opcode_can_be_cut() {
+    // A long frame of another kind is never ended early, even when a real
+    // frame header and prefix appear inside its body at byte 4096.
+    let meter = encode(b"      24       6\x01").unwrap();
+    let mut payload = format!("{:8}{:8}", 216 - 204, 6).into_bytes();
+    payload.resize(4091, b'x');
+    payload.extend(&meter);
+    payload.resize(6000, b'y');
+    let mut decoder = Decoder::with_cut(CUT);
+    assert_eq!(
+        decoder.feed_frames(&encode(&payload).unwrap()).unwrap(),
+        vec![Frame::Complete(payload)]
+    );
+}
+
+#[test]
+fn a_requested_archive_is_read_whole_even_if_its_body_looks_like_a_cut() {
+    let meter = [b"      24       6\x01112\n".as_slice(), &[7; 112]].concat();
+    let mut payload = format!("{:8}{:8}0\n0\n\n5974\n", 229 - 204, 6).into_bytes();
+    payload.resize(4091, b'x');
+    payload.extend(encode(&meter).unwrap());
+    payload.resize(6000, b'y');
+    let pushed = pushed_document(7417);
+    let stream = [encode(&payload).unwrap(), pushed.0, encode(&meter).unwrap()].concat();
+    let mut decoder = Decoder::with_cut(CUT);
+    decoder.expect_requested();
+    assert_eq!(
+        decoder.feed_frames(&stream).unwrap(),
+        vec![
+            Frame::Complete(payload),
+            Frame::Truncated {
+                payload: pushed.1,
+                declared: 7417
+            },
+            Frame::Complete(meter),
+        ]
+    );
 }

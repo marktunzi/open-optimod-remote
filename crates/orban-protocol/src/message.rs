@@ -14,7 +14,7 @@ pub enum Message {
         kind: u16,
         data: Vec<u8>,
     },
-    /// A frame the device cut short (see `framing::Decoder::with_cut_at`). Its
+    /// A frame the device cut short (see `framing::Decoder::with_cut`). Its
     /// body is incomplete and must not be interpreted.
     Truncated {
         kind: u16,

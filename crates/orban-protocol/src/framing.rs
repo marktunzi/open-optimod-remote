@@ -52,6 +52,15 @@ fn is_message_prefix(bytes: &[u8]) -> bool {
     kind == b"       6" && !digits.is_empty() && digits.iter().all(u8::is_ascii_digit)
 }
 
+/// Where a firmware cuts frames of one opcode; see `Decoder::with_cut`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct FrameCut {
+    /// Wire bytes the device sends of a longer frame, header included.
+    pub wire_bytes: usize,
+    /// The only message kind that is cut (opcode as on the wire, e.g. 229).
+    pub opcode: u16,
+}
+
 /// Bounded incremental framing. Corrupt data poisons this connection; the owner
 /// must reconnect rather than guessing where an audio control message begins.
 #[derive(Default)]
@@ -59,22 +68,31 @@ pub struct Decoder {
     buffer: Vec<u8>,
     expected: Option<usize>,
     failed: bool,
-    cut: Option<usize>,
+    cut: Option<FrameCut>,
+    /// Requested frames of the cut opcode still to come; they arrive whole.
+    requested: usize,
 }
 impl Decoder {
-    /// A decoder for firmware that cuts some frames at `limit` wire bytes.
+    /// A decoder for firmware that cuts frames of one opcode.
     ///
     /// The OPTIMOD 5700i 3.0.1.20 announces the full length of the processing
-    /// document it pushes after a preset change made elsewhere (terminal `RP`,
-    /// front panel), but sends only the first 4096 bytes of that frame and then
-    /// starts the next one. A frame it sends on request (opcode 239) arrives
-    /// complete. So a longer frame counts as cut only when a valid header and
-    /// message prefix start exactly at `limit`; otherwise it is read in full.
-    pub fn with_cut_at(limit: usize) -> Self {
+    /// document (opcode 229) it pushes after a preset change made elsewhere
+    /// (terminal `RP`, front panel), but sends only the first 4096 bytes of
+    /// that frame and then starts the next one. The same document requested
+    /// with opcode 239 arrives complete. So a longer frame of that opcode
+    /// counts as cut only when a valid header and message prefix start exactly
+    /// at the cut; any other frame is read to its announced length.
+    pub fn with_cut(cut: FrameCut) -> Self {
         Self {
-            cut: Some(limit),
+            cut: Some(cut),
             ..Self::default()
         }
+    }
+    /// The client requested a frame of the cut opcode (the 5700i answers
+    /// opcode 239 with a 229 archive). The next such frame is read to its
+    /// announced length; no cut is inferred from its body.
+    pub fn expect_requested(&mut self) {
+        self.requested += 1;
     }
     pub fn feed(&mut self, bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
         Ok(self
@@ -103,8 +121,23 @@ impl Decoder {
                 self.expected = Some(HEADER_SIZE + n);
                 continue;
             };
-            if let Some(limit) = self.cut.filter(|limit| total > *limit) {
-                match self.cut_at(limit) {
+            if let Some(FrameCut {
+                wire_bytes: limit,
+                opcode,
+            }) = self.cut.filter(|cut| total > cut.wire_bytes)
+            {
+                let kind = format!("{:8}", opcode.saturating_sub(204));
+                let cut = if !self.buffer[HEADER_SIZE..].starts_with(kind.as_bytes()) {
+                    Some(false)
+                } else if self.requested > 0 {
+                    if self.buffer.len() >= total {
+                        self.requested -= 1;
+                    }
+                    Some(false)
+                } else {
+                    self.cut_at(limit)
+                };
+                match cut {
                     None => break,
                     Some(true) => {
                         let rest = self.buffer.split_off(limit);

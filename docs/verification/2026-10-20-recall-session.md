@@ -44,7 +44,7 @@ An `RP` from the terminal, the front panel or automation would still make the un
 
 ## Fix
 
-The verified 5700i adapter declares `frame_cut: Some(4096)`. Its decoder treats a frame announcing more than 4096 wire bytes as cut only when a valid frame header **and** the `%8d%8d` opcode/protocol-6 prefix start exactly at byte 4096. Otherwise the frame is read to its announced length, as before.
+The verified 5700i adapter declares a frame cut of 4096 wire bytes for opcode 229. Its decoder treats a 229 frame announcing more than 4096 wire bytes as cut only when a valid frame header **and** the `%8d%8d` opcode/protocol-6 prefix start exactly at byte 4096. While an on-air archive requested with opcode 239 is outstanding, the next 229 frame is read whole without that check. Every other frame is read to its announced length, as before.
 
 - A cut frame becomes `Message::Truncated` and is never decrypted or interpreted.
 - Corrupt headers still poison the connection.
