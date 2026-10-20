@@ -150,13 +150,17 @@ impl Session {
             // The on-air archive arrives whole, as the opcode a cut push uses.
             self.decoder.expect_requested();
         }
-        timeout_at(
+        let sent = timeout_at(
             Instant::now() + self.deadline,
             self.stream.write_all(&bytes),
         )
         .await
-        .map_err(|_| "Send timed out; outcome unknown")?
-        .map_err(|e| e.to_string())
+        .map_err(|_| "Send timed out; outcome unknown".to_owned())
+        .and_then(|written| written.map_err(|e| e.to_string()));
+        if kind == 239 && sent.is_err() {
+            self.decoder.withdraw_requested();
+        }
+        sent
     }
     pub async fn change(
         &mut self,

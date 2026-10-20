@@ -220,3 +220,47 @@ fn a_requested_archive_is_read_whole_even_if_its_body_looks_like_a_cut() {
         ]
     );
 }
+
+#[test]
+fn a_short_requested_archive_still_answers_its_request() {
+    // A requested 229 that fits in 4096 bytes answers the request too: a
+    // later pushed document must still be recognised as cut.
+    let mut payload = format!("{:8}{:8}0\n0\n\n100\n", 229 - 204, 6).into_bytes();
+    payload.resize(126, b'z');
+    let pushed = pushed_document(7417);
+    let clock = encode(b"      47       6").unwrap();
+    let stream = [encode(&payload).unwrap(), pushed.0, clock].concat();
+    let mut decoder = Decoder::with_cut(CUT);
+    decoder.expect_requested();
+    assert_eq!(
+        decoder.feed_frames(&stream).unwrap(),
+        vec![
+            Frame::Complete(payload),
+            Frame::Truncated {
+                payload: pushed.1,
+                declared: 7417
+            },
+            Frame::Complete(b"      47       6".to_vec()),
+        ]
+    );
+}
+
+#[test]
+fn a_withdrawn_request_does_not_shield_a_pushed_document() {
+    let pushed = pushed_document(7417);
+    let mut decoder = Decoder::with_cut(CUT);
+    decoder.expect_requested();
+    decoder.withdraw_requested();
+    assert_eq!(
+        decoder
+            .feed_frames(&[pushed.0, encode(b"      47       6").unwrap()].concat())
+            .unwrap(),
+        vec![
+            Frame::Truncated {
+                payload: pushed.1,
+                declared: 7417
+            },
+            Frame::Complete(b"      47       6".to_vec()),
+        ]
+    );
+}

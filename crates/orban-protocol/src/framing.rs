@@ -94,6 +94,10 @@ impl Decoder {
     pub fn expect_requested(&mut self) {
         self.requested += 1;
     }
+    /// The request was not sent after all.
+    pub fn withdraw_requested(&mut self) {
+        self.requested = self.requested.saturating_sub(1);
+    }
     pub fn feed(&mut self, bytes: &[u8]) -> Result<Vec<Vec<u8>>, String> {
         Ok(self
             .feed_frames(bytes)?
@@ -127,12 +131,9 @@ impl Decoder {
             }) = self.cut.filter(|cut| total > cut.wire_bytes)
             {
                 let kind = format!("{:8}", opcode.saturating_sub(204));
-                let cut = if !self.buffer[HEADER_SIZE..].starts_with(kind.as_bytes()) {
-                    Some(false)
-                } else if self.requested > 0 {
-                    if self.buffer.len() >= total {
-                        self.requested -= 1;
-                    }
+                let cut = if !self.buffer[HEADER_SIZE..].starts_with(kind.as_bytes())
+                    || self.requested > 0
+                {
                     Some(false)
                 } else {
                     self.cut_at(limit)
@@ -156,7 +157,17 @@ impl Decoder {
                 break;
             }
             let rest = self.buffer.split_off(total);
-            frames.push(Frame::Complete(self.buffer[HEADER_SIZE..].to_vec()));
+            let payload = self.buffer[HEADER_SIZE..].to_vec();
+            // Any whole frame of the cut opcode, short or long, answers one
+            // request; a short one used to leave the count raised for good.
+            if self.requested > 0
+                && self.cut.is_some_and(|cut| {
+                    payload.starts_with(format!("{:8}", cut.opcode.saturating_sub(204)).as_bytes())
+                })
+            {
+                self.requested -= 1;
+            }
+            frames.push(Frame::Complete(payload));
             self.buffer = rest;
             self.expected = None;
         }
