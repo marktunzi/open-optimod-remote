@@ -11,6 +11,8 @@ use tokio::{
     time::{Instant, timeout_at},
 };
 use zeroize::Zeroizing;
+/// Longest wait for the unit to close its side after a disconnect.
+const CLOSE_DRAIN: Duration = Duration::from_secs(1);
 #[derive(Debug, serde::Serialize)]
 pub struct Info {
     pub access_level: u8,
@@ -197,6 +199,16 @@ impl Session {
         // disconnect opcode is best effort because a peer that already closed
         // must never leave the UI stuck in a connected state.
         let _ = self.send(218, b"").await;
-        self.stream.shutdown().await.map_err(|e| e.to_string())
+        let shutdown = self.stream.shutdown().await.map_err(|e| e.to_string());
+        // Read what the unit still sends until it closes. Closing with unread
+        // data makes the local stack reset the connection while the unit is
+        // still sending; the reference 5700i then refuses every new TCP
+        // connection for about a minute. Bounded: the app never waits long.
+        let _ = timeout_at(Instant::now() + CLOSE_DRAIN, async {
+            let mut buffer = [0; 4096];
+            while matches!(self.stream.read(&mut buffer).await, Ok(n) if n > 0) {}
+        })
+        .await;
+        shutdown
     }
 }
