@@ -228,8 +228,10 @@ final class SystemSettingsAPI {
 
     init() {
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 5
-        configuration.timeoutIntervalForResource = 8
+        // A change waits up to 4 s for its response boundary and may then read
+        // the document back (4 s). Checked by an orban-web test.
+        configuration.timeoutIntervalForRequest = 20
+        configuration.timeoutIntervalForResource = 25
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         session = URLSession(configuration: configuration)
     }

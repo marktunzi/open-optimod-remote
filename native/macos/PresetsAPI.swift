@@ -80,8 +80,11 @@ final class PresetsAPI {
 
     init() {
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 12
-        configuration.timeoutIntervalForResource = 18
+        // Recall can take up to 16 s, and applying a preset file writes every
+        // differing field before reading the document back (about 0.15 s per
+        // field). Checked by an orban-web test.
+        configuration.timeoutIntervalForRequest = 120
+        configuration.timeoutIntervalForResource = 180
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         session = URLSession(configuration: configuration)
     }

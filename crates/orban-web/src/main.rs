@@ -38,8 +38,9 @@ const METER_POLL_PERIOD: Duration = Duration::from_millis(50);
 /// serving the session. Slow or failed ticks before that are not a lost
 /// connection: the original PC Remote waits about 42 s without any byte.
 const UNANSWERED_LIMIT: Duration = Duration::from_secs(20);
-/// PC Remote login, including the TCP connection.
-const LOGIN_DEADLINE: Duration = Duration::from_secs(4);
+/// PC Remote login including the TCP connection, and each wait for a reply
+/// on the session (such as a response boundary).
+const SESSION_DEADLINE: Duration = Duration::from_secs(4);
 /// Terminal reads after login: the system document, then the preset list
 /// with the processing document in one exchange.
 const SYSTEM_READ_DEADLINE: Duration = Duration::from_secs(4);
@@ -712,7 +713,7 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
     let session = Session::connect_for_model(
         SocketAddr::new(ip, body.port),
         &code,
-        LOGIN_DEADLINE,
+        SESSION_DEADLINE,
         body.model,
     )
     .await?;
@@ -2116,6 +2117,50 @@ mod tests {
         assert_eq!(state.preset_base_name.as_deref(), Some("TARGET"));
         terminal_server.abort();
         pc_server.abort();
+    }
+
+    /// A native client that gives up before the service finishes reports a
+    /// failure for an operation that may still succeed, such as a connection
+    /// or a Recall. Each client must wait longer than the service can take.
+    #[test]
+    fn native_clients_wait_longer_than_the_service_can_take() {
+        fn timeouts(file: &str) -> (u64, u64) {
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../native/macos")
+                .join(file);
+            let source = std::fs::read_to_string(path).unwrap();
+            let value = |key: &str| -> u64 {
+                let start = source.find(key).unwrap_or_else(|| panic!("{file}: {key}"));
+                source[start + key.len()..]
+                    .trim_start_matches([' ', '='])
+                    .split(|c: char| !c.is_ascii_digit())
+                    .next()
+                    .unwrap()
+                    .parse()
+                    .unwrap()
+            };
+            (
+                value("timeoutIntervalForRequest"),
+                value("timeoutIntervalForResource"),
+            )
+        }
+        let connect = SESSION_DEADLINE + SYSTEM_READ_DEADLINE + CATALOG_READ_DEADLINE;
+        let recall = RECALL_DEADLINE + RECALL_CONFIRM_DEADLINE;
+        let change = SESSION_DEADLINE + SYSTEM_READ_DEADLINE;
+        for (file, budget) in [
+            ("ConnectionsAPI.swift", connect),
+            ("PresetsAPI.swift", recall),
+            ("SystemSettingsAPI.swift", change),
+        ] {
+            let (request, resource) = timeouts(file);
+            // The service sends nothing until it is done, so the request
+            // (idle) timeout is the one that fires first.
+            assert!(
+                Duration::from_secs(request) >= budget + Duration::from_secs(5),
+                "{file}: {request} s for a {budget:?} operation"
+            );
+            assert!(resource >= request, "{file}");
+        }
     }
 
     /// How the synthetic unit's status (terminal) port behaves.
