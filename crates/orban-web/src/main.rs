@@ -1605,10 +1605,18 @@ struct ReconnectTarget {
     model: DeviceModel,
     device_id: Option<String>,
     code: Zeroizing<String>,
+    /// The saved connection held a code when the session was made: each
+    /// attempt then uses the code saved now, and none if it was removed.
+    saved_code: bool,
 }
 
 impl ReconnectTarget {
-    fn from(connect: &Connect) -> Self {
+    fn from(connect: &Connect, app: &App) -> Self {
+        let saved_code = connect.device_id.as_ref().is_some_and(|id| {
+            app.book
+                .lock()
+                .is_ok_and(|book| book.find(id).is_ok_and(|saved| saved.has_code))
+        });
         Self {
             host: connect.host.clone(),
             port: connect.port,
@@ -1616,6 +1624,7 @@ impl ReconnectTarget {
             model: connect.model,
             device_id: connect.device_id.clone(),
             code: Zeroizing::new(connect.code.clone()),
+            saved_code,
         }
     }
     fn connect(&self) -> Connect {
@@ -1629,20 +1638,30 @@ impl ReconnectTarget {
         }
     }
     /// A saved connection that was edited or removed meanwhile is not
-    /// reconnected with its old settings.
-    fn still_saved(&self, app: &App) -> bool {
+    /// reconnected with its old settings, and a removed code is not used.
+    fn still_saved(&mut self, app: &App) -> bool {
         let Some(id) = &self.device_id else {
             return true;
         };
-        let Ok(book) = app.book.lock() else {
+        let Ok(mut book) = app.book.lock() else {
             return false;
         };
-        book.find(id).is_ok_and(|saved| {
+        let unchanged = book.find(id).is_ok_and(|saved| {
             saved.host == self.host
                 && saved.port == self.port
                 && saved.terminal_port == self.terminal_port
                 && saved.model == self.model
-        })
+        });
+        if !unchanged || !self.saved_code {
+            return unchanged;
+        }
+        match book.code(id) {
+            Ok(code) => {
+                self.code = code;
+                true
+            }
+            Err(_) => false,
+        }
     }
 }
 
@@ -1700,7 +1719,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             pending=None;
             target=None;
             *app.state.write().await = Snapshot::default();
-            let remembered=ReconnectTarget::from(&body);
+            let remembered=ReconnectTarget::from(&body,&app);
             match make_device(body,&app).await{Ok(d)=>{device=Some(d);target=Some(remembered);let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
            }
            Command::Disconnect(reply)=>{
@@ -1750,6 +1769,9 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             let _=reply.send(result.map_err(|e| e.message));
            }
            Command::CancelReconnect(reply)=>{
+            // A Cancel that waited behind a successful attempt has nothing
+            // left to cancel; it must not turn off later reconnects.
+            if pending.is_none(){let _=reply.send(Err("No reconnection is pending".into()));continue;}
             pending=None;
             target=None;
             app.state.write().await.reconnect=None;
@@ -1783,7 +1805,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
           if !attempt.target.still_saved(&app) {
            let mut state=app.state.write().await;
            state.reconnect=None;
-           state.error=Some("Automatic reconnection stopped: the saved connection was changed or removed".into());
+           state.error=Some("Automatic reconnection stopped: the saved connection or its access code was changed or removed".into());
            continue;
           }
           publish_reconnect(&app,&policy,&attempt,true).await;
@@ -2747,6 +2769,67 @@ mod tests {
             .await
             .unwrap();
         assert!(app.state.read().await.connected);
+    }
+
+    /// A Cancel that waited behind an attempt that succeeded finds nothing
+    /// pending. It must not switch off the reconnect after a later loss.
+    #[tokio::test]
+    async fn a_late_cancel_keeps_later_reconnects() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = owner_with_policy(FAST).await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 1).await);
+        unit.drop_sessions();
+        assert!(wait_until(&app, Duration::from_secs(3), |s| s.connected).await);
+        assert_eq!(
+            command(&app, Command::CancelReconnect).await.unwrap_err(),
+            "No reconnection is pending"
+        );
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 2).await);
+        unit.drop_sessions();
+        assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
+        assert!(wait_until(&app, Duration::from_secs(3), |s| s.connected).await);
+        assert_eq!(unit.login_times().len(), 3);
+    }
+
+    /// An access code removed from the saved connection while the app waits
+    /// is not used for the next attempt.
+    #[tokio::test]
+    async fn a_removed_saved_code_stops_the_reconnect() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = owner_with_policy(FAST).await;
+        let mut connect = unit.connect();
+        let id = {
+            let mut book = app.book.lock().unwrap();
+            let saved = book
+                .save(devices::EditDevice {
+                    id: None,
+                    name: "Test".into(),
+                    host: connect.host.clone(),
+                    port: connect.port,
+                    terminal_port: connect.terminal_port,
+                    model: DeviceModel::Auto,
+                })
+                .unwrap();
+            book.set_code(&saved.id, Some(Zeroizing::new("1234".into())))
+                .unwrap();
+            saved.id
+        };
+        connect.device_id = Some(id.clone());
+        command(&app, |r| Command::Connect(connect, r))
+            .await
+            .unwrap();
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 1).await);
+        unit.drop_sessions();
+        assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
+        app.book.lock().unwrap().set_code(&id, None).unwrap();
+        assert!(wait_until(&app, Duration::from_secs(2), |s| s.reconnect.is_none()).await);
+        let state = app.state.read().await;
+        assert!(!state.connected);
+        assert!(state.error.as_deref().unwrap().contains("access code"));
+        assert_eq!(unit.login_times().len(), 1);
     }
 
     #[tokio::test]
