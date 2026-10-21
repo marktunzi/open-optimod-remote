@@ -46,13 +46,14 @@
   ],
   "meter_groups": [
     "Input",
-    "Peak Limiting",
-    "MPX",
-    "Output",
-    "Comp.",
+    "AGC",
     "HF Enhance",
     "Gain Reduction",
     "HF Limiting",
+    "MPX",
+    "Output",
+    "Comp.",
+    "Peak Limiting",
     "Output (alt)"
   ]
 }

@@ -99,13 +99,15 @@
   ],
   "meter_groups": [
     "Input",
+    "AGC",
     "Enhancers",
+    "Gain Reduction",
     "Loudness GR",
     "Limiter 1",
     "Limiter 1 Output",
     "Limiter 2",
     "Limiter 2 Output",
     "Loudness Level",
-    "Gain Reduction"
+    "2-Band Gain Reduction"
   ]
 }

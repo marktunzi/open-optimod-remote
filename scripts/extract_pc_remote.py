@@ -109,7 +109,13 @@ CONFIGS = {
         ctor=0x48D8E0, assign=0x471B00, sprintf=0x503527, itoa=0x509864,
         binders={0x41F900: ("slider", 5), 0x41FAB0: ("radio", 7), 0x41FC80: ("combo", 3)},
         processing_dialogs=[232, 233, 234, 235, 240, 243, 245, 246, 370, 377, 380, 387],
+        # getbyte/setvalue: the meter-store read (value[k] at +0x28) and the bar
+        # update (0x4787b0, 0x438bf0). AGC and five-band bars get their value
+        # index only in the per-frame update functions (0x43b540, 0x43c670,
+        # 0x43d8d0, 0x43ebe0). The strip is chosen at 0x42bdce: 247 stereo
+        # five-band, 373 stereo other structures, 392/389 the same in Dual Mono.
         meter=dict(subclass=0x51FB47, init=0x438690, chan=0x43A4B0, curve=0x438D30,
+                   getbyte=0x4787B0, setvalue=0x438BF0,
                    dialogs=[247, 373, 389, 392], primary=247, max_values=111),
         # Dialog 380 ("Dialog") holds the five-band compressor attacks and releases.
         page_titles={380: "Compressors"},
@@ -127,8 +133,15 @@ CONFIGS = {
         string_copy=0x465E50, string_free=0x4099E0, seh_frames=True,
         binders={0x41D1C0: ("slider", 5), 0x41D350: ("radio", 7), 0x41D520: ("combo", 3)},
         processing_dialogs=[232, 233, 234, 235, 240, 243, 245, 246, 377, 380, 381, 387],
+        # getbyte 0x46cb30 reads value[k] (+0x2c), setvalue 0x4354a0. The AGC
+        # bars read 0x46cbb0, which combines two values: id 11 = max(3, 10)
+        # (0x46cd1e) and id 12 = max(4, 11) (0x46cd5d), the larger of the L and
+        # R AGC bass and master gain reductions. The client shows dialog 373
+        # unless the unit reports another structure than 2, when it shows the
+        # stereo-encoder strip 247 (0x42910d via 0x461780).
         meter=dict(subclass=0x507BA7, init=0x434FE0, chan=0x436D90, curve=0x4355B0,
-                   dialogs=[247, 373], primary=247, max_values=59),
+                   getbyte=0x46CB30, setvalue=0x4354A0, derived={0x46CBB0: {11: [3, 10], 12: [4, 11]}},
+                   dialogs=[373, 247], primary=373, max_values=59),
         overrides={},
     ),
     "bd1fdde1849217ff7830024c8ea2a369438a8ab6d5fd96aabfec74063df7c851": dict(
@@ -141,7 +154,11 @@ CONFIGS = {
         binders={0x42CE20: ("slider", 5), 0x42CFD0: ("radio", 7), 0x42D1A0: ("combo", 3)},
         processing_dialogs=[232, 233, 234, 235, 240, 244, 245, 246, 362, 368, 370, 375, 377, 380,
                             387, 388, 393, 394, 395, 396, 399, 400, 409, 410],
+        # getbyte 0x4c6f80 (value[k] at +0x3c), setvalue 0x447c90: as on the
+        # 8700HD, the AGC and band bars get their value index in the update
+        # functions (0x44c4d0 for strip 247, 0x44af10 for strip 373).
         meter=dict(subclass=0x58365E, init=0x447730, chan=0x4497B0, curve=0x447DD0,
+                   getbyte=0x4C6F80, setvalue=0x447C90,
                    dialogs=[247, 373, 378], primary=247, max_values=112),
         overrides={},
     ),
@@ -790,21 +807,43 @@ def _meter_members(image: Image, start: int, meter: dict):
 
 
 def _update_channels(image: Image, meter: dict):
+    """Per update function: {member: channel} for bars fed with a constant value index.
+
+    A channel is an int (``getbyte(k)``) or, for a getter in ``meter["derived"]``
+    that combines several values, a tuple of value indexes. Under the key
+    ``"members"`` every map also lists all members the function updates, so that
+    an update function whose constant indexes never meet an initialised channel
+    can still be paired with its dialog class.
+    """
     if not meter.get("getbyte"):
         return []
+    getters = {hex(meter["getbyte"]): None, **{hex(g): ids for g, ids in meter.get("derived", {}).items()}}
     maps = []
-    for start in image.callers(meter["getbyte"]):
+    starts = sorted({s for g in [meter["getbyte"], *meter.get("derived", {})] for s in image.callers(g)})
+    for start in starts:
         instructions = image.dis(start, 0x4000 // 3)
-        channels = {}
-        for k in range(len(instructions) - 8):
+        channels, members = {}, set()
+        for k in range(len(instructions)):
             if instructions[k].mnemonic == "ret":
                 break
+            w = instructions[k]
+            if (w.mnemonic == "call" and w.op_str == hex(meter["setvalue"]) and k >= 1 and instructions[k - 1].mnemonic == "add"
+                    and instructions[k - 1].op_str.startswith("ecx, 0x")):
+                members.add(("this", int(instructions[k - 1].op_str.split(", ")[1], 16)))
+            if k + 8 >= len(instructions):
+                continue
             w = instructions[k:k + 9]
             if (w[0].mnemonic == "push" and (w[0].op_str.startswith("0x") or w[0].op_str.isdigit()) and w[4].mnemonic == "call"
-                    and w[4].op_str == hex(meter["getbyte"]) and w[8].mnemonic == "call" and w[8].op_str == hex(meter["setvalue"]) and w[7].mnemonic == "add"):
-                channels[("this", int(w[7].op_str.split(", ")[1], 16))] = int(w[0].op_str, 0)
+                    and w[4].op_str in getters and w[8].mnemonic == "call" and w[8].op_str == hex(meter["setvalue"]) and w[7].mnemonic == "add"):
+                index = int(w[0].op_str, 0)
+                combined = getters[w[4].op_str]
+                if combined is not None:
+                    if index not in combined:
+                        continue
+                    index = tuple(combined[index])
+                channels[("this", int(w[7].op_str.split(", ")[1], 16))] = index
         if channels:
-            maps.append(channels)
+            maps.append(dict(channels, members=members))
     return maps
 
 
@@ -814,21 +853,58 @@ def _curve(image: Image, table: int, count: int):
     return [stored[count - 1 - raw] for raw in range(count)]  # reference uses table[max - raw]
 
 
-def extract_meter_bars(image: Image, meter: dict):
+def _unit_labels(image: Image, raw):
+    """Static controls the client fills with the current LDNES METER UNITS text, at its default.
+
+    The meter update functions read the system parameter "LDNES METER UNITS"
+    ("LU" or "Lk") and write its text into the loudness lane captions, whose
+    dialog text ("lK" or "Lk") is only a placeholder.
+    """
+    field = next((f for f in raw or [] if f["name"] == "LDNES METER UNITS" and f.get("values")), None)
+    if not field:
+        return {}
+    text = field["values"][field["default"] if 0 <= field["default"] < len(field["values"]) else 0]["value"]
+    name = image.mem.find(b"\0LDNES METER UNITS\0")
+    if name < 0:
+        return {}
+    labels = {}
+    for match in re.finditer(rb"\x68" + re.escape(struct.pack("<I", image.base + name + 1)), image.text):
+        for ins in image.dis(image.text_start + match.start(), 60):
+            if ins.mnemonic == "ret":
+                break
+            if ins.mnemonic == "push" and ins.op_str.startswith("0x") and 0x100 <= int(ins.op_str, 16) < 0x10000:
+                labels[int(ins.op_str, 16)] = text
+    return labels
+
+
+def extract_meter_bars(image: Image, meter: dict, raw=None):
     resources = dialogs(image)
+    unit_labels = _unit_labels(image, raw)
     updates = _update_channels(image, meter)
     helper_bodies, bars = {}, []
     for start in image.callers(meter["subclass"]):
         members, helpers = _meter_members(image, start, meter)
         own = {k: v for k, v in members.items() if k[0] == "this"}
         if updates and own:
+            def channels(update):
+                return {k: ch for k, ch in update.items() if k != "members"}
+
             def score(update):
-                if any(k in own and "chan" in own[k] and own[k]["chan"] != ch for k, ch in update.items()):
+                if any(k in own and "chan" in own[k] and own[k]["chan"] != ch for k, ch in channels(update).items()):
                     return -1
-                return sum(1 for k, ch in update.items() if k in own and own[k].get("chan") == ch)
+                return sum(1 for k, ch in channels(update).items() if k in own and own[k].get("chan") == ch)
+
+            def overlap(update):
+                # Members the update function and this dialog class share (Jaccard).
+                return len(update["members"] & own.keys()) / len(update["members"] | own.keys())
             best = max(updates, key=score)
-            if score(best) >= 1:
-                for key, channel in best.items():
+            if score(best) < 1:
+                # No constant index coincides with an initialised channel: pair by
+                # the members both functions update (classes sharing a layout differ).
+                candidates = [u for u in updates if score(u) == 0 and overlap(u) >= 0.75]
+                best = max(candidates, key=overlap) if candidates else None
+            if best is not None:
+                for key, channel in channels(best).items():
                     if key in own and "chan" not in own[key]:
                         own[key]["chan"] = channel
         if ("arg", 0) in members:
@@ -859,13 +935,16 @@ def extract_meter_bars(image: Image, meter: dict):
         entries = []
         for bar in per_function[owner]:
             item = items.get(bar["ctl"])
-            if not item or item["cls"] != "msctls_progress32" or not isinstance(bar.get("chan"), int) or any(e["ctl"] == bar["ctl"] for e in entries):
+            if not item or item["cls"] != "msctls_progress32" or not isinstance(bar.get("chan"), (int, tuple)) or any(e["ctl"] == bar["ctl"] for e in entries):
                 continue
             init = bar.get("init") or [None, None, None]
             curve = _curve(image, bar["curve"][0], bar["curve"][1]) if bar.get("curve") and isinstance(bar["curve"][0], int) else None
-            entries.append(dict(ctl=bar["ctl"], channel=bar["chan"], x=item["x"], y=item["y"], h=item["h"],
+            # A combined bar (see "derived") shows the larger of several values: one lane per value.
+            ids = list(bar["chan"]) if isinstance(bar["chan"], tuple) else [bar["chan"]]
+            entries.append(dict(ctl=bar["ctl"], channel=ids[0], ids=ids, x=item["x"], y=item["y"], h=item["h"],
                                 orientation={1: "down", 2: "up"}.get(init[1] if isinstance(init[1], int) else None), curve=curve))
-        labels = [dict(text=s["text"].strip(), x=s["x"], y=s["y"], w=s["w"]) for s in dialog["items"]
+        labels = [dict(text=unit_labels[s["id"]] if s["id"] in unit_labels and s["text"].strip().lower() in ("lk", "lu") else s["text"].strip(),
+                       x=s["x"], y=s["y"], w=s["w"]) for s in dialog["items"]
                   if s["cls"] == "Static" and s["text"].strip() and "--" not in s["text"]]
         views[dialog_id] = dict(title=dialog["title"], labels=labels, bars=sorted(entries, key=lambda e: e["x"]))
     return views
@@ -877,8 +956,11 @@ def _meter_kind(title: str, bars) -> str:
         return "enhance"
     if "comp" in lower:
         return "composite"
-    if "loudness level" in lower or lower in ("loudness", "mpx") or "power" in lower:
+    # The 2300's "MPX" group is only the MPX power controller's gain reduction, drawn from the top.
+    if ("loudness level" in lower or lower in ("loudness", "mpx") or "power" in lower) and not all(b["orientation"] == "down" for b in bars):
         return "loudness"
+    if lower.endswith("output"):  # 6300 "Limiter 1 Output": a level after the limiter
+        return "level"
     if any(k in lower for k in ("reduction", "agc", "limit", "g/r")):
         return "reduction"
     if "input" in lower or "output" in lower:
@@ -888,7 +970,7 @@ def _meter_kind(title: str, bars) -> str:
 
 def _meter_groups(view):
     titles = sorted((l for l in view["labels"] if l["y"] < 10 or (l["y"] < 100 and len(l["text"]) > 5 and not l["text"].endswith("Gate"))), key=lambda l: l["x"])
-    lane_labels = [l for l in view["labels"] if l["y"] >= 60 and len(l["text"]) <= 5]
+    lane_labels = [l for l in view["labels"] if l["y"] >= 60 and len(l["text"]) <= 6]
     bars = sorted((b for b in view["bars"] if b["h"] >= 50), key=lambda b: b["x"])  # 6 px bars are gate LEDs
     clusters = []
     for bar in bars:
@@ -901,7 +983,10 @@ def _meter_groups(view):
     grouped = []
     for cluster in clusters:
         center = (cluster[0]["x"] + cluster[-1]["x"] + 10) / 2
-        title = min(titles, key=lambda l: abs(l["x"] + l["w"] / 2 - center))["text"] if titles else "Meters"
+        # A caption inside the bars' height names short bars above it ("HF Limiting"), never a full-height cluster.
+        bottom = max(b["y"] + b["h"] for b in cluster)
+        eligible = [l for l in titles if l["y"] < 10 or l["y"] >= bottom] or titles
+        title = min(eligible, key=lambda l: abs(l["x"] + l["w"] / 2 - center))["text"] if titles else "Meters"
         group = next((g for g in grouped if g["name"] == title), None)
         if not group:
             group = {"name": title, "bars": []}
@@ -912,13 +997,16 @@ def _meter_groups(view):
         ordered, channels, i = sorted(group["bars"], key=lambda b: b["x"]), [], 0
         while i < len(ordered):
             pair = [ordered[i]]
-            if i + 1 < len(ordered) and ordered[i + 1]["x"] - ordered[i]["x"] <= 8:
+            gap = ordered[i + 1]["x"] - ordered[i]["x"] if i + 1 < len(ordered) else None
+            middle = (ordered[i]["x"] + ordered[i + 1]["x"]) / 2 + 5 if gap is not None else None
+            # Adjacent lanes, or two lanes 12 px apart under one centred caption (6300 "dB", "Lk").
+            if gap is not None and (gap <= 8 or (gap <= 12 and any(abs(l["x"] + l["w"] / 2 - middle) <= 4 for l in lane_labels))):
                 pair.append(ordered[i + 1])
                 i += 1
             i += 1
             under = [l["text"] for l in lane_labels if abs(l["x"] - pair[0]["x"]) <= 10]
             label = under[0] if under and (len(pair) == 2 or under[0] not in ("L", "R")) else ""
-            channels.append({"label": label, "ids": [b["channel"] for b in pair], "bars": pair})
+            channels.append({"label": label, "ids": [value for b in pair for value in b["ids"]], "bars": pair})
         if len(channels) == 2 and all(len(c["ids"]) == 1 for c in channels):
             under = [[l["text"] for l in lane_labels if abs(l["x"] - c["bars"][0]["x"]) <= 10][:1] for c in channels]
             if under == [["L"], ["R"]]:
@@ -931,8 +1019,8 @@ def _meter_groups(view):
     return result
 
 
-def build_meters(image: Image, meter: dict):
-    views = extract_meter_bars(image, meter)
+def build_meters(image: Image, meter: dict, raw=None):
+    views = extract_meter_bars(image, meter, raw)
     primary = _meter_groups(views[meter["primary"]])
     seen = {i for g in primary for c in g["channels"] for i in c["ids"]}
     extra = []
@@ -950,9 +1038,10 @@ def build_meters(image: Image, meter: dict):
     for group in groups:
         for channel in group["channels"]:
             for bar in channel.pop("bars"):
-                orientation[str(bar["channel"])] = bar["orientation"]
-                if bar["curve"]:
-                    curves[str(bar["channel"])] = bar["curve"]
+                for value in bar["ids"]:
+                    orientation[str(value)] = bar["orientation"]
+                    if bar["curve"]:
+                        curves[str(value)] = bar["curve"]
     return {"banks": [1, 2], "max_values": meter["max_values"], "groups": groups, "orientation": orientation, "curves": curves}
 
 
@@ -1003,7 +1092,7 @@ def main():
             "fields": fields}, indent=2) + "\n")
         layouts = build_layouts(image, config, fields, raw)
         (args.output / f"{prefix}layouts.json").write_text(json.dumps(layouts, indent=2) + "\n")
-        meters = build_meters(image, config["meter"])
+        meters = build_meters(image, config["meter"], raw)
         (args.output / f"{prefix}meters.json").write_text(json.dumps({**header, **meters}, indent=1) + "\n")
         (args.output / f"{prefix}report.json").write_text(json.dumps({
             **header, "installer_sha256": sha256(args.installer), "banner": config["banner"],

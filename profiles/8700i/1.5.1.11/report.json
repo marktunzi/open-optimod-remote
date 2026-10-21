@@ -154,16 +154,20 @@
   ],
   "meter_groups": [
     "Input",
+    "AGC",
+    "HF Enhance",
+    "Gain Reduction",
     "Loudness",
     "Output",
     "Comp.",
+    "HD HF Enhance",
+    "HD Gain Reduction",
     "HD Limiting",
     "Loudness GR",
     "Loudness Level",
     "HD Output",
-    "HF Enhance",
-    "Gain Reduction",
-    "HD HF Enhance",
-    "HD Gain Reduction"
+    "2-Band Gain Reduction",
+    "HF Limiting",
+    "2-Band HD Gain Reduction"
   ]
 }
