@@ -968,8 +968,15 @@ async fn read_preset_files(app: &App, device: &mut Device) -> Result<Vec<Preset>
         {
             continue;
         }
-        if presets.iter().any(|p| p.name == document.name) {
-            return Err(format!("Ambiguous duplicate preset name {}", document.name));
+        // A user preset may carry a factory preset's name (seen on a 6300:
+        // CRISP.orb63user next to the factory CRISP); it is listed apart.
+        let listed = if presets.iter().any(|p| p.name == document.name) {
+            format!("{} (user)", document.name)
+        } else {
+            document.name.clone()
+        };
+        if presets.iter().any(|p| p.name == listed) {
+            return Err(format!("Ambiguous duplicate preset name {listed}"));
         }
         let kind = if document.name.to_ascii_lowercase().starts_with("modif ") {
             PresetKind::Unsaved
@@ -977,10 +984,10 @@ async fn read_preset_files(app: &App, device: &mut Device) -> Result<Vec<Preset>
             PresetKind::User
         };
         presets.push(Preset {
-            name: document.name.clone(),
+            name: listed.clone(),
             kind,
         });
-        device.user_presets.insert(document.name, plain);
+        device.user_presets.insert(listed, plain);
     }
     Ok(presets)
 }
@@ -1075,8 +1082,12 @@ async fn recall_with_files(
         }
         PresetKind::Unsaved => return Err(OperationError::safe("Select a saved preset")),
     };
+    // On air, the unit reports the name inside the document.
+    let on_air_name = expected
+        .as_ref()
+        .map_or(name, |expected| expected.name.as_str());
     let confirmed = read_back(app, device, Scope::Processing, |document| {
-        document.name == name
+        document.name == on_air_name
             && expected
                 .as_ref()
                 .is_none_or(|expected| expected.fields == document.fields)
@@ -1087,7 +1098,7 @@ async fn recall_with_files(
             "The recall of {name} could not be confirmed; the connection remains active. {e}"
         ))
     })?;
-    if confirmed.name != name
+    if confirmed.name != on_air_name
         || expected
             .as_ref()
             .is_some_and(|expected| expected.fields != confirmed.fields)
@@ -4019,6 +4030,17 @@ mod tests {
         setup: "Setup.orbsetup",
     };
 
+    const M6300: FileModel = FileModel {
+        wire: orban_protocol::adapter::WIRE_6300,
+        model: DeviceModel::Optimod6300,
+        login: b"connect ok\n0\n6300 V 4.1.1.19\n123\n",
+        terminal: b"Orban Optimod 6300 V 4.1.1.19\n\r",
+        version: "6300.50",
+        user: ".ORB63USER",
+        on_air: "OnAir.orb63onair",
+        setup: "Setup.orb63setup",
+    };
+
     struct FakeFileUnit {
         model: FileModel,
         pc: std::net::SocketAddr,
@@ -4357,7 +4379,18 @@ mod tests {
 
     #[tokio::test]
     async fn the_5500i_syncs_writes_and_recalls_with_its_own_opcodes() {
-        let unit = FakeFileUnit::start(M5500I).await;
+        file_sync_round_trip(M5500I, 27).await;
+    }
+
+    #[tokio::test]
+    async fn the_6300_syncs_writes_and_recalls_with_its_own_opcodes() {
+        file_sync_round_trip(M6300, 68).await;
+    }
+
+    /// Sync, a write, a user preset Recall and a pushed change on a
+    /// file-sync unit, with that model's own opcodes only.
+    async fn file_sync_round_trip(m: FileModel, factory: usize) {
+        let unit = FakeFileUnit::start(m).await;
         let (app, _storage) = running_owner().await;
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
@@ -4372,7 +4405,7 @@ mod tests {
                     .iter()
                     .filter(|p| p.kind == PresetKind::Factory)
                     .count(),
-                27
+                factory
             );
             assert!(
                 state
@@ -4408,10 +4441,13 @@ mod tests {
             app.state.read().await.processing.as_ref().unwrap().name,
             "Late Night"
         );
-        // FAh/FBh as on the 5700i; the upload ends with FBh.
-        assert!(!unit.received(250).is_empty());
-        assert!(unit.received(249).is_empty());
-        assert_eq!(unit.received(251).len(), 1);
+        // Only this model's boundary request; the upload ends with its own
+        // marker, which is never a boundary request.
+        let (boundary, _) = m.wire.boundary;
+        let end = m.wire.file_end.unwrap();
+        assert_ne!(end, boundary);
+        assert!(!unit.received(boundary).is_empty());
+        assert_eq!(unit.received(end).len(), 1);
         assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
         unit.push.send_modify(|n| *n += 1);
         sleep(Duration::from_millis(200)).await;

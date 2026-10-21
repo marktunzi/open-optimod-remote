@@ -275,6 +275,93 @@ const FACTORY_5500I: [&str; 27] = [
     "URBAN-LOUD",
 ];
 
+/// 6300 4.1.1.19: probed on the original firmware (virtual 6300, 21 October
+/// 2026). The same generation as the 8700HD: F9h is answered by FAh, EEh by
+/// `OnAir.orb63onair`, EFh by `Setup.orb63setup` (E8h) and F2h by every
+/// `.orb63user` file (E7h).
+pub const WIRE_6300: Wire = Wire {
+    boundary: (249, 250),
+    on_air_request: 238,
+    setup_request: Some((239, 232)),
+    user_presets_request: Some((242, 231)),
+    user_extension: ".orb63user",
+    file_sync: true,
+    factory_presets: &FACTORY_6300,
+    file_end: Some(250),
+};
+
+/// Preset names of the factory `.orb63f` files of PC Remote 4.1.1.19.
+const FACTORY_6300: [&str; 68] = [
+    "AGC+50us LIMIT",
+    "AGC+75us LIMIT",
+    "AGC+FLAT LIMIT",
+    "CLASSICAL-2 BAND",
+    "CLASSICAL-2B SFTKN",
+    "CLASSICAL-2B+AGC",
+    "CLASSICAL-5 BAND",
+    "CLASSICAL-5B+AGC",
+    "COUNTRY-LIGHT",
+    "COUNTRY-MEDIUM",
+    "CRISP",
+    "DANCE ENERGY",
+    "EDGE",
+    "FOLK-TRADITIONAL",
+    "GOLD",
+    "GREGG",
+    "GREGG OPEN",
+    "IMPACT",
+    "INSTRUMENTAL",
+    "JAZZ",
+    "LOOK-AHEAD LIMITER",
+    "LOUD-BIG",
+    "LOUD-COMPRESSED",
+    "LOUD-FAT",
+    "LOUD-HOT",
+    "LOUD-HOT+BASS",
+    "LOUD-PUNCHY",
+    "LOUD+SLAM",
+    "NEWS-TALK",
+    "PROTECT",
+    "ROCK-DENSE",
+    "ROCK-LIGHT",
+    "ROCK-MEDIUM",
+    "ROCK-MEDIUM+LOWBASS",
+    "ROCK-MEDIUM+MIDBASS",
+    "ROCK-OPEN",
+    "ROCK-SMOOTH",
+    "ROCK-SOFT",
+    "SMOOTH JAZZ",
+    "SOFT KNEE 2B",
+    "SOFT KNEE 5B",
+    "SPORTS",
+    "TV 2B DRAMA",
+    "TV 2B GEN PURP -LC",
+    "TV 2B GEN PURPOSE",
+    "TV 5B DRAMA",
+    "TV 5B DRAMA COUPLED",
+    "TV 5B GEN PUR W NR",
+    "TV 5B GEN PURP -LC",
+    "TV 5B GEN PURPOSE",
+    "TV 5B NEWS",
+    "TV 5B OPTICAL FILM",
+    "TV 5B SPORTS",
+    "TVA 2B DRAMA",
+    "TVA 2B GEN PURP -LC",
+    "TVA 2B GEN PURPOSE",
+    "TVA 5B DRAMA",
+    "TVA 5B DRAMA COUPLED",
+    "TVA 5B GEN PUR W NR",
+    "TVA 5B GEN PURP -LC",
+    "TVA 5B GEN PURPOSE",
+    "TVA 5B NEWS",
+    "TVA 5B OPTICAL FILM",
+    "TVA 5B SPORTS",
+    "URBAN-HEAVY",
+    "URBAN-LIGHT",
+    "WMA MUSIC",
+    "WMA NEWS-TALK",
+];
+
 /// Preset names of the factory `.orb86f50` files of PC Remote 1.0.2.161.
 const FACTORY_8700HD: [&str; 64] = [
     "CLASSICAL-2 BAND",
@@ -420,7 +507,7 @@ const STATIC_METERS: MeterProfile = MeterProfile {
 };
 
 /// Exact banners with a parameter profile. Only these can write.
-const EXACT: [(&str, AdapterDescriptor); 4] = [
+const EXACT: [(&str, AdapterDescriptor); 5] = [
     ("5700i V 3.0.1.20", VERIFIED_5700I),
     (
         "5500 V 1.2.8.24",
@@ -457,6 +544,25 @@ const EXACT: [(&str, AdapterDescriptor); 4] = [
             frame_cut: None,
             on_air_archive: true,
             wire: WIRE_5500I,
+            evidence: Evidence::Static,
+        },
+    ),
+    (
+        "6300 V 4.1.1.19",
+        AdapterDescriptor {
+            id: "pc-remote-6300-4.1.1.19",
+            model: DeviceModel::Optimod6300,
+            skin: SkinId::Optimod6300,
+            transport: TransportKind::PcRemoteTcp,
+            default_port: 6201,
+            default_terminal_port: 23,
+            product_mark: "6300 DIGITAL",
+            firmware_prefix: "6300 V ",
+            capabilities: STATIC_FULL,
+            meter_profile: Some(STATIC_METERS),
+            frame_cut: None,
+            on_air_archive: true,
+            wire: WIRE_6300,
             evidence: Evidence::Static,
         },
     ),
