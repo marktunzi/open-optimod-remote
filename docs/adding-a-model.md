@@ -19,7 +19,9 @@ An unknown PC Remote build stops with its SHA-256. Add a `CONFIGS` entry for tha
 - `meter`: the subclass, init, channel and curve setters of the meter bars, their dialogs, and the channel limit from the meter store (`cmp [ebp+8], N`).
 - `overrides`: constructor calls whose arguments are pushed from registers.
 
-Use the existing 5500, 5700i and 8700HD entries as templates. For a model that already has a hardware-verified profile, set `supplement=True`: the extractor then writes `static-*.json` next to it, and the app adds only the fields and pages the verified profile lacks. Never commit anything from the installer; only the generated JSON files.
+`scripts/match_pc_remote_functions.py` finds most of these addresses by matching the functions of a known build (the 5500i entry was found this way from both the 5500 and the 8700HD build, with identical results). Dialog IDs come from the new executable's dialog resources. Measure `max_values` on the unit: the meter record count of the 228 message.
+
+Use the existing 5500, 5500i, 5700i and 8700HD entries as templates. For a model that already has a hardware-verified profile, set `supplement=True`: the extractor then writes `static-*.json` next to it, and the app adds only the fields and pages the verified profile lacks. Never commit anything from the installer; only the generated JSON files.
 
 The extractor rejects a constant offset between PC Remote and the factory presets. On the hardware-verified 5700i such an offset was wrong, because the presets came from older firmware.
 
