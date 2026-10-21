@@ -90,6 +90,18 @@ CONFIGS = {
             ("FM BS1770 LDNES CTRL THR", 428): dict(count=201, default=0x82, conv=0x498070),
         },
     ),
+    "d702cc2d27178a87e63e67bc88c54ee690279b4b31b68b5c272b9edea88dda72": dict(
+        # 5500i 3.1.0.2: every address found by matching the functions of the
+        # 5500 1.2.8.24 and 8700HD 1.0.2.161 builds (same results from both).
+        model="5500i", adapter="pc-remote-5500i-3.1.0.2", firmware="3.1.0.2",
+        banner="5500i V 3.1.0.2", document_family="5500.",
+        ctor=0x49B9B0, assign=0x476160, sprintf=0x50B138, itoa=0x5111CC,
+        binders={0x4207F0: ("slider", 5), 0x4209A0: ("radio", 7), 0x420B70: ("combo", 3)},
+        processing_dialogs=[232, 233, 234, 235, 240, 243, 245, 246, 377, 387, 400, 381],
+        meter=dict(subclass=0x5274B7, init=0x43ACD0, chan=0x43CB80, curve=0x43B370,
+                   dialogs=[247, 373, 399], primary=247, max_values=86),
+        overrides={},
+    ),
     "6ff1f203b45345553459e70f043ae681514c98ba130058d677e70170a72ee5b5": dict(
         model="8700hd", adapter="pc-remote-8700hd-1.0.2.161", firmware="1.0.2.161",
         banner="8700HD V 1.0.2.161", document_family="8700.",
