@@ -1,0 +1,58 @@
+{
+  "model": "2300",
+  "firmware": "2.0.3.85",
+  "reference_sha256": "ce8333a7242563aca5b88b27fe39eaabf2306deb488e80596617a0e0db449ad7",
+  "firmware_sha256": "ac1cce8aa1dc5583708a39a2d12c77b199f0f2dfc417e3229fbace53838b2bd8",
+  "installer_sha256": "1522e82ed96552710ca40eae5c0d49d079bddb27f12362710b1556a74079a413",
+  "banner": "2300 V 2.0.3.85",
+  "document_family": "2300.",
+  "registrations": 187,
+  "factory_presets": 88,
+  "preset_families": {
+    "OptimodVersion=<2300.10>": 86,
+    "OptimodVersion=<2300.20>": 2
+  },
+  "preset_fields": 62,
+  "field_evidence": {
+    "text": 18,
+    "confirmed": 55,
+    "unobserved": 109,
+    "transform": 1,
+    "conflict": 3
+  },
+  "excluded": [
+    {
+      "name": "2B BASS CLIP MODE",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "INPUT EMPH STATUS",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "MPX PWR OFFSET",
+      "reason": "conflicts with factory presets"
+    }
+  ],
+  "pages": [
+    "Less More (Shared)",
+    "AGC (Shared)",
+    "Stereo Enhancer (FM)",
+    "Equalizer (FM)",
+    "2 Band (FM)",
+    "2 Band Distortion (FM)",
+    "Final Clipping (FM)",
+    "Clipper Options (FM)"
+  ],
+  "meter_groups": [
+    "Input",
+    "Peak Limiting",
+    "MPX",
+    "Output",
+    "Comp.",
+    "HF Enhance",
+    "Gain Reduction",
+    "HF Limiting",
+    "Output (alt)"
+  ]
+}

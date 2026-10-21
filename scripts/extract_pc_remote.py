@@ -115,6 +115,22 @@ CONFIGS = {
         page_titles={380: "Compressors"},
         overrides={},
     ),
+    "ce8333a7242563aca5b88b27fe39eaabf2306deb488e80596617a0e0db449ad7": dict(
+        # 2300 2.0.3.85: an older build. sprintf, itoa, the radio and combo
+        # binders and three meter functions matched the 5500i and 8700HD
+        # builds; the constructor (186 registrations), the slider binder (121
+        # calls with control IDs) and the curve setter (the same body, curve
+        # at member 0x9C) were found by their call patterns.
+        model="2300", adapter="pc-remote-2300-2.0.3.85", firmware="2.0.3.85",
+        banner="2300 V 2.0.3.85", document_family="2300.",
+        ctor=0x484180, assign=0x465D30, sprintf=0x4EBB97, itoa=0x4F1B4F,
+        string_copy=0x465E50, string_free=0x4099E0, seh_frames=True,
+        binders={0x41D1C0: ("slider", 5), 0x41D350: ("radio", 7), 0x41D520: ("combo", 3)},
+        processing_dialogs=[232, 233, 234, 235, 240, 243, 245, 246, 377, 380, 381, 387],
+        meter=dict(subclass=0x507BA7, init=0x434FE0, chan=0x436D90, curve=0x4355B0,
+                   dialogs=[247, 373], primary=247, max_values=59),
+        overrides={},
+    ),
     "6ff1f203b45345553459e70f043ae681514c98ba130058d677e70170a72ee5b5": dict(
         model="8700hd", adapter="pc-remote-8700hd-1.0.2.161", firmware="1.0.2.161",
         banner="8700HD V 1.0.2.161", document_family="8700.",
@@ -265,7 +281,17 @@ class Emulator:
         self.uc.mem_write(image.base, bytes(image.mem))
         for area in (STACK - 0x100000, OUT, HEAP, STOP):
             self.uc.mem_map(area, 0x100000)
+        # Builds whose conversions open an exception frame (fs:[0]) get a page
+        # at FS base 0 for it; others keep address 0 unmapped.
+        if config.get("seh_frames"):
+            self.uc.mem_map(0, 0x1000)
         self.hooks = {config["assign"]: (self._assign, 4), config["sprintf"]: (self._sprintf, 0), config["itoa"]: (self._itoa, 0)}
+        # Builds with a string class instead of MFC's CString build a temporary
+        # from char* (the "assign" hook), copy it into the result and free it.
+        if config.get("string_copy"):
+            self.hooks[config["string_copy"]] = (self._string_copy, 4)
+        if config.get("string_free"):
+            self.hooks[config["string_free"]] = (self._string_free, 0)
         self.strings: dict[int, str] = {}
         self.error = None
         self.uc.hook_add(UC_HOOK_CODE, self._code)
@@ -300,6 +326,14 @@ class Emulator:
         pointer = self.arg(0)
         self.strings[this] = self.cstr(pointer) if pointer else ""
         return this
+
+    def _string_copy(self):
+        this = self.uc.reg_read(UC_X86_REG_ECX)
+        self.strings[this] = self.strings.get(self.arg(0), "")
+        return this
+
+    def _string_free(self):
+        return 0
 
     def _sprintf(self):
         buffer, fmt, cursor = self.arg(0), self.cstr(self.arg(1)), [2]
