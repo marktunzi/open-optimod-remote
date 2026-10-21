@@ -29,6 +29,8 @@ pub enum DeviceModel {
     Optimod5700Hd,
     #[serde(rename = "optimod-8500")]
     Optimod8500,
+    #[serde(rename = "optimod-2300")]
+    Optimod2300,
     #[serde(rename = "optimod-6300")]
     Optimod6300,
     #[serde(rename = "optimod-8600")]
@@ -44,7 +46,7 @@ pub enum DeviceModel {
 }
 
 impl DeviceModel {
-    pub const SELECTABLE: [Self; 13] = [
+    pub const SELECTABLE: [Self; 14] = [
         Self::Auto,
         Self::Optimod5700i,
         Self::Optimod5500i,
@@ -52,6 +54,7 @@ impl DeviceModel {
         Self::Optimod5700Fm,
         Self::Optimod5700Hd,
         Self::Optimod8500,
+        Self::Optimod2300,
         Self::Optimod6300,
         Self::Optimod8600,
         Self::Optimod8700i,
@@ -69,6 +72,7 @@ impl DeviceModel {
             Self::Optimod5700Fm => "OPTIMOD 5700 FM",
             Self::Optimod5700Hd => "OPTIMOD 5700 HD",
             Self::Optimod8500 => "OPTIMOD 8500",
+            Self::Optimod2300 => "OPTIMOD 2300",
             Self::Optimod6300 => "OPTIMOD 6300",
             Self::Optimod8600 => "OPTIMOD 8600",
             Self::Optimod8700i => "OPTIMOD 8700i",
@@ -94,6 +98,8 @@ pub enum SkinId {
     Optimod5700Hd,
     #[serde(rename = "optimod-8500")]
     Optimod8500,
+    #[serde(rename = "optimod-2300")]
+    Optimod2300,
     #[serde(rename = "optimod-6300")]
     Optimod6300,
     #[serde(rename = "optimod-8600")]
@@ -195,6 +201,13 @@ pub struct Wire {
     /// direction; the receiver answers it with the same opcode, which is also
     /// the boundary answer. `None` where this was not observed.
     pub file_end: Option<u16>,
+    /// The login answer ends with a session number line.
+    pub login_seed: bool,
+    /// File messages carry a file name line; without it, a requested file
+    /// is told from a pushed one only by the request in flight.
+    pub file_names: bool,
+    /// A factory preset can be recalled with the terminal's `RP`.
+    pub factory_recall: bool,
 }
 
 /// 5700i 3.0.1.20 (reference unit and virtual 5700i).
@@ -207,6 +220,9 @@ pub const WIRE_5700I: Wire = Wire {
     file_sync: false,
     factory_presets: &[],
     file_end: None,
+    login_seed: true,
+    file_names: true,
+    factory_recall: true,
 };
 
 /// 8700HD 1.0.2.161: captured from the original PC Remote 1.0.2.161 and the
@@ -226,6 +242,9 @@ pub const WIRE_8700HD: Wire = Wire {
     // FAh; the original PC Remote follows its Recall upload with FAh, and
     // the unit answers it with FAh (captures, 21 October 2026).
     file_end: Some(250),
+    login_seed: true,
+    file_names: true,
+    factory_recall: true,
 };
 
 /// 5500i 3.1.0.2: captured from the original PC Remote 3.1.0.2 and the
@@ -242,6 +261,9 @@ pub const WIRE_5500I: Wire = Wire {
     file_sync: true,
     factory_presets: &FACTORY_5500I,
     file_end: Some(251),
+    login_seed: true,
+    file_names: true,
+    factory_recall: true,
 };
 
 /// Preset names of the factory `.orb55f50` files of PC Remote 3.1.0.2.
@@ -288,6 +310,9 @@ pub const WIRE_6300: Wire = Wire {
     file_sync: true,
     factory_presets: &FACTORY_6300,
     file_end: Some(250),
+    login_seed: true,
+    file_names: true,
+    factory_recall: true,
 };
 
 /// Preset names of the factory `.orb63f` files of PC Remote 4.1.1.19.
@@ -360,6 +385,42 @@ const FACTORY_6300: [&str; 68] = [
     "URBAN-LIGHT",
     "WMA MUSIC",
     "WMA NEWS-TALK",
+];
+
+/// 2300 2.0.3.85: probed on the original firmware and read from a recorded
+/// session of the original PC Remote 2.0.3.85 (virtual 2300, October 2026).
+/// An older generation: the login has no session number line, F7h is
+/// answered by F8h, EDh by the on-air file, EEh by the setup file (E8h) and
+/// F0h by the user preset files (E7h); a file message has no name line and a
+/// meter record gives its count as one byte. The unit has no TCP terminal, so
+/// a factory preset can only be recalled by uploading a document that the
+/// original client converts from its installer's factory file.
+pub const WIRE_2300: Wire = Wire {
+    boundary: (247, 248),
+    on_air_request: 237,
+    setup_request: Some((238, 232)),
+    user_presets_request: Some((240, 231)),
+    user_extension: ".orb23user",
+    file_sync: true,
+    factory_presets: &FACTORY_2300,
+    file_end: None,
+    login_seed: false,
+    file_names: false,
+    factory_recall: false,
+};
+
+/// Preset names of the factory `.orb23f75` files of PC Remote 2.0.3.85.
+const FACTORY_2300: [&str; 10] = [
+    "CLASSICAL",
+    "CLASSICAL+AGC",
+    "GENERAL PURPOSE",
+    "MUSIC HEAVY",
+    "MUSIC LIGHT",
+    "MUSIC MEDIUM",
+    "MUSIC+BASS HEAVY",
+    "MUSIC+BASS MEDIUM",
+    "ST ENC NO LIM",
+    "TALK",
 ];
 
 /// Preset names of the factory `.orb86f50` files of PC Remote 1.0.2.161.
@@ -507,7 +568,7 @@ const STATIC_METERS: MeterProfile = MeterProfile {
 };
 
 /// Exact banners with a parameter profile. Only these can write.
-const EXACT: [(&str, AdapterDescriptor); 5] = [
+const EXACT: [(&str, AdapterDescriptor); 6] = [
     ("5700i V 3.0.1.20", VERIFIED_5700I),
     (
         "5500 V 1.2.8.24",
@@ -567,6 +628,25 @@ const EXACT: [(&str, AdapterDescriptor); 5] = [
         },
     ),
     (
+        "2300 V 2.0.3.85",
+        AdapterDescriptor {
+            id: "pc-remote-2300-2.0.3.85",
+            model: DeviceModel::Optimod2300,
+            skin: SkinId::Optimod2300,
+            transport: TransportKind::PcRemoteTcp,
+            default_port: 6201,
+            default_terminal_port: 23,
+            product_mark: "2300 DIGITAL",
+            firmware_prefix: "2300 V ",
+            capabilities: STATIC_FULL,
+            meter_profile: Some(STATIC_METERS),
+            frame_cut: None,
+            on_air_archive: true,
+            wire: WIRE_2300,
+            evidence: Evidence::Static,
+        },
+    ),
+    (
         "8700HD V 1.0.2.161",
         AdapterDescriptor {
             id: "pc-remote-8700hd-1.0.2.161",
@@ -587,7 +667,7 @@ const EXACT: [(&str, AdapterDescriptor); 5] = [
     ),
 ];
 
-const ADAPTERS: [AdapterDescriptor; 12] = [
+const ADAPTERS: [AdapterDescriptor; 13] = [
     AdapterDescriptor {
         id: "pc-remote-5700i-family",
         model: DeviceModel::Optimod5700i,
@@ -682,6 +762,22 @@ const ADAPTERS: [AdapterDescriptor; 12] = [
         frame_cut: None,
         on_air_archive: false,
         wire: WIRE_5700I,
+        evidence: Evidence::None,
+    },
+    AdapterDescriptor {
+        id: "pc-remote-2300-family",
+        model: DeviceModel::Optimod2300,
+        skin: SkinId::Optimod2300,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "2300 DIGITAL",
+        firmware_prefix: "2300 V ",
+        capabilities: READ_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: false,
+        wire: WIRE_2300,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -813,6 +909,7 @@ impl AdapterRegistry {
             ("orban optimod 5700hd", DeviceModel::Optimod5700Hd),
             ("orban optimod 8500", DeviceModel::Optimod8500),
             ("orban optimod 6300", DeviceModel::Optimod6300),
+            ("orban optimod 2300", DeviceModel::Optimod2300),
             ("orban optimod 8600", DeviceModel::Optimod8600),
             ("orban optimod 8700i", DeviceModel::Optimod8700i),
             // The 8700HD 1.0.2.161 terminal banner: "Orban Optimod 8700HD V 1.0.2.161".

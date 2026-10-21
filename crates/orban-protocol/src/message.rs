@@ -130,7 +130,24 @@ pub fn decode_for(
                 return Err("Unsupported meter bank".into());
             }
             data = &data[1..];
-            let count = decimal(line(&mut data)?)? as usize;
+            // The 2300 gives the count as one byte instead of a decimal line.
+            let mut probe = data;
+            let count = match line(&mut probe).and_then(decimal) {
+                Ok(count) => {
+                    line(&mut data)?;
+                    count as usize
+                }
+                Err(_)
+                    if data
+                        .first()
+                        .is_some_and(|n| usize::from(*n) + 1 == data.len()) =>
+                {
+                    let count = usize::from(data[0]);
+                    data = &data[1..];
+                    count
+                }
+                Err(error) => return Err(error),
+            };
             if !(profile.min_values..=profile.max_values).contains(&count) || data.len() != count {
                 return Err("Invalid meter count".into());
             }
@@ -142,6 +159,18 @@ pub fn decode_for(
         229..=235 => {
             decimal(line(&mut data)?)?;
             decimal(line(&mut data)?)?;
+            // The 2300 sends no name line: `0\n0\n<size>\n` and the file.
+            let mut unnamed = data;
+            if let Ok(count) = line(&mut unnamed).and_then(decimal)
+                && count as usize == unnamed.len()
+                && !unnamed.is_empty()
+            {
+                return Ok(Message::File {
+                    kind,
+                    name: String::new(),
+                    data: unnamed.to_vec(),
+                });
+            }
             let name = std::str::from_utf8(line(&mut data)?).map_err(|_| "Invalid filename")?;
             // This is device metadata, not a local filesystem path. PC Remote
             // events may contain an absolute Windows path. Keep it verbatim so

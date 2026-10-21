@@ -49,6 +49,7 @@ impl Document {
             crate::adapter::DeviceModel::Optimod5500 => "OptimodVersion=<8300.",
             crate::adapter::DeviceModel::Optimod8500 => "OptimodVersion=<8500.",
             crate::adapter::DeviceModel::Optimod6300 => "OptimodVersion=<6300.",
+            crate::adapter::DeviceModel::Optimod2300 => "OptimodVersion=<2300.",
             crate::adapter::DeviceModel::Optimod8600 => "OptimodVersion=<8600.",
             crate::adapter::DeviceModel::Optimod8700i
             | crate::adapter::DeviceModel::Optimod8700Hd => "OptimodVersion=<8700.",

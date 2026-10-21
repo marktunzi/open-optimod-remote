@@ -137,10 +137,13 @@ impl Session {
                 model_hint.label()
             ));
         }
-        login_line(stream, end)
-            .await?
-            .parse::<u32>()
-            .map_err(|_| "Invalid session seed")?;
+        // The 2300 ends its login answer after the firmware line.
+        if adapter.wire.login_seed {
+            login_line(stream, end)
+                .await?
+                .parse::<u32>()
+                .map_err(|_| "Invalid session seed")?;
+        }
         Ok((access_level, firmware, adapter))
     }
     /// No automatic retry: a timed-out control write has an unknown outcome.

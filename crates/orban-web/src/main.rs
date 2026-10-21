@@ -948,12 +948,18 @@ async fn read_preset_files(app: &App, device: &mut Device) -> Result<Vec<Preset>
     };
     let model = device.session.info.model;
     for (name, data) in read_files(app, device, request, reply).await? {
+        let plain = Zeroizing::new(device.session.decrypt_file(&data)?);
+        // The 2300 sends no file names; its documents name their own file.
+        let name = if name.is_empty() {
+            preset_file_name(&plain).unwrap_or_default()
+        } else {
+            name
+        };
         // The unit also sends its setup files, the firmware's working copies
         // of factory presets and files of other models.
         if !name.to_ascii_lowercase().ends_with(wire.user_extension) {
             continue;
         }
-        let plain = Zeroizing::new(device.session.decrypt_file(&data)?);
         // A file copied onto the unit from another model keeps its own
         // document version (seen: a 6300 preset renamed `.orb86user`); it is
         // not a preset of this processor.
@@ -990,6 +996,15 @@ async fn read_preset_files(app: &App, device: &mut Device) -> Result<Vec<Preset>
         device.user_presets.insert(listed, plain);
     }
     Ok(presets)
+}
+
+/// The `Preset File Name` a document gives itself.
+fn preset_file_name(plain: &[u8]) -> Option<String> {
+    let text = std::str::from_utf8(plain).ok()?;
+    let line = text
+        .lines()
+        .find_map(|l| l.strip_prefix("Preset File Name= <"))?;
+    Some(line.strip_suffix('>')?.to_owned())
 }
 
 /// Settings, presets and on-air processing of a file-sync model, read over
@@ -1049,7 +1064,13 @@ async fn recall_with_files(
             let iv = *uuid::Uuid::new_v4().as_bytes();
             let sealed = orban_protocol::archive::encrypt(text.as_bytes(), &device.code, iv)
                 .map_err(OperationError::safe)?;
-            let mut body = format!("0\n0\n\n{}\n", sealed.len()).into_bytes();
+            // The 2300's upload has no name line at all.
+            let mut body = if device.session.adapter().wire.file_names {
+                format!("0\n0\n\n{}\n", sealed.len())
+            } else {
+                format!("0\n0\n{}\n", sealed.len())
+            }
+            .into_bytes();
             body.extend(sealed);
             device
                 .session
@@ -1065,6 +1086,12 @@ async fn recall_with_files(
                 device.boundaries.sent();
             }
             Some(file_document(plain, device.session.info.model).map_err(OperationError::safe)?)
+        }
+        PresetKind::Factory if !device.session.adapter().wire.factory_recall => {
+            return Err(OperationError::safe(format!(
+                "A factory preset cannot be recalled over the network on the {}: the original PC Remote converts its own copy of the factory file, and the unit has no terminal port. Recall it on the front panel, or recall a user preset.",
+                device.session.info.model.label()
+            )));
         }
         PresetKind::Factory => {
             orban_protocol::terminal::send_recall_for_model(
@@ -1086,11 +1113,18 @@ async fn recall_with_files(
     let on_air_name = expected
         .as_ref()
         .map_or(name, |expected| expected.name.as_str());
+    let version = |document: &Document| document.raw.lines().next().map(str::to_owned);
+    // A document of an older version is converted by the firmware when it
+    // loads it (2300: user presets saved as 2300.10, run as 2300.20); then
+    // only the name can confirm the Recall.
+    let same_fields = |expected: &Document, document: &Document| {
+        version(expected) != version(document) || expected.fields == document.fields
+    };
     let confirmed = read_back(app, device, Scope::Processing, |document| {
         document.name == on_air_name
             && expected
                 .as_ref()
-                .is_none_or(|expected| expected.fields == document.fields)
+                .is_none_or(|expected| same_fields(expected, document))
     })
     .await
     .map_err(|e| {
@@ -1101,7 +1135,7 @@ async fn recall_with_files(
     if confirmed.name != on_air_name
         || expected
             .as_ref()
-            .is_some_and(|expected| expected.fields != confirmed.fields)
+            .is_some_and(|expected| !same_fields(expected, &confirmed))
     {
         return Err(OperationError::uncertain(format!(
             "The processor did not confirm the recall of {name}; it reports {} on air",
@@ -1291,11 +1325,15 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
                 device.files.push((name, data));
             }
             // The requested archive is a named file; the push has no name.
+            // Where files carry no names (2300), the answer to a request in
+            // flight is the requested file.
             Message::File {
                 kind: 229,
                 name,
                 data,
-            } if device.archive_requested && !name.is_empty() => {
+            } if device.archive_requested
+                && (!name.is_empty() || !device.session.adapter().wire.file_names) =>
+            {
                 device.archive_requested = false;
                 device.archive = Some(data);
             }
@@ -4041,6 +4079,17 @@ mod tests {
         setup: "Setup.orb63setup",
     };
 
+    const M2300: FileModel = FileModel {
+        wire: orban_protocol::adapter::WIRE_2300,
+        model: DeviceModel::Optimod2300,
+        login: b"connect ok\n0\n2300 V 2.0.3.85\n",
+        terminal: b"",
+        version: "2300.20",
+        user: ".orb23user",
+        on_air: "",
+        setup: "",
+    };
+
     struct FakeFileUnit {
         model: FileModel,
         pc: std::net::SocketAddr,
@@ -4068,9 +4117,26 @@ mod tests {
 
     fn doc_with(version: &str, name: &str, drive: i32) -> String {
         format!(
-            "OptimodVersion=<{version}>\r\nPreset Name=<{name}> size=3\r\nFactory Preset Name=<GREGG>\r\nPreset Type= <MULTIBAND PRESET>\r\nC:<AGC DRIVE>Int:{drive};D:{};\r\nC:<HD COUPLING>String:<FM->HD>;D:0;\r\nEnd Preset<end>\r\n",
+            "OptimodVersion=<{version}>\r\nPreset Name=<{name}> size=3\r\nFactory Preset Name=<GREGG>\r\nPreset Type= <MULTIBAND PRESET>\r\nPreset File Name= <{name}{}>\r\nC:<AGC DRIVE>Int:{drive};D:{};\r\nC:<HD COUPLING>String:<FM->HD>;D:0;\r\nEnd Preset<end>\r\n",
+            if version.starts_with("2300") {
+                ".orb23user"
+            } else {
+                ".orbuser"
+            },
             drive + 10
         )
+    }
+
+    /// A file message as `m` sends it: the 2300 has no name line.
+    fn file_for_model(m: FileModel, kind: u16, name: &str, text: &str) -> Vec<u8> {
+        if m.wire.file_names {
+            return file_for(kind, name, text);
+        }
+        let sealed =
+            orban_protocol::archive::encrypt(text.as_bytes(), FILE_UNIT_CODE, [7; 16]).unwrap();
+        let mut body = format!("0\n0\n{}\n", sealed.len()).into_bytes();
+        body.extend(sealed);
+        orban_protocol::message::encode(kind, &body).unwrap()
     }
 
     fn file_for(kind: u16, name: &str, text: &str) -> Vec<u8> {
@@ -4125,8 +4191,10 @@ mod tests {
                                 },
                                 _ = pushed.changed() => {
                                     let text = running.lock().unwrap().clone();
-                                    let mut bytes = file_for(229, "", &text);
-                                    bytes.extend(orban_protocol::message::encode(m.wire.file_end.unwrap(), b"").unwrap());
+                                    let mut bytes = file_for_model(m, 229, "", &text);
+                                    if let Some(end) = m.wire.file_end {
+                                        bytes.extend(orban_protocol::message::encode(end, b"").unwrap());
+                                    }
                                     if writer.write_all(&bytes).await.is_err() { return; }
                                     continue;
                                 }
@@ -4152,8 +4220,14 @@ mod tests {
                                     }
                                     219 => {
                                         let mut meter = vec![1];
-                                        meter.extend(b"104\n");
-                                        meter.extend([0x55; 104]);
+                                        if m.wire.file_names {
+                                            meter.extend(b"104\n");
+                                            meter.extend([0x55; 104]);
+                                        } else {
+                                            // The 2300 gives the count as one byte.
+                                            meter.push(59);
+                                            meter.extend([0x55; 59]);
+                                        }
                                         orban_protocol::message::encode(228, &meter).unwrap()
                                     }
                                     k if k == m.wire.on_air_request => {
@@ -4165,45 +4239,53 @@ mod tests {
                                             }
                                         }
                                         let text = saved.lock().unwrap().clone();
-                                        file_for(229, m.on_air, &text)
+                                        file_for_model(m, 229, m.on_air, &text)
                                     }
-                                    k if Some(k) == m.wire.setup_request.map(|r| r.0) => file_for(
-                                        m.wire.setup_request.unwrap().1,
-                                        m.setup,
-                                        &format!(
-                                            "OptimodVersion=<{}>\r\nPreset Name=<SYSTEM PRESET> size=2\r\nC:<CONTRAST>Int:2;D:2;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nEnd Preset<end>\r\n",
-                                            m.version
-                                        ),
-                                    ),
+                                    k if Some(k) == m.wire.setup_request.map(|r| r.0) => {
+                                        file_for_model(
+                                            m,
+                                            m.wire.setup_request.unwrap().1,
+                                            m.setup,
+                                            &format!(
+                                                "OptimodVersion=<{}>\r\nPreset Name=<SYSTEM PRESET> size=2\r\nC:<CONTRAST>Int:2;D:2;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nEnd Preset<end>\r\n",
+                                                m.version
+                                            ),
+                                        )
+                                    }
                                     k if Some(k) == m.wire.user_presets_request.map(|r| r.0) => {
                                         let user = m.wire.user_presets_request.unwrap().1;
                                         let modif = doc_with(m.version, "modif Test01", 11);
-                                        let mut bytes = file_for(
+                                        let mut bytes = file_for_model(
+                                            m,
                                             user,
                                             &format!("TEST01{}", m.user),
                                             &doc_with(m.version, "Test01", 10),
                                         );
-                                        bytes.extend(file_for(
+                                        bytes.extend(file_for_model(
+                                            m,
                                             user,
                                             &format!("LATE NIGHT{}", m.user),
                                             &late_night.lock().unwrap().clone(),
                                         ));
-                                        bytes.extend(file_for(
+                                        bytes.extend(file_for_model(
+                                            m,
                                             user,
                                             &format!("MODIF TEST01{}", m.user),
                                             &modif,
                                         ));
-                                        bytes.extend(file_for(
+                                        bytes.extend(file_for_model(
+                                            m,
                                             user,
                                             &format!("MODIF TEST01{}", m.user),
                                             &modif,
                                         ));
-                                        bytes.extend(file_for(
+                                        bytes.extend(file_for_model(m,
                                             user,
                                             &format!("FROM 6300{}", m.user),
                                             "OptimodVersion=<6300.50>\r\nPreset Name=<FROM 6300> size=1\r\nC:<AGC>String:<On>;D:1;\r\nEnd Preset<end>\r\n",
                                         ));
-                                        bytes.extend(file_for(
+                                        bytes.extend(file_for_model(
+                                            m,
                                             user,
                                             "SETUP.ORB86SETUP",
                                             &format!(
@@ -4387,6 +4469,34 @@ mod tests {
         file_sync_round_trip(M6300, 68).await;
     }
 
+    #[tokio::test]
+    async fn the_2300_syncs_without_session_numbers_or_file_names_and_refuses_factory_recall() {
+        file_sync_round_trip(M2300, 10).await;
+        let unit = FakeFileUnit::start(M2300).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let session = app.state.read().await.session_id.clone().unwrap();
+        let recall = Recall {
+            name: "MUSIC MEDIUM".into(),
+            expected_name: "Test01".into(),
+            confirmed: true,
+            expected_host: "127.0.0.1".into(),
+            expected_session: session,
+        };
+        let refused = command(&app, |r| Command::Recall(recall, r))
+            .await
+            .unwrap_err();
+        assert!(
+            refused.contains("cannot be recalled over the network"),
+            "{refused}"
+        );
+        assert!(unit.received(229).is_empty());
+        assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
+        assert!(app.state.read().await.connected);
+    }
+
     /// Sync, a write, a user preset Recall and a pushed change on a
     /// file-sync unit, with that model's own opcodes only.
     async fn file_sync_round_trip(m: FileModel, factory: usize) {
@@ -4444,10 +4554,11 @@ mod tests {
         // Only this model's boundary request; the upload ends with its own
         // marker, which is never a boundary request.
         let (boundary, _) = m.wire.boundary;
-        let end = m.wire.file_end.unwrap();
-        assert_ne!(end, boundary);
         assert!(!unit.received(boundary).is_empty());
-        assert_eq!(unit.received(end).len(), 1);
+        if let Some(end) = m.wire.file_end {
+            assert_ne!(end, boundary);
+            assert_eq!(unit.received(end).len(), 1);
+        }
         assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
         unit.push.send_modify(|n| *n += 1);
         sleep(Duration::from_millis(200)).await;
