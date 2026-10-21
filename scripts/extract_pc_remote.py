@@ -102,6 +102,19 @@ CONFIGS = {
                    dialogs=[247, 373, 399], primary=247, max_values=86),
         overrides={},
     ),
+    "492867138ebe47559890dc7e45237993cad45cd0dce4f5130b4757c7814369cf": dict(
+        # 6300 4.1.1.19: addresses matched from the 5500i and 8700HD builds (identical results).
+        model="6300", adapter="pc-remote-6300-4.1.1.19", firmware="4.1.1.19",
+        banner="6300 V 4.1.1.19", document_family="6300.",
+        ctor=0x48D8E0, assign=0x471B00, sprintf=0x503527, itoa=0x509864,
+        binders={0x41F900: ("slider", 5), 0x41FAB0: ("radio", 7), 0x41FC80: ("combo", 3)},
+        processing_dialogs=[232, 233, 234, 235, 240, 243, 245, 246, 370, 377, 380, 387],
+        meter=dict(subclass=0x51FB47, init=0x438690, chan=0x43A4B0, curve=0x438D30,
+                   dialogs=[247, 373, 389, 392], primary=247, max_values=111),
+        # Dialog 380 ("Dialog") holds the five-band compressor attacks and releases.
+        page_titles={380: "Compressors"},
+        overrides={},
+    ),
     "6ff1f203b45345553459e70f043ae681514c98ba130058d677e70170a72ee5b5": dict(
         model="8700hd", adapter="pc-remote-8700hd-1.0.2.161", firmware="1.0.2.161",
         banner="8700HD V 1.0.2.161", document_family="8700.",
@@ -644,13 +657,17 @@ def build_layouts(image: Image, config: dict, profile_fields, raw):
         pages.append(dict(title=dialog["title"].strip() or "Settings", path=path, width=dialog["w"], height=dialog["h"],
                           reference_dialog=best[1], controls=controls, groups=groups))
     # Drop pages that only repeat a subset of a larger page on the same path.
+    # A page with exactly the controls of an earlier page is the same page.
     kept = []
-    for page in pages:
+    for index, page in enumerate(pages):
         names_here = {c["name"] for c in page["controls"]}
-        if not any(other is not page and other["path"] == page["path"] and names_here < {c["name"] for c in other["controls"]} for other in pages):
+        larger = any(other is not page and other["path"] == page["path"] and names_here < {c["name"] for c in other["controls"]} for other in pages)
+        repeated = any(other["path"] == page["path"] and names_here == {c["name"] for c in other["controls"]} for other in pages[:index])
+        if not larger and not repeated:
             kept.append(page)
+    titles = {**PAGE_TITLES, **config.get("page_titles", {})}
     for page in kept:
-        page["title"] = PAGE_TITLES.get(page["reference_dialog"], page["title"])
+        page["title"] = titles.get(page["reference_dialog"], page["title"])
         names_here = {c["name"] for c in page["controls"]}
         if page["reference_dialog"] == 400 and any(n.startswith("MX ") for n in names_here):
             page["title"] = "MX 2 Band Distortion"
