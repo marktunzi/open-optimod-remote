@@ -42,7 +42,7 @@ async fn read_only_snapshot_supports_the_official_5500i_terminal_dialect() {
     let worker = tokio::spawn(async move {
         let (mut stream, _) = listener.accept().await.unwrap();
         stream
-            .write_all(b"Orban Optimod 5500i V 3.1\r\n")
+            .write_all(b"Orban Optimod 5500i V 3.1.0.2\n\r")
             .await
             .unwrap();
         let mut command = vec![];
@@ -54,7 +54,7 @@ async fn read_only_snapshot_supports_the_official_5500i_terminal_dialect() {
             }
         }
         assert_eq!(command, b"AP [9876]??\r\n");
-        stream.write_all(b"OptimodVersion=<8300.10>\r\nPreset Name=<ROCK> size=1\r\nC:<AGC>String:<On>;D:1;\r\nEnd Preset<end>\r\n").await.unwrap();
+        stream.write_all(b"OptimodVersion=<5500.50>\r\nPreset Name=<ROCK> size=1\r\nC:<AGC>String:<On>;D:1;\r\nEnd Preset<end>\r\n").await.unwrap();
     });
     let result = read_snapshot_for_model(
         address,

@@ -18,7 +18,8 @@ fn values_keep_their_types_and_device_indices() {
 #[test]
 fn document_families_are_parsed_only_for_the_detected_processor() {
     for (model, version) in [
-        (DeviceModel::Optimod5500i, "8300.10"),
+        // Observed on the 5500i 3.1.0.2 firmware; its installer's factory files are 8300.10.
+        (DeviceModel::Optimod5500i, "5500.50"),
         (DeviceModel::Optimod5500, "8300.10"),
         (DeviceModel::Optimod5700Fm, "5700.50"),
         (DeviceModel::Optimod5700Hd, "5700.50"),

@@ -44,8 +44,9 @@ impl Document {
             crate::adapter::DeviceModel::Optimod5700i
             | crate::adapter::DeviceModel::Optimod5700Fm
             | crate::adapter::DeviceModel::Optimod5700Hd => "OptimodVersion=<5700.",
-            crate::adapter::DeviceModel::Optimod5500i
-            | crate::adapter::DeviceModel::Optimod5500 => "OptimodVersion=<8300.",
+            // The 5500i 3.1.0.2 firmware writes 5500.50 documents.
+            crate::adapter::DeviceModel::Optimod5500i => "OptimodVersion=<5500.",
+            crate::adapter::DeviceModel::Optimod5500 => "OptimodVersion=<8300.",
             crate::adapter::DeviceModel::Optimod8500 => "OptimodVersion=<8500.",
             crate::adapter::DeviceModel::Optimod6300 => "OptimodVersion=<6300.",
             crate::adapter::DeviceModel::Optimod8600 => "OptimodVersion=<8600.",

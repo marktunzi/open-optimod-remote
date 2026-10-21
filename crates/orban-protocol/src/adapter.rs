@@ -183,6 +183,8 @@ pub struct Wire {
     pub setup_request: Option<(u16, u16)>,
     /// The request answered with one file per user preset, and those answers' opcode.
     pub user_presets_request: Option<(u16, u16)>,
+    /// The file extension of a user preset; other files in that answer are skipped.
+    pub user_extension: &'static str,
     /// Settings, presets, readback and Recall use files over the PC Remote
     /// session; the status (terminal) port is used only for a factory Recall.
     pub file_sync: bool,
@@ -201,6 +203,7 @@ pub const WIRE_5700I: Wire = Wire {
     on_air_request: 239,
     setup_request: None,
     user_presets_request: None,
+    user_extension: "",
     file_sync: false,
     factory_presets: &[],
     file_end: None,
@@ -216,6 +219,7 @@ pub const WIRE_8700HD: Wire = Wire {
     on_air_request: 238,
     setup_request: Some((239, 232)),
     user_presets_request: Some((242, 231)),
+    user_extension: ".orb86user",
     file_sync: true,
     factory_presets: &FACTORY_8700HD,
     // The unit follows the on-air file it pushes after a terminal `RP` with
@@ -223,6 +227,53 @@ pub const WIRE_8700HD: Wire = Wire {
     // the unit answers it with FAh (captures, 21 October 2026).
     file_end: Some(250),
 };
+
+/// 5500i 3.1.0.2: captured from the original PC Remote 3.1.0.2 and the
+/// original firmware (virtual 5500i, 21 October 2026). The same generation as
+/// the 5700i: FAh is answered by FBh and EFh by `OnAir.orb55onair`. F0h is
+/// answered by `Setup.orbsetup` (E9h), F3h by the unit's preset files (E7h).
+/// A Recall upload ends with FBh, which the unit answers with FBh.
+pub const WIRE_5500I: Wire = Wire {
+    boundary: (250, 251),
+    on_air_request: 239,
+    setup_request: Some((240, 233)),
+    user_presets_request: Some((243, 231)),
+    user_extension: ".orb55user",
+    file_sync: true,
+    factory_presets: &FACTORY_5500I,
+    file_end: Some(251),
+};
+
+/// Preset names of the factory `.orb55f50` files of PC Remote 3.1.0.2.
+const FACTORY_5500I: [&str; 27] = [
+    "BASS-PUNCH",
+    "CLASSICAL-2 BAND",
+    "CLASSICAL-2B+AGC",
+    "CLASSICAL-5 BAND",
+    "CLASSICAL-5B+AGC",
+    "COUNTRY UL",
+    "COUNTRY-LIGHT",
+    "COUNTRY-MEDIUM",
+    "EXTREME",
+    "JAZZ",
+    "NEWS-TALK",
+    "OLDIES",
+    "PROTECT-0DB",
+    "ROCK-GEN UL",
+    "ROCK-GENERAL",
+    "ROCK-LIGHT",
+    "ROCK-LOUD",
+    "ROCK-MEDIUM",
+    "ROCK-OPEN",
+    "ROCK-OPEN UL",
+    "ROCK-SMOOTH",
+    "ROCK-SOFT",
+    "SPORTS",
+    "ST ENC NO LIM",
+    "URBAN",
+    "URBAN UL",
+    "URBAN-LOUD",
+];
 
 /// Preset names of the factory `.orb86f50` files of PC Remote 1.0.2.161.
 const FACTORY_8700HD: [&str; 64] = [
@@ -369,7 +420,7 @@ const STATIC_METERS: MeterProfile = MeterProfile {
 };
 
 /// Exact banners with a parameter profile. Only these can write.
-const EXACT: [(&str, AdapterDescriptor); 3] = [
+const EXACT: [(&str, AdapterDescriptor); 4] = [
     ("5700i V 3.0.1.20", VERIFIED_5700I),
     (
         "5500 V 1.2.8.24",
@@ -387,6 +438,25 @@ const EXACT: [(&str, AdapterDescriptor); 3] = [
             frame_cut: None,
             on_air_archive: false,
             wire: WIRE_5700I,
+            evidence: Evidence::Static,
+        },
+    ),
+    (
+        "5500i V 3.1.0.2",
+        AdapterDescriptor {
+            id: "pc-remote-5500i-3.1.0.2",
+            model: DeviceModel::Optimod5500i,
+            skin: SkinId::Optimod5500i,
+            transport: TransportKind::PcRemoteTcp,
+            default_port: 6201,
+            default_terminal_port: 23,
+            product_mark: "5500i DIGITAL",
+            firmware_prefix: "5500i V ",
+            capabilities: STATIC_FULL,
+            meter_profile: Some(STATIC_METERS),
+            frame_cut: None,
+            on_air_archive: true,
+            wire: WIRE_5500I,
             evidence: Evidence::Static,
         },
     ),

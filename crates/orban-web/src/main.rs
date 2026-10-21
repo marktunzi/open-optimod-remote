@@ -948,8 +948,9 @@ async fn read_preset_files(app: &App, device: &mut Device) -> Result<Vec<Preset>
     };
     let model = device.session.info.model;
     for (name, data) in read_files(app, device, request, reply).await? {
-        // The unit also sends its setup file and files of other models.
-        if !name.to_ascii_lowercase().ends_with(".orb86user") {
+        // The unit also sends its setup files, the firmware's working copies
+        // of factory presets and files of other models.
+        if !name.to_ascii_lowercase().ends_with(wire.user_extension) {
             continue;
         }
         let plain = Zeroizing::new(device.session.decrypt_file(&data)?);
@@ -3978,12 +3979,48 @@ mod tests {
         assert!(app.state.read().await.connected);
     }
 
-    /// A synthetic 8700HD 1.0.2.161 speaking the opcodes captured from the
+    /// A synthetic file-sync unit (8700HD 1.0.2.161 or 5500i 3.1.0.2) speaking the opcodes captured from the
     /// original PC Remote and firmware: F9h/FAh boundaries, the on-air file
     /// (EEh), the setup file (EFh), user preset files (F2h), Recall by an
     /// unnamed on-air file followed by FAh, files saved a few reads after a
     /// change, and a pushed on-air file followed by its own FAh.
-    struct Fake8700 {
+    /// What differs between the synthetic file-sync units.
+    #[derive(Clone, Copy)]
+    struct FileModel {
+        wire: orban_protocol::adapter::Wire,
+        model: DeviceModel,
+        login: &'static [u8],
+        terminal: &'static [u8],
+        version: &'static str,
+        user: &'static str,
+        on_air: &'static str,
+        setup: &'static str,
+    }
+
+    const M8700HD: FileModel = FileModel {
+        wire: orban_protocol::adapter::WIRE_8700HD,
+        model: DeviceModel::Optimod8700Hd,
+        login: b"connect ok\n0\n8700HD V 1.0.2.161\n123\n",
+        terminal: b"Orban Optimod 8700HD V 1.0.2.161\n\r",
+        version: "8700.51",
+        user: ".ORB86USER",
+        on_air: "OnAir.orb86onair",
+        setup: "Setup.orb86setup",
+    };
+
+    const M5500I: FileModel = FileModel {
+        wire: orban_protocol::adapter::WIRE_5500I,
+        model: DeviceModel::Optimod5500i,
+        login: b"connect ok\n0\n5500i V 3.1.0.2\n123\n",
+        terminal: b"Orban Optimod 5500i V 3.1.0.2\n\r",
+        version: "5500.50",
+        user: ".ORB55USER",
+        on_air: "OnAir.orb55onair",
+        setup: "Setup.orbsetup",
+    };
+
+    struct FakeFileUnit {
+        model: FileModel,
         pc: std::net::SocketAddr,
         terminal: std::net::SocketAddr,
         /// The on-air document the unit runs and the one its file still holds.
@@ -4001,35 +4038,41 @@ mod tests {
     /// One message the synthetic unit received: its opcode and body.
     type Received = (u16, Vec<u8>);
 
-    const CODE_8700: &str = "ADMIN";
+    const FILE_UNIT_CODE: &str = "ADMIN";
 
     fn doc_8700(name: &str, drive: i32) -> String {
+        doc_with("8700.51", name, drive)
+    }
+
+    fn doc_with(version: &str, name: &str, drive: i32) -> String {
         format!(
-            "OptimodVersion=<8700.51>\r\nPreset Name=<{name}> size=3\r\nFactory Preset Name=<GREGG>\r\nPreset Type= <MULTIBAND PRESET>\r\nC:<AGC DRIVE>Int:{drive};D:{};\r\nC:<HD COUPLING>String:<FM->HD>;D:0;\r\nEnd Preset<end>\r\n",
+            "OptimodVersion=<{version}>\r\nPreset Name=<{name}> size=3\r\nFactory Preset Name=<GREGG>\r\nPreset Type= <MULTIBAND PRESET>\r\nC:<AGC DRIVE>Int:{drive};D:{};\r\nC:<HD COUPLING>String:<FM->HD>;D:0;\r\nEnd Preset<end>\r\n",
             drive + 10
         )
     }
 
-    fn file_8700(kind: u16, name: &str, text: &str) -> Vec<u8> {
-        let sealed = orban_protocol::archive::encrypt(text.as_bytes(), CODE_8700, [7; 16]).unwrap();
+    fn file_for(kind: u16, name: &str, text: &str) -> Vec<u8> {
+        let sealed =
+            orban_protocol::archive::encrypt(text.as_bytes(), FILE_UNIT_CODE, [7; 16]).unwrap();
         let mut body = format!("0\n0\n{name}\n{}\n", sealed.len()).into_bytes();
         body.extend(sealed);
         orban_protocol::message::encode(kind, &body).unwrap()
     }
 
-    impl Fake8700 {
-        async fn start() -> Self {
+    impl FakeFileUnit {
+        async fn start(m: FileModel) -> Self {
             let pc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
             let terminal_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
             let unit = Self {
+                model: m,
                 pc: pc_listener.local_addr().unwrap(),
                 terminal: terminal_listener.local_addr().unwrap(),
-                running: Arc::new(std::sync::Mutex::new(doc_8700("Test01", 10))),
-                saved: Arc::new(std::sync::Mutex::new(doc_8700("Test01", 10))),
+                running: Arc::new(std::sync::Mutex::new(doc_with(m.version, "Test01", 10))),
+                saved: Arc::new(std::sync::Mutex::new(doc_with(m.version, "Test01", 10))),
                 received: Arc::default(),
                 terminal_sessions: Arc::default(),
                 push: Arc::new(watch::channel(0).0),
-                late_night: Arc::new(std::sync::Mutex::new(doc_8700("Late Night", 14))),
+                late_night: Arc::new(std::sync::Mutex::new(doc_with(m.version, "Late Night", 14))),
             };
             let (running, saved, received, pushes, late_night) = (
                 unit.running.clone(),
@@ -4047,10 +4090,7 @@ mod tests {
                     tokio::spawn(async move {
                         let (mut reader, mut writer) = stream.into_split();
                         while reader.read_u8().await.is_ok_and(|byte| byte != 0) {}
-                        writer
-                            .write_all(b"connect ok\n0\n8700HD V 1.0.2.161\n123\n")
-                            .await
-                            .unwrap();
+                        writer.write_all(m.login).await.unwrap();
                         let mut decoder = orban_protocol::framing::Decoder::default();
                         let mut buffer = [0_u8; 16384];
                         // On-air reads still answered from the file saved before a change.
@@ -4063,8 +4103,8 @@ mod tests {
                                 },
                                 _ = pushed.changed() => {
                                     let text = running.lock().unwrap().clone();
-                                    let mut bytes = file_8700(229, "", &text);
-                                    bytes.extend(orban_protocol::message::encode(250, b"").unwrap());
+                                    let mut bytes = file_for(229, "", &text);
+                                    bytes.extend(orban_protocol::message::encode(m.wire.file_end.unwrap(), b"").unwrap());
                                     if writer.write_all(&bytes).await.is_err() { return; }
                                     continue;
                                 }
@@ -4084,14 +4124,17 @@ mod tests {
                                 };
                                 received.lock().unwrap().push((kind, data.clone()));
                                 let reply: Vec<u8> = match kind {
-                                    249 | 250 => orban_protocol::message::encode(250, b"").unwrap(),
+                                    k if k == m.wire.boundary.0 || Some(k) == m.wire.file_end => {
+                                        orban_protocol::message::encode(m.wire.boundary.1, b"")
+                                            .unwrap()
+                                    }
                                     219 => {
                                         let mut meter = vec![1];
                                         meter.extend(b"104\n");
                                         meter.extend([0x55; 104]);
                                         orban_protocol::message::encode(228, &meter).unwrap()
                                     }
-                                    238 => {
+                                    k if k == m.wire.on_air_request => {
                                         if lag > 0 {
                                             lag -= 1;
                                             if lag == 0 {
@@ -4100,44 +4143,51 @@ mod tests {
                                             }
                                         }
                                         let text = saved.lock().unwrap().clone();
-                                        file_8700(229, "OnAir.orb86onair", &text)
+                                        file_for(229, m.on_air, &text)
                                     }
-                                    239 => file_8700(
-                                        232,
-                                        "Setup.orb86setup",
-                                        "OptimodVersion=<8700.51>\r\nPreset Name=<SYSTEM PRESET> size=2\r\nC:<CONTRAST>Int:2;D:2;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nEnd Preset<end>\r\n",
+                                    k if Some(k) == m.wire.setup_request.map(|r| r.0) => file_for(
+                                        m.wire.setup_request.unwrap().1,
+                                        m.setup,
+                                        &format!(
+                                            "OptimodVersion=<{}>\r\nPreset Name=<SYSTEM PRESET> size=2\r\nC:<CONTRAST>Int:2;D:2;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nEnd Preset<end>\r\n",
+                                            m.version
+                                        ),
                                     ),
-                                    242 => {
-                                        let modif = doc_8700("modif Test01", 11);
-                                        let mut bytes = file_8700(
-                                            231,
-                                            "TEST01.ORB86USER",
-                                            &doc_8700("Test01", 10),
+                                    k if Some(k) == m.wire.user_presets_request.map(|r| r.0) => {
+                                        let user = m.wire.user_presets_request.unwrap().1;
+                                        let modif = doc_with(m.version, "modif Test01", 11);
+                                        let mut bytes = file_for(
+                                            user,
+                                            &format!("TEST01{}", m.user),
+                                            &doc_with(m.version, "Test01", 10),
                                         );
-                                        bytes.extend(file_8700(
-                                            231,
-                                            "LATE NIGHT.ORB86USER",
+                                        bytes.extend(file_for(
+                                            user,
+                                            &format!("LATE NIGHT{}", m.user),
                                             &late_night.lock().unwrap().clone(),
                                         ));
-                                        bytes.extend(file_8700(
-                                            231,
-                                            "MODIF TEST01.ORB86USER",
+                                        bytes.extend(file_for(
+                                            user,
+                                            &format!("MODIF TEST01{}", m.user),
                                             &modif,
                                         ));
-                                        bytes.extend(file_8700(
-                                            231,
-                                            "MODIF TEST01.ORB86USER",
+                                        bytes.extend(file_for(
+                                            user,
+                                            &format!("MODIF TEST01{}", m.user),
                                             &modif,
                                         ));
-                                        bytes.extend(file_8700(
-                                            231,
-                                            "FROM 6300.ORB86USER",
+                                        bytes.extend(file_for(
+                                            user,
+                                            &format!("FROM 6300{}", m.user),
                                             "OptimodVersion=<6300.50>\r\nPreset Name=<FROM 6300> size=1\r\nC:<AGC>String:<On>;D:1;\r\nEnd Preset<end>\r\n",
                                         ));
-                                        bytes.extend(file_8700(
-                                            231,
+                                        bytes.extend(file_for(
+                                            user,
                                             "SETUP.ORB86SETUP",
-                                            "OptimodVersion=<8700.51>\r\nEnd Preset<end>\r\n",
+                                            &format!(
+                                                "OptimodVersion=<{}>\r\nEnd Preset<end>\r\n",
+                                                m.version
+                                            ),
                                         ));
                                         bytes
                                     }
@@ -4164,8 +4214,11 @@ mod tests {
                                                 .0
                                                 .trim_start_matches("modif ")
                                                 .to_owned();
-                                            *running.lock().unwrap() =
-                                                doc_8700(&format!("modif {name}"), drive);
+                                            *running.lock().unwrap() = doc_with(
+                                                m.version,
+                                                &format!("modif {name}"),
+                                                drive,
+                                            );
                                             lag = 2;
                                         }
                                         continue;
@@ -4174,9 +4227,11 @@ mod tests {
                                         let start =
                                             data.iter().position(|b| *b == b'\n').unwrap() + 1;
                                         let sealed = &data[start..];
-                                        let plain =
-                                            orban_protocol::archive::decrypt(sealed, CODE_8700)
-                                                .unwrap();
+                                        let plain = orban_protocol::archive::decrypt(
+                                            sealed,
+                                            FILE_UNIT_CODE,
+                                        )
+                                        .unwrap();
                                         let text = String::from_utf8(plain).unwrap();
                                         if text.contains("Preset Name=<Late Night>") {
                                             *late_night.lock().unwrap() = text.clone();
@@ -4206,9 +4261,7 @@ mod tests {
                     sessions.fetch_add(1, Ordering::SeqCst);
                     let (running, saved) = (running.clone(), saved.clone());
                     tokio::spawn(async move {
-                        let _ = stream
-                            .write_all(b"Orban Optimod 8700HD V 1.0.2.161\n\r")
-                            .await;
+                        let _ = stream.write_all(m.terminal).await;
                         let mut command = Vec::new();
                         while !command.ends_with(b"\r\n") {
                             match stream.read_u8().await {
@@ -4222,7 +4275,7 @@ mod tests {
                             .and_then(|r| r.split_once('['))
                             .map(|(n, _)| n.to_owned())
                         {
-                            let text = doc_8700(&name, 12);
+                            let text = doc_with(m.version, &name, 12);
                             *running.lock().unwrap() = text.clone();
                             *saved.lock().unwrap() = text;
                             let _ = stream
@@ -4240,10 +4293,10 @@ mod tests {
         fn connect(&self) -> Connect {
             Connect {
                 host: "127.0.0.1".into(),
-                code: CODE_8700.into(),
+                code: FILE_UNIT_CODE.into(),
                 port: self.pc.port(),
                 terminal_port: self.terminal.port(),
-                model: DeviceModel::Optimod8700Hd,
+                model: self.model.model,
                 device_id: None,
             }
         }
@@ -4261,7 +4314,7 @@ mod tests {
 
     #[tokio::test]
     async fn the_8700hd_synchronizes_over_pc_remote_without_its_terminal() {
-        let unit = Fake8700::start().await;
+        let unit = FakeFileUnit::start(M8700HD).await;
         let (app, _storage) = running_owner().await;
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
@@ -4303,8 +4356,72 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn the_5500i_syncs_writes_and_recalls_with_its_own_opcodes() {
+        let unit = FakeFileUnit::start(M5500I).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let session = {
+            let state = app.state.read().await;
+            assert_eq!(state.sync_error, None);
+            assert_eq!(state.processing.as_ref().unwrap().name, "Test01");
+            assert_eq!(
+                state
+                    .presets
+                    .iter()
+                    .filter(|p| p.kind == PresetKind::Factory)
+                    .count(),
+                27
+            );
+            assert!(
+                state
+                    .presets
+                    .iter()
+                    .any(|p| p.name == "Late Night" && p.kind == PresetKind::User)
+            );
+            state.session_id.clone().unwrap()
+        };
+        let change = Change {
+            scope: Scope::Processing,
+            name: "AGC DRIVE".into(),
+            index: 21,
+            expected: Field {
+                index: 20,
+                value: Value::Int(10),
+            },
+            requested: None,
+            expected_host: "127.0.0.1".into(),
+            expected_session: session.clone(),
+            expected_preset: Some("Test01".into()),
+        };
+        command(&app, |r| Command::Change(change, r)).await.unwrap();
+        let recall = Recall {
+            name: "Late Night".into(),
+            expected_name: "modif Test01".into(),
+            confirmed: true,
+            expected_host: "127.0.0.1".into(),
+            expected_session: session.clone(),
+        };
+        command(&app, |r| Command::Recall(recall, r)).await.unwrap();
+        assert_eq!(
+            app.state.read().await.processing.as_ref().unwrap().name,
+            "Late Night"
+        );
+        // FAh/FBh as on the 5700i; the upload ends with FBh.
+        assert!(!unit.received(250).is_empty());
+        assert!(unit.received(249).is_empty());
+        assert_eq!(unit.received(251).len(), 1);
+        assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
+        unit.push.send_modify(|n| *n += 1);
+        sleep(Duration::from_millis(200)).await;
+        command(&app, Command::Refresh).await.unwrap();
+        assert_eq!(app.state.read().await.sync_error, None);
+    }
+
+    #[tokio::test]
     async fn an_8700hd_write_is_confirmed_once_the_unit_saves_its_on_air_file() {
-        let unit = Fake8700::start().await;
+        let unit = FakeFileUnit::start(M8700HD).await;
         let (app, _storage) = running_owner().await;
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
@@ -4334,7 +4451,7 @@ mod tests {
 
     #[tokio::test]
     async fn an_8700hd_recall_sends_a_user_preset_back_and_lets_the_firmware_load_a_factory_one() {
-        let unit = Fake8700::start().await;
+        let unit = FakeFileUnit::start(M8700HD).await;
         let (app, _storage) = running_owner().await;
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
@@ -4358,7 +4475,7 @@ mod tests {
         // An unnamed file: its name line is empty.
         assert_eq!(uploads[0][0], b'\n');
         let sealed = &uploads[0][1..];
-        let plain = orban_protocol::archive::decrypt(sealed, CODE_8700).unwrap();
+        let plain = orban_protocol::archive::decrypt(sealed, FILE_UNIT_CODE).unwrap();
         assert_eq!(
             plain,
             doc_8700("Late Night", 14)
