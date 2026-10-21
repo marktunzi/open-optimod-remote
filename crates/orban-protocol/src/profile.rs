@@ -58,7 +58,7 @@ struct Embedded {
 
 /// Every profile the app can write with. A new model adds one entry here and
 /// an exact-banner adapter in `crate::adapter`.
-const EMBEDDED: [Embedded; 6] = [
+const EMBEDDED: [Embedded; 7] = [
     Embedded {
         adapter_id: "pc-remote-5700i-3.0.1.20",
         parameters: include_str!("../../../profiles/5700i/3.0.1.20/parameters.json"),
@@ -100,6 +100,16 @@ const EMBEDDED: [Embedded; 6] = [
         parameters: include_str!("../../../profiles/2300/2.0.3.85/parameters.json"),
         layouts: Some(include_str!("../../../profiles/2300/2.0.3.85/layouts.json")),
         meters: Some(include_str!("../../../profiles/2300/2.0.3.85/meters.json")),
+        supplement: None,
+        supplement_layouts: None,
+    },
+    Embedded {
+        adapter_id: "pc-remote-8700i-1.5.1.11",
+        parameters: include_str!("../../../profiles/8700i/1.5.1.11/parameters.json"),
+        layouts: Some(include_str!(
+            "../../../profiles/8700i/1.5.1.11/layouts.json"
+        )),
+        meters: Some(include_str!("../../../profiles/8700i/1.5.1.11/meters.json")),
         supplement: None,
         supplement_layouts: None,
     },

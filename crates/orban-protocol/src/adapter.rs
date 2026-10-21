@@ -423,6 +423,78 @@ const FACTORY_2300: [&str; 10] = [
     "TALK",
 ];
 
+/// 8700i 1.5.1.11: captured from the original PC Remote 1.5.1.11 and the
+/// original firmware (virtual 8700i, 21 October 2026). The same requests as
+/// the 5500i: FAh/FBh, EFh `OnAir.orb87onair`, F0h `Setup.orb87setup` (E9h),
+/// F3h the preset files (E7h).
+pub const WIRE_8700I: Wire = Wire {
+    user_extension: ".orb87user",
+    factory_presets: &FACTORY_8700I,
+    ..WIRE_5500I
+};
+
+/// Preset names of the factory `.orb87f50` files of PC Remote 1.5.1.11.
+const FACTORY_8700I: [&str; 58] = [
+    "CLASSICAL-2 BAND",
+    "CLASSICAL-2B MX",
+    "CLASSICAL-2B+AGC",
+    "CLASSICAL-2B+AGC MX",
+    "CLASSICAL-5 BAND",
+    "CLASSICAL-5B MX",
+    "CLASSICAL-5B+AGC",
+    "CLASSICAL-5B+AGC MX",
+    "COUNTRY UL",
+    "COUNTRY-LIGHT",
+    "COUNTRY-MEDIUM",
+    "CRISP",
+    "CRISP+LOWBASS MX",
+    "CRISP+MIDBASS MX",
+    "EDGE MX",
+    "FOLK-TRADITIONAL",
+    "GOLD",
+    "GOLD HEAVY BASS MX",
+    "GOLD HEAVY MX",
+    "GOLD OPEN MX",
+    "GREGG",
+    "GREGG LL",
+    "GREGG MX",
+    "GREGG MX XLF",
+    "GREGG OPEN",
+    "GREGG OPEN MX",
+    "IMPACT MX",
+    "INSTRUMENTAL",
+    "JAZZ",
+    "LOUD-COMPRESSED",
+    "LOUD-HOT+BASS",
+    "LOUD-HOT+BASS LL",
+    "LOUD-PUNCHY",
+    "LOUD+SLAM",
+    "MAINSTREAM 1 MX",
+    "MAINSTREAM 2 MX",
+    "MAINSTREAM 3 MX",
+    "MAINSTREAM 4 MX",
+    "MELLOW JAZZ MX",
+    "NEWS-TALK",
+    "PROTECT-0DB",
+    "ROCK-DENSE",
+    "ROCK-GEN UL",
+    "ROCK-MEDIUM",
+    "ROCK-MEDIUM MX",
+    "ROCK-MEDIUM+LOWBASS",
+    "ROCK-MEDIUM+MIDBASS",
+    "ROCK-OPEN",
+    "ROCK-OPEN UL",
+    "ROCK-SMOOTH",
+    "ROCK-SMOOTH MX",
+    "ROCK-SOFT",
+    "ROCK-SOFT MX",
+    "SMOOTH JAZZ",
+    "SMOOTH JAZZ MX",
+    "SPORTS",
+    "URBAN UL",
+    "URBAN-LIGHT",
+];
+
 /// Preset names of the factory `.orb86f50` files of PC Remote 1.0.2.161.
 const FACTORY_8700HD: [&str; 64] = [
     "CLASSICAL-2 BAND",
@@ -568,7 +640,7 @@ const STATIC_METERS: MeterProfile = MeterProfile {
 };
 
 /// Exact banners with a parameter profile. Only these can write.
-const EXACT: [(&str, AdapterDescriptor); 6] = [
+const EXACT: [(&str, AdapterDescriptor); 7] = [
     ("5700i V 3.0.1.20", VERIFIED_5700I),
     (
         "5500 V 1.2.8.24",
@@ -643,6 +715,28 @@ const EXACT: [(&str, AdapterDescriptor); 6] = [
             frame_cut: None,
             on_air_archive: true,
             wire: WIRE_2300,
+            evidence: Evidence::Static,
+        },
+    ),
+    (
+        "8700i V 1.5.1.11",
+        AdapterDescriptor {
+            id: "pc-remote-8700i-1.5.1.11",
+            model: DeviceModel::Optimod8700i,
+            skin: SkinId::Optimod8700i,
+            transport: TransportKind::PcRemoteTcp,
+            default_port: 6201,
+            default_terminal_port: 23,
+            product_mark: "8700i FM+HD",
+            firmware_prefix: "8700i V ",
+            capabilities: STATIC_FULL,
+            meter_profile: Some(STATIC_METERS),
+            // Like the 5700i, the 8700i cuts the on-air document it pushes after a
+            // terminal RP while session meters are on (8.4 KB; virtual 8700i,
+            // 21 October 2026): the next frame starts inside it.
+            frame_cut: Some(crate::framing::FrameCut),
+            on_air_archive: true,
+            wire: WIRE_8700I,
             evidence: Evidence::Static,
         },
     ),

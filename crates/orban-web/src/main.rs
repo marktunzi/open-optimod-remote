@@ -1202,11 +1202,14 @@ async fn on_air_pushed(app: &App, device: &mut Device) {
     let model = device.session.info.model;
     let start = match pushed {
         Pushed::Whole(sealed) => {
-            match device
-                .session
-                .decrypt_file(&sealed)
-                .and_then(|plain| Document::parse_for_model(&plain, model))
-            {
+            match device.session.decrypt_file(&sealed).and_then(|plain| {
+                // A file-sync model pushes its document with LF line ends.
+                if device.session.adapter().wire.file_sync {
+                    file_document(&plain, model)
+                } else {
+                    Document::parse_for_model(&plain, model)
+                }
+            }) {
                 Ok(processing) => {
                     device.expected = None;
                     device.archive_retry = None;
@@ -1520,6 +1523,11 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
             .map(|p| p.kind.clone())
             .ok_or_else(|| OperationError::safe("Select an available factory or user preset"))?;
         let recalled = recall_with_files(device, app, &body.name, &kind).await?;
+        // The confirmed document supersedes what the unit pushed meanwhile; a
+        // push that arrived before the confirmation can be an earlier state.
+        device.pushed = None;
+        device.expected = None;
+        device.archive_retry = None;
         let mut baseline = recalled.clone();
         if let Some(name) = baseline.name.strip_prefix("modif ") {
             baseline.name = name.to_owned();
@@ -4190,7 +4198,8 @@ mod tests {
                                     Ok(count) => count,
                                 },
                                 _ = pushed.changed() => {
-                                    let text = running.lock().unwrap().clone();
+                                    // Units push their document with LF line ends.
+                                    let text = running.lock().unwrap().replace("\r\n", "\n");
                                     let mut bytes = file_for_model(m, 229, "", &text);
                                     if let Some(end) = m.wire.file_end {
                                         bytes.extend(orban_protocol::message::encode(end, b"").unwrap());
@@ -4355,15 +4364,16 @@ mod tests {
                     });
                 }
             });
-            let (running, saved, sessions) = (
+            let (running, saved, sessions, push) = (
                 unit.running.clone(),
                 unit.saved.clone(),
                 unit.terminal_sessions.clone(),
+                unit.push.clone(),
             );
             tokio::spawn(async move {
                 while let Ok((mut stream, _)) = terminal_listener.accept().await {
                     sessions.fetch_add(1, Ordering::SeqCst);
-                    let (running, saved) = (running.clone(), saved.clone());
+                    let (running, saved, push) = (running.clone(), saved.clone(), push.clone());
                     tokio::spawn(async move {
                         let _ = stream.write_all(m.terminal).await;
                         let mut command = Vec::new();
@@ -4382,6 +4392,8 @@ mod tests {
                             let text = doc_with(m.version, &name, 12);
                             *running.lock().unwrap() = text.clone();
                             *saved.lock().unwrap() = text;
+                            // Every open PC Remote session gets the new document.
+                            push.send_modify(|n| *n += 1);
                             let _ = stream
                                 .write_all(format!("ON AIR: {name}\n\r").as_bytes())
                                 .await;
@@ -4642,6 +4654,12 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            app.state.read().await.processing.as_ref().unwrap().name,
+            "GREGG"
+        );
+        // The document the unit pushed after RP does not replace it later.
+        sleep(Duration::from_millis(300)).await;
         assert_eq!(
             app.state.read().await.processing.as_ref().unwrap().name,
             "GREGG"
