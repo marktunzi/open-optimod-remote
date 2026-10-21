@@ -131,6 +131,20 @@ CONFIGS = {
                    dialogs=[247, 373], primary=247, max_values=59),
         overrides={},
     ),
+    "bd1fdde1849217ff7830024c8ea2a369438a8ab6d5fd96aabfec74063df7c851": dict(
+        # 8700i 1.5.1.11: addresses matched from the 5500i and 8700HD builds
+        # (identical results); the combo binder is the 8700HD body with a stack
+        # cookie (found by its call count with control IDs).
+        model="8700i", adapter="pc-remote-8700i-1.5.1.11", firmware="1.5.1.11",
+        banner="8700i V 1.5.1.11", document_family="8700.",
+        ctor=0x4C0360, assign=0x4843A0, sprintf=0x55F4E8, itoa=0x566032,
+        binders={0x42CE20: ("slider", 5), 0x42CFD0: ("radio", 7), 0x42D1A0: ("combo", 3)},
+        processing_dialogs=[232, 233, 234, 235, 240, 244, 245, 246, 362, 368, 370, 375, 377, 380,
+                            387, 388, 393, 394, 395, 396, 399, 400, 409, 410],
+        meter=dict(subclass=0x58365E, init=0x447730, chan=0x4497B0, curve=0x447DD0,
+                   dialogs=[247, 373, 378], primary=247, max_values=112),
+        overrides={},
+    ),
     "6ff1f203b45345553459e70f043ae681514c98ba130058d677e70170a72ee5b5": dict(
         model="8700hd", adapter="pc-remote-8700hd-1.0.2.161", firmware="1.0.2.161",
         banner="8700HD V 1.0.2.161", document_family="8700.",
