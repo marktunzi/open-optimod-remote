@@ -5,6 +5,7 @@ export type ProcessorSkinId =
   | 'optimod-5700-fm'
   | 'optimod-5700-hd'
   | 'optimod-8500'
+  | 'optimod-2300'
   | 'optimod-6300'
   | 'optimod-8600'
   | 'optimod-8700i'
@@ -69,6 +70,14 @@ export const PROCESSOR_SKINS: Record<ProcessorSkinId, ProcessorSkin> = {
     material: 'titanium-cyan',
     pathLabel: 'FM + HD',
     meterGroups: ['Input', 'AGC', 'FM Gain Reduction', 'FM Output', 'HD Gain Reduction', 'HD Output'],
+  },
+  'optimod-2300': {
+    id: 'optimod-2300',
+    productName: 'OPTIMOD 2300',
+    logo: '/assets/optimod-2300.svg',
+    material: 'digital-lilac',
+    pathLabel: 'FM',
+    meterGroups: ['Input', 'AGC', 'Gain Reduction', 'MPX', 'Output'],
   },
   'optimod-6300': {
     id: 'optimod-6300',
