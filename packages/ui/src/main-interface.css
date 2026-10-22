@@ -68,6 +68,13 @@ main[data-skin="optimod-2300"] {
   --skin-lcd-text: #f0c46a; --skin-accent-top: #a45bc0; --skin-accent-bottom: #6d3484;
 }
 
+main[data-skin="optimod-8400"] {
+  --skin-bg: #2c3138; --skin-bg-top: #363c45; --skin-bg-bottom: #2a2f36;
+  --skin-panel-top: #172238; --skin-panel-bottom: #1d2a44;
+  --skin-lcd-top: #0b1730; --skin-lcd-mid: #16305c; --skin-lcd-bottom: #0d1c38;
+  --skin-lcd-text: #f2c44a; --skin-accent-top: #3f6fc4; --skin-accent-bottom: #23488c;
+}
+
 main[data-skin="optimod-6300"] {
   --skin-bg: #2d3330; --skin-bg-top: #39413d; --skin-bg-bottom: #2b312e;
   --skin-panel-top: #1b2520; --skin-panel-bottom: #222d28;

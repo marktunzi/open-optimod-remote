@@ -786,6 +786,8 @@ private final class ConnectionEditorWindowController: NSWindowController {
         modelPopup.controlSize = .large
         modelPopup.font = .systemFont(ofSize: 14)
         modelPopup.widthAnchor.constraint(equalToConstant: 292).isActive = true
+        modelPopup.target = self
+        modelPopup.action = #selector(modelChanged)
 
         let nameCard = makeCard(rows: [("Name", nameField)])
         let connectionCard = makeCard(rows: [
@@ -878,6 +880,14 @@ private final class ConnectionEditorWindowController: NSWindowController {
     }
 
     @objc private func cancelEditor() { onCancel?() }
+
+    /// A port left at one model's default follows the chosen model.
+    @objc private func modelChanged() {
+        guard ProcessorModel.allCases.indices.contains(modelPopup.indexOfSelectedItem),
+              let port = Int(remotePortField.stringValue),
+              ProcessorModel.defaultPorts.contains(port) else { return }
+        remotePortField.stringValue = String(ProcessorModel.allCases[modelPopup.indexOfSelectedItem].defaultPort)
+    }
 
     @objc private func saveEditor() {
         let name = nameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)

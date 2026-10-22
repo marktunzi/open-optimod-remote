@@ -3,6 +3,10 @@ export type MeterChannel = {label: string; ids: number[]; laneLabels?: string[]}
 export type MeterGroup = {
  name: string;
  kind: 'level' | 'reduction' | 'loudness' | 'enhance' | 'composite';
+ /** Axis labels as [position from the top 0-1, label], where a profile gives the model's own scale. */
+ ticks?: [number, string][];
+ /** Shown only while the processor is in this state (e.g. the 8400's 2B/5B SWITCH). */
+ when?: MeterCondition;
  referenceWidth: number;
  contentOffset: number;
  channels: MeterChannel[];
@@ -53,11 +57,28 @@ export type MeterModel = {
 /** Meters as delivered in a model profile (see scripts/extract_pc_remote.py). */
 export type ProfileMeters = {
  max_values: number;
- groups: {name: string; kind: MeterGroup['kind']; channels: MeterChannel[]}[];
+ groups: {name: string; kind: MeterGroup['kind']; channels: MeterChannel[]; ticks?: [number, string][]; when?: MeterCondition}[];
  curves?: Record<string, number[]>;
 };
-export function visibleGroups(view: MeterView, model: MeterModel = REFERENCE_METERS): MeterGroup[] {
- return model.groups.filter(g => view === 'Both' || (!g.name.startsWith(view === 'FM' ? 'HD ' : 'FM ') && !(view === 'HD' && g.kind === 'composite')))
+/** A setting a meter group depends on: `value` must match, or `not` must not. */
+export type MeterCondition = {scope?: 'Processing' | 'System'; field: string; value?: string; not?: string};
+/** Current setting values by `Scope:NAME`, for meter conditions. */
+export type SettingValues = Record<string, string>;
+export function settingValues(processing?: {fields: Record<string, {value: {value: unknown}}>} | null, system?: {fields: Record<string, {value: {value: unknown}}>} | null): SettingValues {
+ const values: SettingValues = {};
+ for (const [scope, document] of [['Processing', processing], ['System', system]] as const)
+  for (const [name, field] of Object.entries(document?.fields || {})) values[`${scope}:${name}`] = String(field.value.value);
+ return values;
+}
+/** A group with a condition is shown only once the setting is known and matches. */
+export function conditionHolds(condition: MeterCondition | undefined, values: SettingValues | undefined): boolean {
+ if (!condition) return true;
+ const value = values?.[`${condition.scope || 'Processing'}:${condition.field}`];
+ if (value === undefined) return false;
+ return condition.value !== undefined ? value === condition.value : value !== condition.not;
+}
+export function visibleGroups(view: MeterView, model: MeterModel = REFERENCE_METERS, values?: SettingValues): MeterGroup[] {
+ return model.groups.filter(g => conditionHolds(g.when, values)).filter(g => view === 'Both' || (!g.name.startsWith(view === 'FM' ? 'HD ' : 'FM ') && !(view === 'HD' && g.kind === 'composite')))
   .map(g => model.reference && g.name === 'Loudness GR' && view === 'FM'
    ? {...g,channels:[mono('',60)]}
    : g);
@@ -77,7 +98,7 @@ function interpolate(curve: readonly number[], raw: number): number {
 export function meterModelFromProfile(meters: ProfileMeters): MeterModel {
  const groups = meters.groups.map(group => {
   const channels = group.channels.map(c => ({label: c.label, ids: [...c.ids], laneLabels: c.laneLabels}));
-  const base = {name: group.name, kind: group.kind, channels};
+  const base = {name: group.name, kind: group.kind, channels, ...(group.ticks ? {ticks: group.ticks.map(([position, label]) => [position, label] as [number, string])} : {}), ...(group.when ? {when: {...group.when}} : {})};
   return {...base, contentOffset: PROFILE_CONTENT_OFFSET, referenceWidth: profileGroupWidth(base)};
  });
  const curves = meters.curves || {};

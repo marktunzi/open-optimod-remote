@@ -70,6 +70,7 @@ export function mergeSupplementPages(builtin: LayoutPage[], supplement: LayoutPa
  * when the processor reports their fields. Without a document every page is kept.
  */
 export function livePages(pages: LayoutPage[], fields: Record<string, unknown> | undefined): LayoutPage[] {
-  if (!fields) return pages;
-  return pages.filter(page => page.controls.some(control => control.name in fields));
+  if (!fields) return pages.filter(page => !page.when);
+  return pages.filter(page => page.controls.some(control => control.name in fields)
+    && (!page.when || (fields[page.when.field] as { value?: { value?: unknown } } | undefined)?.value?.value === page.when.value));
 }

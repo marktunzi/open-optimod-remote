@@ -10,11 +10,16 @@ enum ProcessorModel: String, Codable, CaseIterable, Sendable {
     case optimod8500 = "optimod-8500"
     case optimod2300 = "optimod-2300"
     case optimod6300 = "optimod-6300"
+    case optimod8400 = "optimod-8400"
     case optimod8600 = "optimod-8600"
     case optimod8700i = "optimod-8700i"
     case optimod8700HD = "optimod-8700hd"
     case optimod9300 = "optimod-9300"
     case optimod9400 = "optimod-9400"
+
+    /// The 8400 speaks PC Remote on TCP 51200, every other model on 6201.
+    var defaultPort: Int { self == .optimod8400 ? 51200 : 6201 }
+    static let defaultPorts: Set<Int> = [6201, 51200]
 
     var label: String {
         switch self {
@@ -27,6 +32,7 @@ enum ProcessorModel: String, Codable, CaseIterable, Sendable {
         case .optimod8500: "OPTIMOD 8500"
         case .optimod2300: "OPTIMOD 2300"
         case .optimod6300: "OPTIMOD 6300"
+        case .optimod8400: "OPTIMOD-FM 8400"
         case .optimod8600: "OPTIMOD 8600"
         case .optimod8700i: "OPTIMOD 8700i"
         case .optimod8700HD: "OPTIMOD-FM 8700HD"

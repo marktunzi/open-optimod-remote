@@ -10,6 +10,7 @@ import {
   type MeterGroup,
   type MeterModel,
   type MeterView,
+  type SettingValues,
 } from './meters';
 
 const REFERENCE_WIDTH=1100;
@@ -25,6 +26,7 @@ function titleFor(group: MeterGroup): string {
 }
 
 function ticksFor(group: MeterGroup): [number,string][] {
+  if(group.ticks)return group.ticks;
   if(group.name==='Input')return ['0','3','6','9','12','15','18','24','30','36'].map((label,index)=>[index/9,label]);
   if(group.kind==='level'&&group.name.endsWith('Output'))return ['3','0','3','6','9','12','15','18','24','30'].map((label,index)=>[index/9,label]);
   if(group.kind==='composite')return ['125','100','75','50','25','0'].map((label,index)=>[index/5,label]);
@@ -47,14 +49,15 @@ function levelColor(percent:number): string {
   return METER_PALETTE.green;
 }
 
-export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE_METERS}:{
+export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE_METERS,values}:{
   connected:boolean;
   identity:string;
   view:MeterView;
   onLiveChange?:(live:boolean)=>void;
   model?:MeterModel;
+  values?:SettingValues;
 }) {
- const groups=useMemo(()=>visibleGroups(view,model),[view,model]);
+ const groups=useMemo(()=>visibleGroups(view,model,values),[view,model,values]);
  const minimumCanvasWidth=meterCanvasWidth(groups);
  const canvas=useRef<HTMLCanvasElement>(null);
  const motion=useRef(new MeterMotion(model));

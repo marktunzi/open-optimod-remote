@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { api } from "./api";
 import { MeterStrip } from "./MeterStrip";
-import { REFERENCE_METERS, meterModelFromProfile, type MeterModel, type ProfileMeters } from "./meters";
+import { REFERENCE_METERS, meterModelFromProfile, settingValues, type MeterModel, type ProfileMeters } from "./meters";
 import { Devices } from "./Devices";
 import layouts from "./layouts.json";
 import "./style.css";
@@ -304,6 +304,7 @@ function App() {
   const coupling = snapshot.processing?.fields["HD COUPLING"];
   const couplingValue = String(coupling?.value.value || '') || undefined;
   const liveFields = snapshot.processing?.fields;
+  const meterSettings = useMemo(() => settingValues(snapshot.processing, snapshot.system), [snapshot.revision, snapshot.processing?.name]);
   const pages = processingPages(
     modelLayouts
       ? livePages(modelLayouts, liveFields)
@@ -392,7 +393,7 @@ function App() {
       {snapshot.connected && snapshot.capabilities?.live_meters === false
         ? <ModelMeterPanel skin={skin}/>
         : <MeterStrip connected={snapshot.connected} identity={snapshot.session_id || snapshot.device_id || snapshot.host}
-            view={DEFAULT_METER_VIEW} onLiveChange={setMeterLive} model={meterModel}/>}
+            view={DEFAULT_METER_VIEW} onLiveChange={setMeterLive} model={meterModel} values={meterSettings}/>}
       <div className="app-body">
       <div className="workspace" id="main-workspace" tabIndex={-1}>
       {reconnectBanner}

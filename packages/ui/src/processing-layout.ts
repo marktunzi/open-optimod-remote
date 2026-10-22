@@ -26,6 +26,8 @@ export type LayoutPage = {
   reference_dialog: number;
   controls: LayoutControl[];
   groups: LayoutGroup[];
+  /** Shown only while this processing field has this value (e.g. the 8400's 2B/5B SWITCH). */
+  when?: { field: string; value: string };
 };
 
 export type ProcessingGroup = {

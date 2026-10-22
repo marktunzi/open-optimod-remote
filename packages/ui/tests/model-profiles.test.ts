@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { MeterMotion, REFERENCE_METERS, meterModelFromProfile, visibleGroups } from '../src/meters.ts';
 import { groupProcessingPage, type LayoutPage } from '../src/processing-layout.ts';
-import { processingPages } from '../src/navigation-model.ts';
+import { livePages, processingPages } from '../src/navigation-model.ts';
 
 const profile = (path: string) => JSON.parse(readFileSync(new URL(`../../../profiles/${path}`, import.meta.url), 'utf8'));
 const MODELS = ['5500/1.2.8.24', '8700hd/1.0.2.161'];
@@ -72,4 +72,35 @@ test('statically derived pages appear only when the processor reports their fiel
   const mx = livePages(supplement, { 'MX CLIP DRIVE': {} }).map(page => page.title);
   assert.ok(mx.includes('MX Distortion Control'), mx.join(', '));
   assert.equal(livePages(supplement, undefined).length, supplement.length);
+});
+
+test('the 8400 meters use the unit\'s own bar heights and scales', () => {
+  const model = meterModelFromProfile(profile('8400/3.0.5.7/meters.json'));
+  assert.deepEqual(model.groups.map(g => g.name), ['Input', 'AGC', 'Multiband', '2 Band', 'HF', 'Out', 'PWR', 'Comp']);
+  const shown = (structure?: string) => visibleGroups('Both', model, structure ? {'Processing:2B/5B SWITCH': structure} : {}).map(g => g.name);
+  assert.deepEqual(shown('5band'), ['Input', 'AGC', 'Multiband', 'Out', 'Comp']);
+  assert.deepEqual(shown('2band'), ['Input', 'AGC', '2 Band', 'HF', 'Out', 'PWR', 'Comp']);
+  assert.deepEqual(shown(), ['Input', 'AGC', 'Out', 'Comp']);
+  const input = model.groups[0];
+  assert.deepEqual(input.ticks?.[0], [0, '0']);
+  assert.deepEqual(input.ticks?.at(-1), [1, '40']);
+  // -10 dBFS sits at half height on the unit's screen.
+  assert.ok(input.ticks?.some(([position, label]) => label === '10' && position === 0.5));
+  assert.equal(model.percent(1, 42), 42);
+  assert.equal(model.groups.find(g => g.name === 'Out')?.ticks?.[1]?.[1], '0');
+});
+
+test('the 8400 shows Less-More and the Advanced Modify pages of the structure on air', () => {
+  const layouts = profile('8400/3.0.5.7/layouts.json') as LayoutPage[];
+  const field = (value: string) => ({ value: { type: 'Choice', value }, index: 0 });
+  const fields = (structure: string) => ({ 'LESS MORE': field('x'), 'SE AMOUNT': field('x'), 'AGC': field('On'), 'B1 COMP THRSH': field('x'), '2B DRIVE': field('x'), 'AGC XOVER': field('x'), 'B1 MIX': field('x'), 'BASS CLIP THR': field('x'), 'BASS GAIN': field('x'), 'MB DRIVE': field('x'), 'B1 ATTACK': field('x'), '2B/5B SWITCH': field(structure) });
+  const titles = (structure: string) => processingPages(livePages(layouts, fields(structure)), 'FM', undefined).map(page => page.title);
+  for (const structure of ['5band', '2band']) {
+    const shown = titles(structure);
+    assert.equal(shown[0], 'Less More');
+    assert.ok(shown.slice(1).every(title => title.startsWith('Advanced Modify')), shown.join());
+    assert.equal(new Set(shown).size, shown.length, 'one variant per page');
+  }
+  const two = processingPages(livePages(layouts, fields('2band')), 'FM', undefined);
+  assert.ok(two.find(page => page.title === 'Advanced Modify 2')?.controls.some(control => control.name === 'AGC XOVER'));
 });
