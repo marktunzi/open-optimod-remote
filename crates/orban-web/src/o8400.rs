@@ -10,7 +10,7 @@ use crate::{
     refresh_processing_identity, refreshed_less_more_availability,
 };
 use orban_protocol::{
-    adapter::{AdapterRegistry, DeviceModel},
+    adapter::{AdapterRegistry, Capabilities, DeviceModel},
     control::Scope,
     document::{Document, Field, Value},
     o8400::{self, Session},
@@ -45,6 +45,7 @@ const METERS_ON_EVENT: u16 = 0x40DC;
 
 pub struct Unit {
     pub session: Session,
+    capabilities: Capabilities,
     profile: Option<Arc<Profile>>,
     meters: Option<JoinHandle<()>>,
     processing_baseline: Option<Document>,
@@ -88,6 +89,7 @@ pub async fn connect(body: Connect, app: &App) -> Result<Unit, String> {
     let profile = Profile::for_adapter(adapter.id)?.map(Arc::new);
     let mut unit = Unit {
         session,
+        capabilities: adapter.capabilities,
         profile,
         meters: None,
         processing_baseline: None,
@@ -275,6 +277,16 @@ async fn read_until(
 }
 
 pub async fn change(unit: &mut Unit, app: &App, body: Change) -> Result<(), OperationError> {
+    if !unit.capabilities.parameter_writes {
+        return Err(OperationError::safe(
+            "Parameter writes are not verified for this OPTIMOD-FM 8400 software",
+        ));
+    }
+    if unit.session.login.access_level != 0 {
+        return Err(OperationError::safe(
+            "Write permissions for this access level have not been verified",
+        ));
+    }
     {
         let state = app.state.read().await;
         ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
@@ -369,6 +381,11 @@ pub async fn change(unit: &mut Unit, app: &App, body: Change) -> Result<(), Oper
 /// Recall as the original client does: the unit puts the named preset from
 /// its own list on air. The on-air file confirms it.
 pub async fn recall(unit: &mut Unit, app: &App, body: Recall) -> Result<(), OperationError> {
+    if !unit.capabilities.preset_recall {
+        return Err(OperationError::safe(
+            "Preset recall is not enabled for this OPTIMOD-FM 8400 software",
+        ));
+    }
     if !body.confirmed {
         return Err(OperationError::safe(
             "Confirm the on-air preset change first",
