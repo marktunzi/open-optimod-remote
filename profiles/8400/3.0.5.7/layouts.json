@@ -1,0 +1,3014 @@
+[
+  {
+    "title": "Less More",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 0,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "LESS MORE",
+        "label": "Less-More",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 0,
+        "reference_id": 107,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Advanced Modify 1",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4236208,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "SE AMOUNT",
+        "label": "Amount",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4236274,
+        "reference_id": 101,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "SE IN OUT",
+        "label": "In/Out",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4236299,
+        "reference_id": 102,
+        "options": [
+          "Out",
+          "In"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "SE RATIO WIDTH",
+        "label": "Ratio Lim",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4236323,
+        "reference_id": 103,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SE DIFFUSION",
+        "label": "Diffusion",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4236348,
+        "reference_id": 104,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "SE STYLE",
+        "label": "Style",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4236373,
+        "reference_id": 105,
+        "options": [
+          "222",
+          "Delay"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "SE DEPTH",
+        "label": "Depth",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4236397,
+        "reference_id": 106,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "30 HZ HPF",
+        "label": "30 Hz HPF",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4236422,
+        "reference_id": 38,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "PHASE ROTATOR",
+        "label": "Phase Rotat",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4236447,
+        "reference_id": 45,
+        "options": [
+          "In",
+          "Out"
+        ]
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Advanced Modify 2",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4236652,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "AGC",
+        "label": "AGC",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4236718,
+        "reference_id": 2,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AGC DRIVE",
+        "label": "Drive",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4236743,
+        "reference_id": 3,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC RELEASE",
+        "label": "Release",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4236767,
+        "reference_id": 5,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "GATE THRESH",
+        "label": "Gate Thres",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4236792,
+        "reference_id": 13,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS COUPLING",
+        "label": "Bass Coupl",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4236817,
+        "reference_id": 59,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC DIFF GR",
+        "label": "MaxDeltaGR",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4236841,
+        "reference_id": 90,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC WINDOW THRESH",
+        "label": "WindowSize",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4236866,
+        "reference_id": 97,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC WINDOW RELEASE",
+        "label": "Window Rel",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4236891,
+        "reference_id": 98,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AGC MATRIX",
+        "label": "AGC Matrix",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4236915,
+        "reference_id": 99,
+        "options": [
+          "L/R",
+          "sum/dif"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "AGC RATIO",
+        "label": "AGC Ratio",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4236940,
+        "reference_id": 100,
+        "options": [
+          "inf : 1",
+          "4:1",
+          "3:1",
+          "2:1"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS TH",
+        "label": "Bass Thresh",
+        "x": 0,
+        "y": 200,
+        "w": 60,
+        "id": 4236965,
+        "reference_id": 8,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS ATTACK",
+        "label": "Bass Attack",
+        "x": 0,
+        "y": 220,
+        "w": 60,
+        "id": 4236989,
+        "reference_id": 10,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS RELEASE",
+        "label": "Bass Release",
+        "x": 0,
+        "y": 240,
+        "w": 60,
+        "id": 4237014,
+        "reference_id": 11,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC MASTER ATTACK",
+        "label": "Mast. Attack",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4237039,
+        "reference_id": 12,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "IDLE GR",
+        "label": "Idle Gain",
+        "x": 0,
+        "y": 280,
+        "w": 60,
+        "id": 4237063,
+        "reference_id": 4,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC MAST DELTA TH",
+        "label": "MstrDeltaThr",
+        "x": 0,
+        "y": 300,
+        "w": 60,
+        "id": 4237088,
+        "reference_id": 7,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS DELTA TH",
+        "label": "BassDeltaThr",
+        "x": 0,
+        "y": 320,
+        "w": 60,
+        "id": 4237113,
+        "reference_id": 9,
+        "options": []
+      }
+    ],
+    "groups": [],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "5band"
+    }
+  },
+  {
+    "title": "Advanced Modify 2",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4240867,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "AGC",
+        "label": "AGC",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4240933,
+        "reference_id": 2,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AGC DRIVE",
+        "label": "Drive",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4240958,
+        "reference_id": 3,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC RELEASE",
+        "label": "Release",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4240982,
+        "reference_id": 5,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "GATE THRESH",
+        "label": "Gate Thres",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4241007,
+        "reference_id": 13,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS COUPLING",
+        "label": "Bass Coupl",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4241032,
+        "reference_id": 59,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC DIFF GR",
+        "label": "MaxDeltaGR",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4241056,
+        "reference_id": 90,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC WINDOW THRESH",
+        "label": "WindowSize",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4241081,
+        "reference_id": 97,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC WINDOW RELEASE",
+        "label": "Window Rel",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4241106,
+        "reference_id": 98,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AGC MATRIX",
+        "label": "AGC Matrix",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4241130,
+        "reference_id": 99,
+        "options": [
+          "L/R",
+          "sum/dif"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "AGC RATIO",
+        "label": "AGC Ratio",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4241155,
+        "reference_id": 100,
+        "options": [
+          "inf : 1",
+          "4:1",
+          "3:1",
+          "2:1"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS TH",
+        "label": "Bass Thresh",
+        "x": 0,
+        "y": 200,
+        "w": 60,
+        "id": 4241180,
+        "reference_id": 8,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS ATTACK",
+        "label": "Bass Attack",
+        "x": 0,
+        "y": 220,
+        "w": 60,
+        "id": 4241204,
+        "reference_id": 10,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS RELEASE",
+        "label": "Bass Release",
+        "x": 0,
+        "y": 240,
+        "w": 60,
+        "id": 4241229,
+        "reference_id": 11,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC MASTER ATTACK",
+        "label": "Mast. Attack",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4241254,
+        "reference_id": 12,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "IDLE GR",
+        "label": "Idle Gain",
+        "x": 0,
+        "y": 280,
+        "w": 60,
+        "id": 4241278,
+        "reference_id": 4,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AGC XOVER",
+        "label": "Crossover",
+        "x": 0,
+        "y": 300,
+        "w": 60,
+        "id": 4241303,
+        "reference_id": 14,
+        "options": [
+          "Linear",
+          "AllPass",
+          "LiNoDly"
+        ]
+      }
+    ],
+    "groups": [],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "2band"
+    }
+  },
+  {
+    "title": "Advanced Modify 3",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4237306,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "LOW BASS GAIN",
+        "label": "Bass Gain",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4237372,
+        "reference_id": 78,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "LOW BASS FREQ",
+        "label": "Bass Freq",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4237397,
+        "reference_id": 79,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "LOW BASS Q",
+        "label": "Bass Slope",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4237421,
+        "reference_id": 80,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW GAIN",
+        "label": "Low Gain",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4237446,
+        "reference_id": 81,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW FREQ",
+        "label": "Low Freq",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4237471,
+        "reference_id": 82,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW WIDTH",
+        "label": "Low Width",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4237495,
+        "reference_id": 83,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID GAIN",
+        "label": "Mid Gain",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4237520,
+        "reference_id": 84,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID FREQ",
+        "label": "Mid Freq",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4237545,
+        "reference_id": 85,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID WIDTH",
+        "label": "Mid Width",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4237569,
+        "reference_id": 86,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH GAIN",
+        "label": "High Gain",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4237594,
+        "reference_id": 87,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH FREQ",
+        "label": "High Freq",
+        "x": 0,
+        "y": 200,
+        "w": 60,
+        "id": 4237619,
+        "reference_id": 88,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH WIDTH",
+        "label": "High Width",
+        "x": 0,
+        "y": 220,
+        "w": 60,
+        "id": 4237643,
+        "reference_id": 89,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BRILLIANCE",
+        "label": "Brilliance",
+        "x": 0,
+        "y": 240,
+        "w": 60,
+        "id": 4237668,
+        "reference_id": 37,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DJ BASS BOOST",
+        "label": "DJ Bass",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4237693,
+        "reference_id": 39,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HF ENHANCER",
+        "label": "HF Enhance",
+        "x": 0,
+        "y": 280,
+        "w": 60,
+        "id": 4237717,
+        "reference_id": 77,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC EQ GAIN",
+        "label": "HD EQ gain",
+        "x": 0,
+        "y": 300,
+        "w": 60,
+        "id": 4237751,
+        "reference_id": 126,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC EQ FREQ",
+        "label": "HD EQ Freq",
+        "x": 0,
+        "y": 320,
+        "w": 60,
+        "id": 4237776,
+        "reference_id": 125,
+        "options": []
+      }
+    ],
+    "groups": [],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "5band"
+    }
+  },
+  {
+    "title": "Advanced Modify 3",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4241531,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "LOW BASS GAIN",
+        "label": "Bass Gain",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4241596,
+        "reference_id": 78,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "LOW BASS FREQ",
+        "label": "Bass Freq",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4241621,
+        "reference_id": 79,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "LOW BASS Q",
+        "label": "Bass Slope",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4241646,
+        "reference_id": 80,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW GAIN",
+        "label": "Low Gain",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4241670,
+        "reference_id": 81,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW FREQ",
+        "label": "Low Freq",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4241695,
+        "reference_id": 82,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW WIDTH",
+        "label": "Low Width",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4241720,
+        "reference_id": 83,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID GAIN",
+        "label": "Mid Gain",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4241744,
+        "reference_id": 84,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID FREQ",
+        "label": "Mid Freq",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4241769,
+        "reference_id": 85,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID WIDTH",
+        "label": "Mid Width",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4241794,
+        "reference_id": 86,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH GAIN",
+        "label": "High Gain",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4241818,
+        "reference_id": 87,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH FREQ",
+        "label": "High Freq",
+        "x": 0,
+        "y": 200,
+        "w": 60,
+        "id": 4241843,
+        "reference_id": 88,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH WIDTH",
+        "label": "High Width",
+        "x": 0,
+        "y": 220,
+        "w": 60,
+        "id": 4241868,
+        "reference_id": 89,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HF ENHANCER",
+        "label": "HF Enhance",
+        "x": 0,
+        "y": 240,
+        "w": 60,
+        "id": 4241892,
+        "reference_id": 77,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC EQ GAIN",
+        "label": "HD EQ gain",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4241926,
+        "reference_id": 126,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC EQ FREQ",
+        "label": "HD EQ Freq",
+        "x": 0,
+        "y": 280,
+        "w": 60,
+        "id": 4241951,
+        "reference_id": 125,
+        "options": []
+      }
+    ],
+    "groups": [],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "2band"
+    }
+  },
+  {
+    "title": "Advanced Modify 4",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4237965,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "MB DRIVE",
+        "label": "MB Drive",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4238031,
+        "reference_id": 19,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DWNWRD EXP",
+        "label": "Down Expand",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4238056,
+        "reference_id": 29,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MB GATE THR",
+        "label": "Gate Thres",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4238080,
+        "reference_id": 15,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B1 COMP THRSH",
+        "label": "B1 Cmpr Thr",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4238105,
+        "reference_id": 48,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 COMP THRSH",
+        "label": "B2 Cmpr Thr",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4238130,
+        "reference_id": 49,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 COMP THRSH",
+        "label": "B3 Cmpr Thr",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4238154,
+        "reference_id": 50,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 COMP THRSH",
+        "label": "B4 Cmpr Thr",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4238179,
+        "reference_id": 51,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MULTIBAND CLIP",
+        "label": "MB Clipping",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4238204,
+        "reference_id": 46,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 CLIP THRSH",
+        "label": "MB LimitThr",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4238228,
+        "reference_id": 52,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MAX DIST CONTRL",
+        "label": "Max Dist Ctrl",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4238253,
+        "reference_id": 53,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SPEECH THR",
+        "label": "Speech Thr",
+        "x": 0,
+        "y": 200,
+        "w": 60,
+        "id": 4238278,
+        "reference_id": 54,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 CLIP THRSH",
+        "label": "HF Clip Thr",
+        "x": 0,
+        "y": 220,
+        "w": 60,
+        "id": 4238302,
+        "reference_id": 55,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HF LIMITER",
+        "label": "HF Limiter",
+        "x": 0,
+        "y": 240,
+        "w": 60,
+        "id": 4238327,
+        "reference_id": 57,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HF DE ESS",
+        "label": "HD De-Ess",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4238361,
+        "reference_id": 58,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DE STEREO COUPL",
+        "label": "DwnExpStCpl",
+        "x": 0,
+        "y": 280,
+        "w": 60,
+        "id": 4238385,
+        "reference_id": 96,
+        "options": [
+          "On",
+          "Off"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "B12 CROSSOVER",
+        "label": "B1/B2 Xover",
+        "x": 0,
+        "y": 300,
+        "w": 60,
+        "id": 4238410,
+        "reference_id": 127,
+        "options": [
+          "100Hz",
+          "200Hz"
+        ]
+      }
+    ],
+    "groups": [],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "5band"
+    }
+  },
+  {
+    "title": "Advanced Modify 4",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4242179,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "2B DRIVE",
+        "label": "Drive",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4242245,
+        "reference_id": 112,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B RELEASE",
+        "label": "Release",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4242270,
+        "reference_id": 113,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MB GATE THR",
+        "label": "Gate Thres",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4242294,
+        "reference_id": 15,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B BASS COUPLE",
+        "label": "Bass Coupl",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4242319,
+        "reference_id": 114,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B LOOKAHEAD",
+        "label": "Lookahead",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4242344,
+        "reference_id": 123,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B BASS COMP THR",
+        "label": "BassCmp Thr",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4242368,
+        "reference_id": 115,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B MASTER COMP THR",
+        "label": "MastCmp Thr",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4242393,
+        "reference_id": 116,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B CLIPPING",
+        "label": "2B Clipping",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4242418,
+        "reference_id": 120,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B BASS ATTACK",
+        "label": "Bass Attack",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4242442,
+        "reference_id": 121,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B MASTR ATTACK",
+        "label": "Mastr Attack",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4242467,
+        "reference_id": 122,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "2B XOVER",
+        "label": "Crossover",
+        "x": 0,
+        "y": 200,
+        "w": 60,
+        "id": 4242492,
+        "reference_id": 111,
+        "options": [
+          "Linear",
+          "No Dly"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "B3 CLIP THRSH",
+        "label": "MB LimitThr",
+        "x": 0,
+        "y": 220,
+        "w": 60,
+        "id": 4242516,
+        "reference_id": 52,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MAX DIST CONTRL",
+        "label": "Max Dist Ctrl",
+        "x": 0,
+        "y": 240,
+        "w": 60,
+        "id": 4242541,
+        "reference_id": 53,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SPEECH THR",
+        "label": "Speech Thr",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4242566,
+        "reference_id": 54,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 CLIP THRSH",
+        "label": "HF Clip Thr",
+        "x": 0,
+        "y": 280,
+        "w": 60,
+        "id": 4242590,
+        "reference_id": 55,
+        "options": []
+      }
+    ],
+    "groups": [],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "2band"
+    }
+  },
+  {
+    "title": "Advanced Modify 5",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4238603,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "MB RELEASE",
+        "label": "MB Release",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4238668,
+        "reference_id": 20,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B1 ATTACK",
+        "label": "B1 Attack",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4238693,
+        "reference_id": 67,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 ATTACK",
+        "label": "B2 Attack",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4238718,
+        "reference_id": 68,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 ATTACK",
+        "label": "B3 Attack",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4238742,
+        "reference_id": 69,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 ATTACK",
+        "label": "B4 Attack",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4238767,
+        "reference_id": 70,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B1 LIMIT ATTACK",
+        "label": "B1 Lim Att",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4238792,
+        "reference_id": 25,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 LIMIT ATTACK",
+        "label": "B2 Lim Att",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4238816,
+        "reference_id": 26,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 LIMIT ATTACK",
+        "label": "B3 Lim Att",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4238841,
+        "reference_id": 27,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 LIMIT ATTACK",
+        "label": "B4 Lim Att",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4238866,
+        "reference_id": 28,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "COMP LOOKAHEAD SW",
+        "label": "Lookahead",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4238890,
+        "reference_id": 71,
+        "options": [
+          "In",
+          "Out",
+          "Auto"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "B1 DELTA REL",
+        "label": "Delta Rel 1",
+        "x": 0,
+        "y": 200,
+        "w": 60,
+        "id": 4238915,
+        "reference_id": 21,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 DELTA REL",
+        "label": "Delta Rel 2",
+        "x": 0,
+        "y": 220,
+        "w": 60,
+        "id": 4238940,
+        "reference_id": 22,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 DELTA REL",
+        "label": "Delta Rel 3",
+        "x": 0,
+        "y": 240,
+        "w": 60,
+        "id": 4238964,
+        "reference_id": 23,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4/5 DELTA REL",
+        "label": "Delta Rel 4/5",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4238989,
+        "reference_id": 24,
+        "options": []
+      }
+    ],
+    "groups": [],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "5band"
+    }
+  },
+  {
+    "title": "Advanced Modify 5",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4242822,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "2B BASS CLIP",
+        "label": "BassClpThre",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4242888,
+        "reference_id": 117,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "2B BASS CLIP MODE",
+        "label": "BassClpMode",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4242913,
+        "reference_id": 118,
+        "options": [
+          "Soft",
+          "Med",
+          "Hard",
+          "LLHard"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "SPEECH BC THR",
+        "label": "SpeechBCThr",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4242937,
+        "reference_id": 17,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B HF LIMITING",
+        "label": "HF Limiting",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4242962,
+        "reference_id": 119,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HF CLIPPING",
+        "label": "HF Clipping",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4242987,
+        "reference_id": 47,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "FINAL CLIP DRV",
+        "label": "FinalClpDr",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4243011,
+        "reference_id": 30,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DRIVE W2",
+        "label": "OSComp Dr",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4243036,
+        "reference_id": 63,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP DRIVE",
+        "label": "Comp Drive",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4243061,
+        "reference_id": 109,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "PILOT PROTECT",
+        "label": "PilotProtect",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4243085,
+        "reference_id": 108,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC LIM DR",
+        "label": "HD Drive",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4243119,
+        "reference_id": 124,
+        "options": []
+      }
+    ],
+    "groups": [],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "2band"
+    }
+  },
+  {
+    "title": "Advanced Modify 6",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4239182,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "B1 OUTPUT MIX",
+        "label": "B1 Out Mix",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4239247,
+        "reference_id": 32,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 OUTPUT MIX",
+        "label": "B2 Out Mix",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4239272,
+        "reference_id": 33,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 OUTPUT MIX",
+        "label": "B3 Out Mix",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4239297,
+        "reference_id": 34,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 OUTPUT MIX",
+        "label": "B4 Out Mix",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4239321,
+        "reference_id": 35,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 OUTPUT MIX",
+        "label": "B5 Out Mix",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4239346,
+        "reference_id": 36,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "B1 ON/OFF",
+        "label": "B1 On/Mute",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4239371,
+        "reference_id": 72,
+        "options": [
+          "On",
+          "Mute"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "B2 ON/OFF",
+        "label": "B2 On/Mute",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4239395,
+        "reference_id": 73,
+        "options": [
+          "On",
+          "Mute"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "B3 ON/OFF",
+        "label": "B3 On/Mute",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4239420,
+        "reference_id": 74,
+        "options": [
+          "On",
+          "Mute"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "B4 ON/OFF",
+        "label": "B4 On/Mute",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4239445,
+        "reference_id": 75,
+        "options": [
+          "On",
+          "Mute"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "B5 ON/OFF",
+        "label": "B5 On/Mute",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4239469,
+        "reference_id": 76,
+        "options": [
+          "On",
+          "Mute"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "B1 DIFF GR",
+        "label": "B1MaxDeltGR",
+        "x": 0,
+        "y": 200,
+        "w": 60,
+        "id": 4239494,
+        "reference_id": 91,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B2 DIFF GR",
+        "label": "B2MaxDeltGR",
+        "x": 0,
+        "y": 220,
+        "w": 60,
+        "id": 4239519,
+        "reference_id": 92,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 DIFF GR",
+        "label": "B3MaxDeltGR",
+        "x": 0,
+        "y": 240,
+        "w": 60,
+        "id": 4239543,
+        "reference_id": 93,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B4 DIFF GR",
+        "label": "B4MaxDeltGR",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4239568,
+        "reference_id": 94,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B5 DIFF GR",
+        "label": "B5MaxDeltGR",
+        "x": 0,
+        "y": 280,
+        "w": 60,
+        "id": 4239593,
+        "reference_id": 95,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BASS COUPLING",
+        "label": "B2/B1 Coupl",
+        "x": 0,
+        "y": 300,
+        "w": 60,
+        "id": 4239617,
+        "reference_id": 40,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BAND 23 COUPL",
+        "label": "B2/B3 Coupl",
+        "x": 0,
+        "y": 320,
+        "w": 60,
+        "id": 4239642,
+        "reference_id": 41,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BAND 32 COUPL",
+        "label": "B3/B2 Coupl",
+        "x": 0,
+        "y": 340,
+        "w": 60,
+        "id": 4239667,
+        "reference_id": 42,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BAND 34 COUPL",
+        "label": "B3/B4 Coupl",
+        "x": 0,
+        "y": 360,
+        "w": 60,
+        "id": 4239691,
+        "reference_id": 43,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BAND 45 COUPL",
+        "label": "B4/B5 Coupl",
+        "x": 0,
+        "y": 380,
+        "w": 60,
+        "id": 4239716,
+        "reference_id": 44,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Advanced Modify 7",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4239907,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "BASS CLIP",
+        "label": "BassClpThre",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4239972,
+        "reference_id": 16,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "BASS CLIP MODE",
+        "label": "BassClpMode",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4239997,
+        "reference_id": 66,
+        "options": [
+          "Soft",
+          "Med",
+          "Hard",
+          "LLHard"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "BASS CLIP SHAPE",
+        "label": "HardClipShape",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4240022,
+        "reference_id": 18,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SPEECH BC THR",
+        "label": "SpeechBCThr",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4240046,
+        "reference_id": 17,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HF CLIPPING",
+        "label": "HF Clipping",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4240071,
+        "reference_id": 47,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "FINAL CLIP DRV",
+        "label": "FinalClpDr",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4240096,
+        "reference_id": 30,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DRIVE W2",
+        "label": "OSComp Dr",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4240120,
+        "reference_id": 63,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP DRIVE",
+        "label": "Comp Drive",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4240145,
+        "reference_id": 109,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "PILOT PROTECT",
+        "label": "PilotProtect",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4240170,
+        "reference_id": 108,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC LIM DR",
+        "label": "HD Drive",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4240203,
+        "reference_id": 124,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Input/Output 1",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4267889,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INPUT A OR D",
+        "label": "Set input to",
+        "x": 115,
+        "y": 53,
+        "w": 60,
+        "id": 4267962,
+        "reference_id": 166,
+        "options": [
+          "Analog",
+          "Digital",
+          "Dig+J17"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AI CLIP LEVEL",
+        "label": "Clip Level",
+        "x": 115,
+        "y": 90,
+        "w": 60,
+        "id": 4267993,
+        "reference_id": 172,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI BALANCE",
+        "label": "Right Channel Balance",
+        "x": 115,
+        "y": 109,
+        "w": 60,
+        "id": 4268025,
+        "reference_id": 173,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF LEVEL",
+        "label": "Ref. Lev VU",
+        "x": 115,
+        "y": 128,
+        "w": 60,
+        "id": 4268060,
+        "reference_id": 170,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF PPM LEVEL",
+        "label": "PPM",
+        "x": 228,
+        "y": 128,
+        "w": 60,
+        "id": 4268097,
+        "reference_id": 171,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI BALANCE",
+        "label": "Right Channel Balance",
+        "x": 115,
+        "y": 162,
+        "w": 60,
+        "id": 4268132,
+        "reference_id": 174,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF LEVEL",
+        "label": "Ref. Lev VU",
+        "x": 115,
+        "y": 181,
+        "w": 60,
+        "id": 4268167,
+        "reference_id": 168,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF PPM LEVEL",
+        "label": "PPM",
+        "x": 228,
+        "y": 181,
+        "w": 60,
+        "id": 4268204,
+        "reference_id": 169,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Input/Output 2",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4268355,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "ANALOG OUT",
+        "label": "Out Level",
+        "x": 105,
+        "y": 68,
+        "w": 60,
+        "id": 4268427,
+        "reference_id": 175,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AO PRE-OUT",
+        "label": "Pre-Emph",
+        "x": 207,
+        "y": 68,
+        "w": 60,
+        "id": 4268462,
+        "reference_id": 157,
+        "options": [
+          "Flat",
+          "Pre"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "LOW LATENCY",
+        "label": "Out Feeds",
+        "x": 105,
+        "y": 87,
+        "w": 60,
+        "id": 4268494,
+        "reference_id": 176,
+        "options": [
+          "Xmitter",
+          "Monitor"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO LEVEL",
+        "label": "Out Level",
+        "x": 105,
+        "y": 128,
+        "w": 60,
+        "id": 4268528,
+        "reference_id": 186,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DO SAMPLE RATE",
+        "label": "Samp Rate",
+        "x": 105,
+        "y": 146,
+        "w": 60,
+        "id": 4268563,
+        "reference_id": 158,
+        "options": [
+          "32kHz",
+          "44.1kHz",
+          "48kHz"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO WORD LGTH",
+        "label": "Word Leng",
+        "x": 207,
+        "y": 146,
+        "w": 60,
+        "id": 4268601,
+        "reference_id": 188,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DO DITHER",
+        "label": "Dither",
+        "x": 207,
+        "y": 164,
+        "w": 60,
+        "id": 4268638,
+        "reference_id": 189,
+        "options": [
+          "In",
+          "Out"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO PRE-EMPH",
+        "label": "Pre-Emph",
+        "x": 207,
+        "y": 128,
+        "w": 60,
+        "id": 4268676,
+        "reference_id": 187,
+        "options": [
+          "Flat",
+          "Pre-e",
+          "J.17",
+          "Pre+J17"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO SYNC",
+        "label": "SR SYNC",
+        "x": 105,
+        "y": 164,
+        "w": 60,
+        "id": 4268711,
+        "reference_id": 159,
+        "options": [
+          "Internal",
+          "SYNC IN",
+          "INPUT"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO FORMAT",
+        "label": "Format",
+        "x": 105,
+        "y": 182,
+        "w": 60,
+        "id": 4268745,
+        "reference_id": 160,
+        "options": [
+          "AES",
+          "SPDIF"
+        ]
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Input/Output 3",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4268896,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "MODULATION",
+        "label": "Modulation",
+        "x": 105,
+        "y": 53,
+        "w": 60,
+        "id": 4268968,
+        "reference_id": 202,
+        "options": [
+          "Stereo",
+          "Mono-L",
+          "Mono-R",
+          "Mono-Sum"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "PILOT",
+        "label": "Pilot",
+        "x": 105,
+        "y": 71,
+        "w": 60,
+        "id": 4269000,
+        "reference_id": 201,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "MOD REDUCE 1",
+        "label": "Mod. Red. 1",
+        "x": 105,
+        "y": 89,
+        "w": 60,
+        "id": 4269032,
+        "reference_id": 179,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PILOT LEVEL",
+        "label": "Pilot Level",
+        "x": 207,
+        "y": 71,
+        "w": 60,
+        "id": 4269066,
+        "reference_id": 184,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MOD REDUCE 2",
+        "label": "Mod. Red. 2",
+        "x": 207,
+        "y": 89,
+        "w": 60,
+        "id": 4269101,
+        "reference_id": 180,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP1 OUT",
+        "label": "Level",
+        "x": 105,
+        "y": 137,
+        "w": 60,
+        "id": 4269136,
+        "reference_id": 177,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "COMP2 SET",
+        "label": "Set to",
+        "x": 207,
+        "y": 137,
+        "w": 60,
+        "id": 4269173,
+        "reference_id": 183,
+        "options": [
+          "Comp. Out",
+          "Pilot Ref."
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "COMP2 OUT",
+        "label": "Level",
+        "x": 207,
+        "y": 155,
+        "w": 60,
+        "id": 4269211,
+        "reference_id": 178,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Input/Output 4",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4269387,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "STUDIO CHASSIS",
+        "label": "Studio Chassis",
+        "x": 112,
+        "y": 90,
+        "w": 60,
+        "id": 4269456,
+        "reference_id": 161,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "CLIP DEFEAT",
+        "label": "Final Clip Defeat",
+        "x": 112,
+        "y": 118,
+        "w": 60,
+        "id": 4269487,
+        "reference_id": 190,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "PRE-E",
+        "label": "Process Pre-Emphasis",
+        "x": 112,
+        "y": 146,
+        "w": 60,
+        "id": 4269522,
+        "reference_id": 194,
+        "options": [
+          "50us",
+          "75us"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "ITU412 THR",
+        "label": "Multiplex Power Threshold",
+        "x": 112,
+        "y": 174,
+        "w": 60,
+        "id": 4269557,
+        "reference_id": 185,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Input/Output 5",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4269721,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "IBOC PHONE SOURCE",
+        "label": "Phone Src.",
+        "x": 105,
+        "y": 49,
+        "w": 60,
+        "id": 4269794,
+        "reference_id": 205,
+        "options": [
+          "HD",
+          "FM"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC HF EQ",
+        "label": "HD Hf Eq",
+        "x": 207,
+        "y": 49,
+        "w": 60,
+        "id": 4269828,
+        "reference_id": 207,
+        "options": [
+          "Pre",
+          "Post"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC METER",
+        "label": "Meter Sel.",
+        "x": 105,
+        "y": 67,
+        "w": 60,
+        "id": 4269860,
+        "reference_id": 206,
+        "options": [
+          "FM Output",
+          "HD GR"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC AO SOURCE",
+        "label": "Out Srce",
+        "x": 105,
+        "y": 99,
+        "w": 60,
+        "id": 4269892,
+        "reference_id": 208,
+        "options": [
+          "HD pre ",
+          "HD post",
+          "FM Mon"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC AO LEVEL",
+        "label": "Out Level",
+        "x": 207,
+        "y": 99,
+        "w": 60,
+        "id": 4269926,
+        "reference_id": 209,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC DO SOURCE",
+        "label": "St/Mono",
+        "x": 105,
+        "y": 132,
+        "w": 60,
+        "id": 4269961,
+        "reference_id": 210,
+        "options": [
+          "Stereo",
+          "Mono-L",
+          "Mono-R",
+          "Mono-Sum"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC DO LEVEL",
+        "label": "Out Level",
+        "x": 207,
+        "y": 132,
+        "w": 60,
+        "id": 4269999,
+        "reference_id": 211,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC DO SR",
+        "label": "Samp Rate",
+        "x": 105,
+        "y": 150,
+        "w": 60,
+        "id": 4270033,
+        "reference_id": 212,
+        "options": [
+          "32kHz",
+          "44.1kHz",
+          "48kHz"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC DO WORD LG",
+        "label": "Word Length",
+        "x": 207,
+        "y": 150,
+        "w": 60,
+        "id": 4270071,
+        "reference_id": 213,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC DO SYNC",
+        "label": "Sync",
+        "x": 105,
+        "y": 168,
+        "w": 60,
+        "id": 4270106,
+        "reference_id": 215,
+        "options": [
+          "Internal",
+          "SYNC IN"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC DO DITHER",
+        "label": "Dither",
+        "x": 207,
+        "y": 168,
+        "w": 60,
+        "id": 4270143,
+        "reference_id": 214,
+        "options": [
+          "In",
+          "Out"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC DO FORMAT",
+        "label": "Format",
+        "x": 105,
+        "y": 186,
+        "w": 60,
+        "id": 4270178,
+        "reference_id": 216,
+        "options": [
+          "AES",
+          "SPDIF"
+        ]
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "System Setup: Network/Remote 2",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4557420,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INTERFACE TYPE",
+        "label": "Serial Interface Type",
+        "x": 30,
+        "y": 53,
+        "w": 60,
+        "id": 4557488,
+        "reference_id": 144,
+        "options": [
+          "Direct",
+          "Modem"
+        ]
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "System Setup: Quick Setup 1",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4604962,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "LANGUAGE",
+        "label": "Language",
+        "x": 97,
+        "y": 56,
+        "w": 60,
+        "id": 4605167,
+        "reference_id": 130,
+        "options": [
+          "English"
+        ]
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "System Setup: Quick Setup 3",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4606144,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "PRE-E",
+        "label": "Pre-Emphasis",
+        "x": 95,
+        "y": 165,
+        "w": 60,
+        "id": 4606320,
+        "reference_id": 194,
+        "options": [
+          "50us",
+          "75us"
+        ]
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "System Setup: Quick Setup 4",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4606484,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "STUDIO CHASSIS",
+        "label": "STUDIO CHASSIS",
+        "x": 90,
+        "y": 112,
+        "w": 60,
+        "id": 4606753,
+        "reference_id": 161,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "System Setup: Quick Setup 5",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4606913,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INPUT A OR D",
+        "label": "Set input to",
+        "x": 90,
+        "y": 100,
+        "w": 60,
+        "id": 4607203,
+        "reference_id": 166,
+        "options": [
+          "Analog",
+          "Digital",
+          "Dig+J17"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF LEVEL",
+        "label": "AI Ref. Lev. VU",
+        "x": 90,
+        "y": 123,
+        "w": 60,
+        "id": 4607238,
+        "reference_id": 170,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF PPM LEVEL",
+        "label": "PPM",
+        "x": 221,
+        "y": 123,
+        "w": 60,
+        "id": 4607276,
+        "reference_id": 171,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF LEVEL",
+        "label": "DI Ref. Lev. VU",
+        "x": 90,
+        "y": 145,
+        "w": 60,
+        "id": 4607313,
+        "reference_id": 168,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF PPM LEVEL",
+        "label": "PPM",
+        "x": 221,
+        "y": 145,
+        "w": 60,
+        "id": 4607354,
+        "reference_id": 169,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "System Setup: Quick Setup 6",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4607518,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "AO PRE-OUT",
+        "label": "Analog Output Pre/Flat",
+        "x": 40,
+        "y": 70,
+        "w": 60,
+        "id": 4607590,
+        "reference_id": 157,
+        "options": [
+          "Flat",
+          "Pre"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO PRE-EMPH",
+        "label": "Digital Output Pre/Flat",
+        "x": 40,
+        "y": 102,
+        "w": 60,
+        "id": 4607625,
+        "reference_id": 187,
+        "options": [
+          "Flat",
+          "Pre-e",
+          "J.17",
+          "Pre+J17"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO SAMPLE RATE",
+        "label": "Digital Output Sample Rate",
+        "x": 40,
+        "y": 135,
+        "w": 60,
+        "id": 4607662,
+        "reference_id": 158,
+        "options": [
+          "32kHz",
+          "44.1kHz",
+          "48kHz"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "COMP2 SET",
+        "label": "Composite Output 2 Used As",
+        "x": 40,
+        "y": 167,
+        "w": 60,
+        "id": 4607700,
+        "reference_id": 183,
+        "options": [
+          "Comp. Out",
+          "Pilot Ref."
+        ]
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "System Setup: Quick Setup 7",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4607864,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "400 HERTZ TONE",
+        "label": "400 Hz calibration tone",
+        "x": 60,
+        "y": 105,
+        "w": 60,
+        "id": 4608037,
+        "reference_id": 162,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "COMP1 OUT",
+        "label": "Composite 1 level",
+        "x": 60,
+        "y": 123,
+        "w": 60,
+        "id": 4608072,
+        "reference_id": 177,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP2 OUT",
+        "label": "Composite 2 level",
+        "x": 60,
+        "y": 141,
+        "w": 60,
+        "id": 4608110,
+        "reference_id": 178,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO LEVEL",
+        "label": "Digital output level",
+        "x": 60,
+        "y": 159,
+        "w": 60,
+        "id": 4608147,
+        "reference_id": 186,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "ANALOG OUT",
+        "label": "Analog output level",
+        "x": 60,
+        "y": 177,
+        "w": 60,
+        "id": 4608185,
+        "reference_id": 175,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "System Setup: Security",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4628504,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "SECURITY TIMEOUT",
+        "label": "Lockout",
+        "x": 110,
+        "y": 53,
+        "w": 60,
+        "id": 4628572,
+        "reference_id": 141,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "System Setup: Test Modes",
+    "path": "System",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4648576,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "BYPASS",
+        "label": "Bypass",
+        "x": 103,
+        "y": 76,
+        "w": 60,
+        "id": 4648649,
+        "reference_id": 164,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "TONE",
+        "label": "Tone",
+        "x": 103,
+        "y": 124,
+        "w": 60,
+        "id": 4648680,
+        "reference_id": 165,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "BYPASS GAIN",
+        "label": "Gain",
+        "x": 106,
+        "y": 96,
+        "w": 60,
+        "id": 4648712,
+        "reference_id": 195,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "30 HZ HPF",
+        "label": "30 Hz HPF",
+        "x": 210,
+        "y": 96,
+        "w": 60,
+        "id": 4648747,
+        "reference_id": 196,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "FREQUENCY",
+        "label": "Frequency",
+        "x": 106,
+        "y": 143,
+        "w": 60,
+        "id": 4648781,
+        "reference_id": 197,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MOD LEVEL",
+        "label": "Mod. Level",
+        "x": 210,
+        "y": 143,
+        "w": 60,
+        "id": 4648819,
+        "reference_id": 198,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "MOD TYPE",
+        "label": "Mod. Type",
+        "x": 106,
+        "y": 164,
+        "w": 60,
+        "id": 4648854,
+        "reference_id": 200,
+        "options": [
+          "LEFT",
+          "RIGHT",
+          "L+R",
+          "L-R"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "OPERATE",
+        "label": "Operate",
+        "x": 103,
+        "y": 49,
+        "w": 60,
+        "id": 4648961,
+        "reference_id": 163,
+        "options": [
+          "Off",
+          "On"
+        ]
+      }
+    ],
+    "groups": []
+  }
+]

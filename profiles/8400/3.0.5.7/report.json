@@ -1,0 +1,7304 @@
+{
+  "model": "8400",
+  "firmware": "3.0.5.7",
+  "banner_note": "firmware package 'Optimod 8400 Update 3.0.5'; software version 3.0.5.7",
+  "reference_sha256": "92061d22d24ed5c3e023db55433a2149b003b7bb12120db648dd4fca30c125b3",
+  "firmware_sha256": "8b278497a0496036e45be2c26e5a7f625a0e362c643e6fdb108fbc82d0e306ac",
+  "image_sha256": "4fa538df59db6f1057c16d32ecf244ff0768271d38250b010e77a608387a30ba",
+  "document_family": "OptimodVersion=<00.08>",
+  "document_family_note": "8400 documents start with OptimodVersion=<00.08>, not <8400.: orban-protocol document.rs has no 8400 DeviceModel/prefix yet.",
+  "registrations": {
+    "firmware": 274,
+    "pc_remote": 273,
+    "firmware_groups": {
+      "other": 2,
+      "processing": 126,
+      "system": 89,
+      "test": 8,
+      "contact-actions": 13,
+      "time": 12,
+      "automation": 16,
+      "automation-actions": 8
+    }
+  },
+  "pc_remote_agreement": {
+    "n/a": 4,
+    "identical": 270
+  },
+  "pc_remote_only": [],
+  "factory_presets": 940,
+  "documents": {
+    "files": 975,
+    "families": {
+      "OptimodVersion=<00.08>": 975
+    },
+    "types": {
+      "LESS MORE PRESET": 776,
+      "FACTORY PRESET": 164,
+      "USER PRESET": 28,
+      "NEXT PRESET": 1,
+      "ON AIR PRESET": 2,
+      "PASSWORD PRESET": 1,
+      "SYSTEM PRESET": 1,
+      "TEST PRESET": 1,
+      "TIME PRESET": 1
+    },
+    "records": 110394
+  },
+  "fields": 191,
+  "fields_by_scope": {
+    "Processing": 126,
+    "System": 65
+  },
+  "field_evidence": {
+    "confirmed": 173,
+    "unobserved": 17,
+    "conflict": 1
+  },
+  "excluded": [
+    {
+      "name": null,
+      "group": "other",
+      "reason": "belongs to the other registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "ADMIN",
+      "group": "other",
+      "reason": "belongs to the other registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "MY STATION",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "MEMORY TOTAL",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "INIT AVAILABLE",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "MEMORY AVAILABLE",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "MEMORY CONTIGUOUS",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "HEAP AVAILABLE",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "HEAP CONTIGUOUS",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "DISK SIZE",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "FREE DISK SPACE",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "CURRENT PASSCODE",
+      "scope": "System",
+      "reason": "conversion reads runtime state 0x3aafa4 (text taken from the unit, not an index table)"
+    },
+    {
+      "name": "PASSCODE ACCESS LEVEL",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "NETWORK IP ADDRESS",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "NETWORK SUBNET MASK",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "NETWORK DEFAULT GATEWAY",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "MODEM INIT STRING",
+      "scope": "System",
+      "reason": "UserString (free text, written as text, not an index table)"
+    },
+    {
+      "name": "REMOTE CONTACT 1",
+      "scope": "System",
+      "reason": "conversion reads runtime state 0x3aaf98,0x3b131c (text taken from the unit, not an index table)"
+    },
+    {
+      "name": "REMOTE CONTACT 2",
+      "scope": "System",
+      "reason": "conversion reads runtime state 0x3aaf98,0x3b131c (text taken from the unit, not an index table)"
+    },
+    {
+      "name": "REMOTE CONTACT 3",
+      "scope": "System",
+      "reason": "conversion reads runtime state 0x3aaf98,0x3b131c (text taken from the unit, not an index table)"
+    },
+    {
+      "name": "REMOTE CONTACT 4",
+      "scope": "System",
+      "reason": "conversion reads runtime state 0x3aaf98,0x3b131c (text taken from the unit, not an index table)"
+    },
+    {
+      "name": "REMOTE CONTACT 5",
+      "scope": "System",
+      "reason": "conversion reads runtime state 0x3aaf98,0x3b131c (text taken from the unit, not an index table)"
+    },
+    {
+      "name": "REMOTE CONTACT 6",
+      "scope": "System",
+      "reason": "conversion reads runtime state 0x3aaf98,0x3b131c (text taken from the unit, not an index table)"
+    },
+    {
+      "name": "REMOTE CONTACT 7",
+      "scope": "System",
+      "reason": "conversion reads runtime state 0x3aaf98,0x3b131c (text taken from the unit, not an index table)"
+    },
+    {
+      "name": "REMOTE CONTACT 8",
+      "scope": "System",
+      "reason": "conversion reads runtime state 0x3aaf98,0x3b131c (text taken from the unit, not an index table)"
+    },
+    {
+      "name": "TOTAL MOD LEVEL",
+      "scope": "System",
+      "reason": "conversion did not complete at index 0 (did not return)"
+    },
+    {
+      "name": "TEST COMP DRIVE",
+      "group": "test",
+      "reason": "belongs to the test registration group (test.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "TEST CLIP DEFEAT",
+      "group": "test",
+      "reason": "belongs to the test registration group (test.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "TEST PHASE ROTATOR",
+      "group": "test",
+      "reason": "belongs to the test registration group (test.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "TEST PILOT",
+      "group": "test",
+      "reason": "belongs to the test registration group (test.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "TEST LOW LATENCY",
+      "group": "test",
+      "reason": "belongs to the test registration group (test.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "TEST ITU412 THR",
+      "group": "test",
+      "reason": "belongs to the test registration group (test.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "TEST MOD REDUCE 1",
+      "group": "test",
+      "reason": "belongs to the test registration group (test.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "TEST MOD REDUCE 2",
+      "group": "test",
+      "reason": "belongs to the test registration group (test.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Input: Analog",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Input: Digital",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Bypass",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Exit Bypass",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Monitor Mute",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Mod. Reduction 1",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Mod. Reduction 2",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Stereo",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Mono-R",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Mono-L",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Mono-Sum",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Reset to Hour",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Reset to Midnight",
+      "group": "contact-actions",
+      "reason": "belongs to the contact-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "SET HOUR",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "SET MINUTE",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "SET SECOND",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "SET DAY",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "SET MONTH",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "SET YEAR",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "CLOCK CONTROL",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "TIME ZONE",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "TIME FORMAT",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "DATE FORMAT",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "DAYLIGHT BEGINS",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "DAYLIGHT ENDS",
+      "group": "time",
+      "reason": "belongs to the time registration group (time.orb), not to onair.orb or system.orb"
+    },
+    {
+      "name": "AUTO SET HOUR",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "AUTO SET MINUTE",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "AUTO SET SECOND",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "AUTO SET DAY",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "AUTO SET MONTH",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "AUTO SET YEAR",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "SUNDAY",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "MONDAY",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "TUESDAY",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "WEDNESDAY",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "THURSDAY",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "FRIDAY",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "SATURDAY",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "SET BY WEEK",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "SET BY DATE",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "AUTOMATION EVENT",
+      "group": "automation",
+      "reason": "belongs to the automation registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Bypass",
+      "group": "automation-actions",
+      "reason": "belongs to the automation-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Exit Bypass",
+      "group": "automation-actions",
+      "reason": "belongs to the automation-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Stereo",
+      "group": "automation-actions",
+      "reason": "belongs to the automation-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Mono-R",
+      "group": "automation-actions",
+      "reason": "belongs to the automation-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Mono-L",
+      "group": "automation-actions",
+      "reason": "belongs to the automation-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": "Mono-Sum",
+      "group": "automation-actions",
+      "reason": "belongs to the automation-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": null,
+      "group": "automation-actions",
+      "reason": "belongs to the automation-actions registration group (not a stored document), not to onair.orb or system.orb"
+    },
+    {
+      "name": null,
+      "group": "automation-actions",
+      "reason": "belongs to the automation-actions registration group (not a stored document), not to onair.orb or system.orb"
+    }
+  ],
+  "conflicts": {
+    "Processing/COMP DRIVE": {
+      "count": 2,
+      "of": 943,
+      "records": [
+        "IMPACT LM100.orb: Cent:1000 at D:18 (table: Cent:170)"
+      ]
+    }
+  },
+  "structure": {
+    "five_band_only": [
+      "AGC BASS DELTA TH",
+      "AGC MAST DELTA TH",
+      "B1 ATTACK",
+      "B1 COMP THRSH",
+      "B1 DELTA REL",
+      "B1 DIFF GR",
+      "B1 LIMIT ATTACK",
+      "B1 ON/OFF",
+      "B1 OUTPUT MIX",
+      "B12 CROSSOVER",
+      "B2 ATTACK",
+      "B2 COMP THRSH",
+      "B2 DELTA REL",
+      "B2 DIFF GR",
+      "B2 LIMIT ATTACK",
+      "B2 ON/OFF",
+      "B2 OUTPUT MIX",
+      "B3 ATTACK",
+      "B3 COMP THRSH",
+      "B3 DELTA REL",
+      "B3 DIFF GR",
+      "B3 LIMIT ATTACK",
+      "B3 ON/OFF",
+      "B3 OUTPUT MIX",
+      "B4 ATTACK",
+      "B4 COMP THRSH",
+      "B4 DIFF GR",
+      "B4 LIMIT ATTACK",
+      "B4 ON/OFF",
+      "B4 OUTPUT MIX",
+      "B4/5 DELTA REL",
+      "B5 DIFF GR",
+      "B5 ON/OFF",
+      "B5 OUTPUT MIX",
+      "BAND 23 COUPL",
+      "BAND 32 COUPL",
+      "BAND 34 COUPL",
+      "BAND 45 COUPL",
+      "BASS CLIP SHAPE",
+      "BASS COUPLING",
+      "BRILLIANCE",
+      "COMP LOOKAHEAD SW",
+      "DE STEREO COUPL",
+      "DJ BASS BOOST",
+      "DWNWRD EXP",
+      "HF LIMITER",
+      "MB DRIVE",
+      "MB RELEASE",
+      "MULTIBAND CLIP"
+    ],
+    "two_band_only": [
+      "2B BASS ATTACK",
+      "2B BASS CLIP",
+      "2B BASS CLIP MODE",
+      "2B BASS COMP THR",
+      "2B BASS COUPLE",
+      "2B CLIPPING",
+      "2B DRIVE",
+      "2B HF LIMITING",
+      "2B LOOKAHEAD",
+      "2B MASTER COMP THR",
+      "2B MASTR ATTACK",
+      "2B RELEASE",
+      "2B XOVER",
+      "AGC XOVER"
+    ],
+    "note": "All processing parameters are stored in every preset and every structure; 2B/5B SWITCH (String 5band/2band) selects the structure. The tables do not depend on structure, pre-emphasis or low latency: no conversion reads runtime state. 'LL' (low-latency) presets differ by values only, e.g. BASS CLIP MODE LLHard (index 3); 50/75 us factory presets differ by values only (PRE-E itself is the system parameter).",
+    "factory_preset_comparison": {
+      "pre_emphasis": {
+        "B4 COMP THRSH": 41,
+        "B3 CLIP THRSH": 6,
+        "BASS COUPLING": 6,
+        "BRILLIANCE": 4,
+        "B1 COMP THRSH": 3,
+        "COMP DRIVE": 2,
+        "FINAL CLIP DRV": 2,
+        "HF ENHANCER": 2,
+        "HF LIMITER": 2,
+        "MB DRIVE": 2,
+        "MULTIBAND CLIP": 2,
+        "B4 ATTACK": 1,
+        "BASS CLIP": 1,
+        "MB RELEASE": 1,
+        "SPEECH THR": 1
+      },
+      "pairs": 41,
+      "low_latency": {
+        "GREGG LL.orb": {
+          "B1 ATTACK": "('Cent:900', 5) -> ('Cent:400', 0)",
+          "B1 COMP THRSH": "('Cent:-700', 36) -> ('Cent:-800', 32)",
+          "B3 CLIP THRSH": "('Cent:300', 24) -> ('Cent:0', 12)",
+          "B4 COMP THRSH": "('Cent:-600', 40) -> ('Cent:-550', 42)",
+          "BASS CLIP": "('Cent:-200', 16) -> ('Cent:-150', 18)",
+          "BASS CLIP MODE": "('String:<Med>', 1) -> ('String:<LLHard>', 3)",
+          "BASS COUPLING": "('Cent:3000', 6) -> ('Cent:0', 0)",
+          "BRILLIANCE": "('Cent:350', 7) -> ('Cent:400', 8)",
+          "HF ENHANCER": "('Int:1', 1) -> ('Int:0', 0)",
+          "MULTIBAND CLIP": "('Cent:240', 32) -> ('Cent:200', 30)",
+          "PEQ HIGH WIDTH": "('Cent:120', 15) -> ('Cent:110', 16)",
+          "PEQ LOW FREQ": "('Cent:26630', 37) -> ('Cent:7040', 18)",
+          "PEQ MID FREQ": "('Int:2960', 35) -> ('Int:2570', 33)",
+          "SPEECH THR": "('Cent:-200', 40) -> ('Cent:-300', 30)"
+        },
+        "IMPACT LL.orb": {
+          "B1 ATTACK": "('Cent:2000', 16) -> ('Cent:400', 0)",
+          "B1 COMP THRSH": "('Cent:-700', 36) -> ('Cent:-800', 32)",
+          "B1 OUTPUT MIX": "('Cent:200', 50) -> ('Cent:0', 30)",
+          "BASS CLIP": "('Cent:-200', 16) -> ('Cent:-100', 20)",
+          "BASS CLIP MODE": "('String:<Med>', 1) -> ('String:<LLHard>', 3)"
+        },
+        "LOUD-HOT LL.orb": {
+          "B1 ATTACK": "('Cent:1300', 9) -> ('Cent:400', 0)",
+          "B1 COMP THRSH": "('Cent:-1075', 21) -> ('Cent:-800', 32)",
+          "B3 CLIP THRSH": "('Cent:200', 20) -> ('Cent:0', 12)",
+          "B4 COMP THRSH": "('Cent:-650', 38) -> ('Cent:-500', 44)",
+          "BASS CLIP": "('Cent:-400', 8) -> ('Cent:-150', 18)",
+          "BASS CLIP MODE": "('String:<Med>', 1) -> ('String:<LLHard>', 3)",
+          "LESS MORE": "('Cent:850', 15) -> ('Cent:950', 17)",
+          "SPEECH BC THR": "None -> ('Cent:0', 24)",
+          "SPEECH THR": "None -> ('Cent:-200', 40)"
+        },
+        "LOUD-HOT+BASS LL.orb": {
+          "B1 ATTACK": "('Cent:900', 5) -> ('Cent:400', 0)",
+          "B1 COMP THRSH": "('Cent:-700', 36) -> ('Cent:-800', 32)",
+          "B3 CLIP THRSH": "('Cent:300', 24) -> ('Cent:0', 12)",
+          "B4 COMP THRSH": "('Cent:-600', 40) -> ('Cent:-550', 42)",
+          "BASS CLIP": "('Cent:-200', 16) -> ('Cent:-150', 18)",
+          "BASS CLIP MODE": "('String:<Med>', 1) -> ('String:<LLHard>', 3)",
+          "BASS COUPLING": "('Cent:3000', 6) -> ('Cent:0', 0)",
+          "BRILLIANCE": "('Cent:350', 7) -> ('Cent:400', 8)",
+          "HF ENHANCER": "('Int:1', 1) -> ('Int:0', 0)",
+          "MULTIBAND CLIP": "('Cent:240', 32) -> ('Cent:200', 30)",
+          "PEQ HIGH WIDTH": "('Cent:120', 15) -> ('Cent:110', 16)",
+          "PEQ LOW FREQ": "('Cent:26630', 37) -> ('Cent:7040', 18)",
+          "PEQ LOW GAIN": "('Cent:200', 24) -> ('Cent:300', 26)",
+          "PEQ MID FREQ": "('Int:2960', 35) -> ('Int:2570', 33)",
+          "SPEECH BC THR": "None -> ('Cent:0', 24)",
+          "SPEECH THR": "None -> ('Cent:-200', 40)"
+        }
+      }
+    }
+  },
+  "user_preset_mismatches": {
+    "Processing/AGC DRIVE": {
+      "count": 4,
+      "first": [
+        "YORIN FM 2003 V2.orb: Cent:1100 at D:22 (table: Cent:1200)",
+        "YORIN FM 2003 V3 SOLO.orb: Cent:1100 at D:22 (table: Cent:1200)",
+        "YORIN FM 2003 V4 SOLO.orb: Cent:1100 at D:22 (table: Cent:1200)"
+      ]
+    }
+  },
+  "stored_without_table": [
+    "Processing/LO/HI LATEN SW",
+    "System/MODEM INIT STRING",
+    "System/MY STATION",
+    "System/NETWORK DEFAULT GATEWAY",
+    "System/NETWORK IP ADDRESS",
+    "System/NETWORK SUBNET MASK",
+    "System/REMOTE CONTACT 1",
+    "System/REMOTE CONTACT 2",
+    "System/REMOTE CONTACT 3",
+    "System/REMOTE CONTACT 4",
+    "System/REMOTE CONTACT 5",
+    "System/REMOTE CONTACT 6",
+    "System/REMOTE CONTACT 7",
+    "System/REMOTE CONTACT 8",
+    "System/TOTAL MOD LEVEL"
+  ],
+  "pages": [
+    "Less More (Shared)",
+    "Advanced Modify 1 (Shared)",
+    "Advanced Modify 2 (Shared)",
+    "Advanced Modify 2 (Shared)",
+    "Advanced Modify 3 (Shared)",
+    "Advanced Modify 3 (Shared)",
+    "Advanced Modify 4 (Shared)",
+    "Advanced Modify 4 (Shared)",
+    "Advanced Modify 5 (Shared)",
+    "Advanced Modify 5 (Shared)",
+    "Advanced Modify 6 (Shared)",
+    "Advanced Modify 7 (Shared)",
+    "Input/Output 1 (System)",
+    "Input/Output 2 (System)",
+    "Input/Output 3 (System)",
+    "Input/Output 4 (System)",
+    "Input/Output 5 (System)",
+    "System Setup: Network/Remote 2 (System)",
+    "System Setup: Quick Setup 1 (System)",
+    "System Setup: Quick Setup 3 (System)",
+    "System Setup: Quick Setup 4 (System)",
+    "System Setup: Quick Setup 5 (System)",
+    "System Setup: Quick Setup 6 (System)",
+    "System Setup: Quick Setup 7 (System)",
+    "System Setup: Security (System)",
+    "System Setup: Test Modes (System)"
+  ],
+  "page_sources": [
+    {
+      "title": "System Setup: Automation",
+      "code": "0x4015e0",
+      "variant": null,
+      "controls": [
+        "SET BY WEEK",
+        "SET BY DATE",
+        "SUNDAY",
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY",
+        "AUTO SET HOUR",
+        "AUTO SET MINUTE",
+        "AUTO SET SECOND",
+        "AUTOMATION EVENT"
+      ],
+      "dropped": [
+        "SET BY WEEK",
+        "SET BY DATE",
+        "SUNDAY",
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY",
+        "AUTO SET HOUR",
+        "AUTO SET MINUTE",
+        "AUTO SET SECOND",
+        "AUTOMATION EVENT"
+      ]
+    },
+    {
+      "title": "System Setup: Automation",
+      "code": "0x40196f",
+      "variant": null,
+      "controls": [
+        "SET BY WEEK",
+        "SET BY DATE",
+        "AUTO SET DAY",
+        "AUTO SET MONTH",
+        "AUTO SET YEAR",
+        "AUTO SET HOUR",
+        "AUTO SET MINUTE",
+        "AUTO SET SECOND",
+        "AUTOMATION EVENT"
+      ],
+      "dropped": [
+        "SET BY WEEK",
+        "SET BY DATE",
+        "AUTO SET DAY",
+        "AUTO SET MONTH",
+        "AUTO SET YEAR",
+        "AUTO SET HOUR",
+        "AUTO SET MINUTE",
+        "AUTO SET SECOND",
+        "AUTOMATION EVENT"
+      ]
+    },
+    {
+      "title": null,
+      "code": "0x406a60",
+      "controls": [
+        "ENERGY SAVER TIME",
+        "CONTRAST"
+      ],
+      "dropped": "all (screen function pushes no page title)"
+    },
+    {
+      "title": "System Setup: Diagnostic 4",
+      "code": "0x4094c0",
+      "variant": null,
+      "controls": [
+        "MEMORY TOTAL",
+        "INIT AVAILABLE",
+        "MEMORY AVAILABLE",
+        "MEMORY CONTIGUOUS",
+        "HEAP AVAILABLE",
+        "HEAP CONTIGUOUS",
+        "DISK SIZE",
+        "FREE DISK SPACE"
+      ],
+      "dropped": [
+        "MEMORY TOTAL",
+        "INIT AVAILABLE",
+        "MEMORY AVAILABLE",
+        "MEMORY CONTIGUOUS",
+        "HEAP AVAILABLE",
+        "HEAP CONTIGUOUS",
+        "DISK SIZE",
+        "FREE DISK SPACE"
+      ]
+    },
+    {
+      "title": "Advanced Modify 1",
+      "code": "0x40a3b0",
+      "variant": null,
+      "controls": [
+        "SE AMOUNT",
+        "SE IN OUT",
+        "SE RATIO WIDTH",
+        "SE DIFFUSION",
+        "SE STYLE",
+        "SE DEPTH",
+        "30 HZ HPF",
+        "PHASE ROTATOR"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 2",
+      "code": "0x40a56c",
+      "variant": "Five Band",
+      "controls": [
+        "AGC",
+        "AGC DRIVE",
+        "AGC RELEASE",
+        "GATE THRESH",
+        "AGC BASS COUPLING",
+        "AGC DIFF GR",
+        "AGC WINDOW THRESH",
+        "AGC WINDOW RELEASE",
+        "AGC MATRIX",
+        "AGC RATIO",
+        "AGC BASS TH",
+        "AGC BASS ATTACK",
+        "AGC BASS RELEASE",
+        "AGC MASTER ATTACK",
+        "IDLE GR",
+        "AGC MAST DELTA TH",
+        "AGC BASS DELTA TH"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 3",
+      "code": "0x40a7fa",
+      "variant": "Five Band",
+      "controls": [
+        "LOW BASS GAIN",
+        "LOW BASS FREQ",
+        "LOW BASS Q",
+        "PEQ LOW GAIN",
+        "PEQ LOW FREQ",
+        "PEQ LOW WIDTH",
+        "PEQ MID GAIN",
+        "PEQ MID FREQ",
+        "PEQ MID WIDTH",
+        "PEQ HIGH GAIN",
+        "PEQ HIGH FREQ",
+        "PEQ HIGH WIDTH",
+        "BRILLIANCE",
+        "DJ BASS BOOST",
+        "HF ENHANCER",
+        "IBOC EQ GAIN",
+        "IBOC EQ FREQ"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 4",
+      "code": "0x40aa8d",
+      "variant": "Five Band",
+      "controls": [
+        "MB DRIVE",
+        "DWNWRD EXP",
+        "MB GATE THR",
+        "B1 COMP THRSH",
+        "B2 COMP THRSH",
+        "B3 COMP THRSH",
+        "B4 COMP THRSH",
+        "MULTIBAND CLIP",
+        "B3 CLIP THRSH",
+        "MAX DIST CONTRL",
+        "SPEECH THR",
+        "B5 CLIP THRSH",
+        "HF LIMITER",
+        "HF DE ESS",
+        "DE STEREO COUPL",
+        "B12 CROSSOVER"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 5",
+      "code": "0x40ad0b",
+      "variant": "Five Band",
+      "controls": [
+        "MB RELEASE",
+        "B1 ATTACK",
+        "B2 ATTACK",
+        "B3 ATTACK",
+        "B4 ATTACK",
+        "B1 LIMIT ATTACK",
+        "B2 LIMIT ATTACK",
+        "B3 LIMIT ATTACK",
+        "B4 LIMIT ATTACK",
+        "COMP LOOKAHEAD SW",
+        "B1 DELTA REL",
+        "B2 DELTA REL",
+        "B3 DELTA REL",
+        "B4/5 DELTA REL"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 6",
+      "code": "0x40af4e",
+      "variant": "Five Band",
+      "controls": [
+        "B1 OUTPUT MIX",
+        "B2 OUTPUT MIX",
+        "B3 OUTPUT MIX",
+        "B4 OUTPUT MIX",
+        "B5 OUTPUT MIX",
+        "B1 ON/OFF",
+        "B2 ON/OFF",
+        "B3 ON/OFF",
+        "B4 ON/OFF",
+        "B5 ON/OFF",
+        "B1 DIFF GR",
+        "B2 DIFF GR",
+        "B3 DIFF GR",
+        "B4 DIFF GR",
+        "B5 DIFF GR",
+        "BASS COUPLING",
+        "BAND 23 COUPL",
+        "BAND 32 COUPL",
+        "BAND 34 COUPL",
+        "BAND 45 COUPL"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 7",
+      "code": "0x40b223",
+      "variant": "Five Band",
+      "controls": [
+        "BASS CLIP",
+        "BASS CLIP MODE",
+        "BASS CLIP SHAPE",
+        "SPEECH BC THR",
+        "HF CLIPPING",
+        "FINAL CLIP DRV",
+        "DRIVE W2",
+        "COMP DRIVE",
+        "PILOT PROTECT",
+        "IBOC LIM DR"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 1",
+      "code": "0x40b40c",
+      "variant": null,
+      "controls": [
+        "SE AMOUNT",
+        "SE IN OUT",
+        "SE RATIO WIDTH",
+        "SE DIFFUSION",
+        "SE STYLE",
+        "SE DEPTH",
+        "30 HZ HPF",
+        "PHASE ROTATOR"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 2",
+      "code": "0x40b5e3",
+      "variant": "Two Band",
+      "controls": [
+        "AGC",
+        "AGC DRIVE",
+        "AGC RELEASE",
+        "GATE THRESH",
+        "AGC BASS COUPLING",
+        "AGC DIFF GR",
+        "AGC WINDOW THRESH",
+        "AGC WINDOW RELEASE",
+        "AGC MATRIX",
+        "AGC RATIO",
+        "AGC BASS TH",
+        "AGC BASS ATTACK",
+        "AGC BASS RELEASE",
+        "AGC MASTER ATTACK",
+        "IDLE GR",
+        "AGC XOVER"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 3",
+      "code": "0x40b87b",
+      "variant": null,
+      "controls": [
+        "LOW BASS GAIN",
+        "LOW BASS FREQ",
+        "LOW BASS Q",
+        "PEQ LOW GAIN",
+        "PEQ LOW FREQ",
+        "PEQ LOW WIDTH",
+        "PEQ MID GAIN",
+        "PEQ MID FREQ",
+        "PEQ MID WIDTH",
+        "PEQ HIGH GAIN",
+        "PEQ HIGH FREQ",
+        "PEQ HIGH WIDTH",
+        "HF ENHANCER",
+        "IBOC EQ GAIN",
+        "IBOC EQ FREQ"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 4",
+      "code": "0x40bb03",
+      "variant": "Two Band",
+      "controls": [
+        "2B DRIVE",
+        "2B RELEASE",
+        "MB GATE THR",
+        "2B BASS COUPLE",
+        "2B LOOKAHEAD",
+        "2B BASS COMP THR",
+        "2B MASTER COMP THR",
+        "2B CLIPPING",
+        "2B BASS ATTACK",
+        "2B MASTR ATTACK",
+        "2B XOVER",
+        "B3 CLIP THRSH",
+        "MAX DIST CONTRL",
+        "SPEECH THR",
+        "B5 CLIP THRSH"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Advanced Modify 5",
+      "code": "0x40bd86",
+      "variant": "Two Band",
+      "controls": [
+        "2B BASS CLIP",
+        "2B BASS CLIP MODE",
+        "SPEECH BC THR",
+        "2B HF LIMITING",
+        "HF CLIPPING",
+        "FINAL CLIP DRV",
+        "DRIVE W2",
+        "COMP DRIVE",
+        "PILOT PROTECT",
+        "IBOC LIM DR"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Intermediate Modify 1",
+      "code": "0x40f85b",
+      "variant": null,
+      "controls": [
+        "SE AMOUNT",
+        "SE IN OUT",
+        "SE RATIO WIDTH",
+        "SE DIFFUSION",
+        "SE STYLE",
+        "SE DEPTH",
+        "30 HZ HPF",
+        "PHASE ROTATOR"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Intermediate Modify 2",
+      "code": "0x40fadf",
+      "variant": null,
+      "controls": [
+        "AGC",
+        "AGC DRIVE",
+        "AGC RELEASE",
+        "GATE THRESH",
+        "AGC BASS COUPLING"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Intermediate Modify 2",
+      "code": "0x40fc75",
+      "variant": null,
+      "controls": [
+        "AGC",
+        "AGC DRIVE",
+        "AGC RELEASE",
+        "GATE THRESH",
+        "AGC BASS COUPLING"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Intermediate Modify 3",
+      "code": "0x40fe0f",
+      "variant": "Five Band",
+      "controls": [
+        "DJ BASS BOOST",
+        "HF ENHANCER",
+        "BRILLIANCE",
+        "PEQ HIGH FREQ",
+        "PEQ HIGH GAIN",
+        "PEQ HIGH WIDTH",
+        "PEQ MID FREQ",
+        "PEQ MID GAIN",
+        "PEQ MID WIDTH",
+        "PEQ LOW FREQ",
+        "PEQ LOW GAIN",
+        "PEQ LOW WIDTH",
+        "LOW BASS FREQ",
+        "LOW BASS GAIN",
+        "LOW BASS Q"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Intermediate Modify 3",
+      "code": "0x410101",
+      "variant": "Two Band",
+      "controls": [
+        "2B DRIVE",
+        "2B RELEASE",
+        "MB GATE THR",
+        "2B BASS COUPLE"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Intermediate Modify 4",
+      "code": "0x410279",
+      "variant": "Five Band",
+      "controls": [
+        "MB DRIVE",
+        "MB RELEASE",
+        "MB GATE THR",
+        "MULTIBAND CLIP",
+        "DWNWRD EXP",
+        "BASS COUPLING",
+        "BAND 23 COUPL",
+        "BAND 32 COUPL",
+        "BAND 34 COUPL"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Intermediate Modify 4",
+      "code": "0x41049e",
+      "variant": null,
+      "controls": [
+        "HF ENHANCER",
+        "PEQ HIGH FREQ",
+        "PEQ HIGH GAIN",
+        "PEQ HIGH WIDTH",
+        "PEQ MID FREQ",
+        "PEQ MID GAIN",
+        "PEQ MID WIDTH",
+        "PEQ LOW FREQ",
+        "PEQ LOW GAIN",
+        "PEQ LOW WIDTH",
+        "LOW BASS FREQ",
+        "LOW BASS GAIN",
+        "LOW BASS Q"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Intermediate Modify 5",
+      "code": "0x410745",
+      "variant": "Five Band",
+      "controls": [
+        "B1 OUTPUT MIX",
+        "B2 OUTPUT MIX",
+        "B3 OUTPUT MIX",
+        "B4 OUTPUT MIX",
+        "B5 OUTPUT MIX",
+        "B1 ON/OFF",
+        "B2 ON/OFF",
+        "B3 ON/OFF",
+        "B4 ON/OFF",
+        "B5 ON/OFF"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Intermediate Modify 6",
+      "code": "0x410990",
+      "variant": null,
+      "controls": [
+        "B5 CLIP THRSH",
+        "BASS CLIP MODE",
+        "FINAL CLIP DRV",
+        "BASS CLIP",
+        "COMP DRIVE",
+        "PILOT PROTECT"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Intermediate Modify 5",
+      "code": "0x410b44",
+      "variant": "Two Band",
+      "controls": [
+        "2B HF LIMITING",
+        "2B BASS CLIP MODE",
+        "FINAL CLIP DRV",
+        "BASS CLIP",
+        "COMP DRIVE",
+        "PILOT PROTECT"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Basic Modify 1",
+      "code": "0x411260",
+      "variant": null,
+      "controls": [
+        "SE AMOUNT",
+        "SE IN OUT",
+        "SE RATIO WIDTH",
+        "SE DIFFUSION",
+        "SE STYLE",
+        "SE DEPTH",
+        "30 HZ HPF",
+        "PHASE ROTATOR"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Basic Modify 2",
+      "code": "0x4114f3",
+      "variant": null,
+      "controls": [
+        "LESS MORE"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Basic Modify 3",
+      "code": "0x411692",
+      "variant": "Five Band",
+      "controls": [
+        "DJ BASS BOOST",
+        "HF ENHANCER",
+        "BRILLIANCE",
+        "PEQ HIGH FREQ",
+        "PEQ HIGH GAIN",
+        "PEQ HIGH WIDTH",
+        "PEQ MID FREQ",
+        "PEQ MID GAIN",
+        "PEQ MID WIDTH",
+        "PEQ LOW FREQ",
+        "PEQ LOW GAIN",
+        "PEQ LOW WIDTH",
+        "LOW BASS FREQ",
+        "LOW BASS GAIN",
+        "LOW BASS Q"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Basic Modify 3",
+      "code": "0x411988",
+      "variant": null,
+      "controls": [
+        "HF ENHANCER",
+        "PEQ HIGH FREQ",
+        "PEQ HIGH GAIN",
+        "PEQ HIGH WIDTH",
+        "PEQ MID FREQ",
+        "PEQ MID GAIN",
+        "PEQ MID WIDTH",
+        "PEQ LOW FREQ",
+        "PEQ LOW GAIN",
+        "PEQ LOW WIDTH",
+        "LOW BASS FREQ",
+        "LOW BASS GAIN",
+        "LOW BASS Q"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Input/Output 1",
+      "code": "0x411f71",
+      "variant": null,
+      "controls": [
+        "INPUT A OR D",
+        "AI CLIP LEVEL",
+        "AI BALANCE",
+        "AI REF LEVEL",
+        "AI REF PPM LEVEL",
+        "DI BALANCE",
+        "DI REF LEVEL",
+        "DI REF PPM LEVEL"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Input/Output 2",
+      "code": "0x412143",
+      "variant": null,
+      "controls": [
+        "ANALOG OUT",
+        "AO PRE-OUT",
+        "LOW LATENCY",
+        "DO LEVEL",
+        "DO SAMPLE RATE",
+        "DO WORD LGTH",
+        "DO DITHER",
+        "DO PRE-EMPH",
+        "DO SYNC",
+        "DO FORMAT"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Input/Output 3",
+      "code": "0x412360",
+      "variant": null,
+      "controls": [
+        "MODULATION",
+        "PILOT",
+        "MOD REDUCE 1",
+        "PILOT LEVEL",
+        "MOD REDUCE 2",
+        "COMP1 OUT",
+        "COMP2 SET",
+        "COMP2 OUT"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Input/Output 4",
+      "code": "0x41254b",
+      "variant": null,
+      "controls": [
+        "STUDIO CHASSIS",
+        "CLIP DEFEAT",
+        "PRE-E",
+        "ITU412 THR"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "Input/Output 5",
+      "code": "0x412699",
+      "variant": null,
+      "controls": [
+        "IBOC PHONE SOURCE",
+        "IBOC HF EQ",
+        "IBOC METER",
+        "IBOC AO SOURCE",
+        "IBOC AO LEVEL",
+        "IBOC DO SOURCE",
+        "IBOC DO LEVEL",
+        "IBOC DO SR",
+        "IBOC DO WORD LG",
+        "IBOC DO SYNC",
+        "IBOC DO DITHER",
+        "IBOC DO FORMAT"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "System Setup: Network/Remote 1",
+      "code": "0x45883c",
+      "variant": null,
+      "controls": [
+        "REMOTE CONTACT 1",
+        "REMOTE CONTACT 2",
+        "REMOTE CONTACT 3",
+        "REMOTE CONTACT 4",
+        "REMOTE CONTACT 5",
+        "REMOTE CONTACT 6",
+        "REMOTE CONTACT 7",
+        "REMOTE CONTACT 8"
+      ],
+      "dropped": [
+        "REMOTE CONTACT 1",
+        "REMOTE CONTACT 2",
+        "REMOTE CONTACT 3",
+        "REMOTE CONTACT 4",
+        "REMOTE CONTACT 5",
+        "REMOTE CONTACT 6",
+        "REMOTE CONTACT 7",
+        "REMOTE CONTACT 8"
+      ]
+    },
+    {
+      "title": "System Setup: Network/Remote 2",
+      "code": "0x458a6c",
+      "variant": null,
+      "controls": [
+        "INTERFACE TYPE",
+        "NETWORK IP ADDRESS",
+        "NETWORK SUBNET MASK",
+        "NETWORK DEFAULT GATEWAY",
+        "MODEM INIT STRING"
+      ],
+      "dropped": [
+        "NETWORK IP ADDRESS",
+        "NETWORK SUBNET MASK",
+        "NETWORK DEFAULT GATEWAY",
+        "MODEM INIT STRING"
+      ]
+    },
+    {
+      "title": "System Setup: Place/Date/Time 1",
+      "code": "0x45e33f",
+      "variant": null,
+      "controls": [
+        "CLOCK CONTROL",
+        "TIME ZONE",
+        "TIME FORMAT",
+        "SET SECOND",
+        "SET MINUTE",
+        "SET HOUR",
+        "SET YEAR",
+        "SET MONTH",
+        "SET DAY",
+        "DATE FORMAT",
+        "DAYLIGHT BEGINS",
+        "DAYLIGHT ENDS"
+      ],
+      "dropped": [
+        "CLOCK CONTROL",
+        "TIME ZONE",
+        "TIME FORMAT",
+        "SET SECOND",
+        "SET MINUTE",
+        "SET HOUR",
+        "SET YEAR",
+        "SET MONTH",
+        "SET DAY",
+        "DATE FORMAT",
+        "DAYLIGHT BEGINS",
+        "DAYLIGHT ENDS"
+      ]
+    },
+    {
+      "title": "System Setup: Quick Setup 1",
+      "code": "0x464422",
+      "variant": null,
+      "controls": [
+        "LANGUAGE"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "System Setup: Quick Setup 2",
+      "code": "0x464645",
+      "variant": null,
+      "controls": [
+        "CLOCK CONTROL",
+        "TIME ZONE",
+        "TIME FORMAT",
+        "SET SECOND",
+        "SET MINUTE",
+        "SET HOUR",
+        "SET YEAR",
+        "SET MONTH",
+        "SET DAY",
+        "DATE FORMAT",
+        "DAYLIGHT BEGINS",
+        "DAYLIGHT ENDS"
+      ],
+      "dropped": [
+        "CLOCK CONTROL",
+        "TIME ZONE",
+        "TIME FORMAT",
+        "SET SECOND",
+        "SET MINUTE",
+        "SET HOUR",
+        "SET YEAR",
+        "SET MONTH",
+        "SET DAY",
+        "DATE FORMAT",
+        "DAYLIGHT BEGINS",
+        "DAYLIGHT ENDS"
+      ]
+    },
+    {
+      "title": "System Setup: Quick Setup 3",
+      "code": "0x4648c0",
+      "variant": null,
+      "controls": [
+        "PRE-E"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "System Setup: Quick Setup 4",
+      "code": "0x464a14",
+      "variant": null,
+      "controls": [
+        "STUDIO CHASSIS"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "System Setup: Quick Setup 5",
+      "code": "0x464bc1",
+      "variant": null,
+      "controls": [
+        "INPUT A OR D",
+        "AI REF LEVEL",
+        "AI REF PPM LEVEL",
+        "DI REF LEVEL",
+        "DI REF PPM LEVEL"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "System Setup: Quick Setup 6",
+      "code": "0x464e1e",
+      "variant": null,
+      "controls": [
+        "AO PRE-OUT",
+        "DO PRE-EMPH",
+        "DO SAMPLE RATE",
+        "COMP2 SET"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "System Setup: Quick Setup 7",
+      "code": "0x464f78",
+      "variant": null,
+      "controls": [
+        "400 HERTZ TONE",
+        "COMP1 OUT",
+        "COMP2 OUT",
+        "DO LEVEL",
+        "ANALOG OUT"
+      ],
+      "dropped": []
+    },
+    {
+      "title": "System Setup: Security",
+      "code": "0x46a018",
+      "variant": null,
+      "controls": [
+        "SECURITY TIMEOUT",
+        "CURRENT PASSCODE",
+        "PASSCODE ACCESS LEVEL"
+      ],
+      "dropped": [
+        "CURRENT PASSCODE",
+        "PASSCODE ACCESS LEVEL"
+      ]
+    },
+    {
+      "title": "System Setup: Test Modes",
+      "code": "0x46ee80",
+      "variant": null,
+      "controls": [
+        "BYPASS",
+        "TONE",
+        "BYPASS GAIN",
+        "30 HZ HPF",
+        "FREQUENCY",
+        "MOD LEVEL",
+        "MOD TYPE",
+        "TEST PILOT",
+        "TOTAL MOD LEVEL",
+        "OPERATE"
+      ],
+      "dropped": [
+        "TEST PILOT",
+        "TOTAL MOD LEVEL"
+      ]
+    }
+  ],
+  "layout_notes": [
+    "Pages, order, titles, labels and x/y come from the PC Remote's PEG screen code (builder 0x41a8a0 args name,label,x,y; Advanced Modify list rows 0x40a200 use the parameter's short label). x/y are PEG screen pixels of the builder call; list rows have no fixed position (y is the row order x 20). w is a nominal 60, id is the builder call address, reference_dialog the address of the page title push; groups are not modelled (empty). kind is 'radio' for a choice table of <= 4 entries, else 'slider'.",
+    "Pages with the same title for the 2-band and 5-band structures are split as '(Two Band)'/'(Five Band)' when their controls differ; identical variants (only a soft key differs) are merged.",
+    "System pages (Input/Output, System Setup) have path 'System'; the UI's processing view only shows 'Shared'.",
+    "Order: Basic, Intermediate, Advanced Modify, Input/Output, System Setup, by page number; Five Band before Two Band.",
+    "Structure of these pages inferred as the counterpart of a Five/Two Band page with the same title: Basic Modify 3 (Two Band), Intermediate Modify 4 (Two Band), Advanced Modify 3 (Two Band)"
+  ],
+  "units_note": "Units from the 8400 V3.0 Setup/Parameters Worksheet by row label. Corrected against the tables: PEQ HIGH FREQ worksheet 'Hz' -> kHz (values 1.00..15.00); PEQ LOW/MID/HIGH WIDTH worksheet 'dB' -> oct; LOW BASS Q worksheet 'dB/Oct' kept as dB/oct; '%'-unit Cent values are percent x100.",
+  "worksheet_units": [
+    {
+      "name": "2B BASS ATTACK",
+      "worksheet_label": "Bass Attack",
+      "worksheet": [
+        "1.0... 10.0 [s]",
+        "4.0... 50.0, Off [k]"
+      ],
+      "unit": "k"
+    },
+    {
+      "name": "2B BASS CLIP",
+      "worksheet_label": "Bass Clip Threshold",
+      "worksheet": [
+        "-6.0... 0.0 [dB]",
+        "-6.0… 0.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "2B BASS COMP THR",
+      "worksheet_label": "BassCmp Thr",
+      "worksheet": [
+        "-10.0... 5.0, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "2B BASS COUPLE",
+      "worksheet_label": "Bass Coupling",
+      "worksheet": [
+        "0... 100% [%]",
+        "0.0%... 100% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "2B CLIPPING",
+      "worksheet_label": "2B Clipping",
+      "worksheet": [
+        "-4.0... 5.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "2B DRIVE",
+      "worksheet_label": "Drive",
+      "worksheet": [
+        "-10.0... 25 [dB]",
+        "-10.0... 25.0 [dB]",
+        "0... 25 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "2B HF LIMITING",
+      "worksheet_label": "HF Limiting",
+      "worksheet": [
+        "-4.0… 2.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "2B LOOKAHEAD",
+      "worksheet_label": "Lookahead",
+      "worksheet": [
+        "0.0... 5.0 [ms]",
+        "In, Out, Auto []"
+      ],
+      "unit": "ms"
+    },
+    {
+      "name": "2B MASTER COMP THR",
+      "worksheet_label": "MastCmp Thr",
+      "worksheet": [
+        "-15.0…0.0, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "2B MASTR ATTACK",
+      "worksheet_label": "Master Attack",
+      "worksheet": [
+        "4.0... 50.0, Off [k]"
+      ],
+      "unit": "k"
+    },
+    {
+      "name": "2B RELEASE",
+      "worksheet_label": "Release",
+      "worksheet": [
+        "0.5... 20.0 [dB/s]",
+        "0.5… 20.0 [dB/s]",
+        "Slow, Slow2, Med, Med2, Mfast, Mfast2, Fast []"
+      ],
+      "unit": "dB/s"
+    },
+    {
+      "name": "AGC BASS ATTACK",
+      "worksheet_label": "Bass Attack",
+      "worksheet": [
+        "1.0... 10.0 [s]",
+        "4.0... 50.0, Off [k]"
+      ],
+      "unit": "s"
+    },
+    {
+      "name": "AGC BASS COUPLING",
+      "worksheet_label": "Bass Coupling",
+      "worksheet": [
+        "0... 100% [%]",
+        "0.0%... 100% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "AGC BASS DELTA TH",
+      "worksheet_label": "BassDeltaThr",
+      "worksheet": [
+        "-6.0…6.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "AGC BASS RELEASE",
+      "worksheet_label": "Bass Release",
+      "worksheet": [
+        "1.0... 10.0 [s]"
+      ],
+      "unit": "s"
+    },
+    {
+      "name": "AGC BASS TH",
+      "worksheet_label": "Bass Thresh",
+      "worksheet": [
+        "-12.0…+2.5 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "AGC DIFF GR",
+      "worksheet_label": "MaxDelta GR",
+      "worksheet": [
+        "0.0... 24.0, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "AGC DRIVE",
+      "worksheet_label": "Drive",
+      "worksheet": [
+        "-10.0... 25 [dB]",
+        "-10.0... 25.0 [dB]",
+        "0... 25 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "AGC MAST DELTA TH",
+      "worksheet_label": "MstrDeltaThre",
+      "worksheet": [
+        "-6.0…6.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "AGC MASTER ATTACK",
+      "worksheet_label": "Mast. Attack",
+      "worksheet": [
+        "0.2... 6.0 [s]"
+      ],
+      "unit": "s"
+    },
+    {
+      "name": "AGC RELEASE",
+      "worksheet_label": "Release",
+      "worksheet": [
+        "0.5... 20.0 [dB/s]",
+        "0.5… 20.0 [dB/s]",
+        "Slow, Slow2, Med, Med2, Mfast, Mfast2, Fast []"
+      ],
+      "unit": "dB/s"
+    },
+    {
+      "name": "AGC WINDOW RELEASE",
+      "worksheet_label": "Window Release",
+      "worksheet": [
+        "0.5... 20.0 [dB/s]"
+      ],
+      "unit": "dB/s"
+    },
+    {
+      "name": "AGC WINDOW THRESH",
+      "worksheet_label": "Window Size",
+      "worksheet": [
+        "-25.0.. 0.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "AI BALANCE",
+      "worksheet_label": "Right Channel Balance",
+      "worksheet": [
+        "-3.0... +3.0 [dB]",
+        "-3.0… +3.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "AI CLIP LEVEL",
+      "worksheet_label": "Clip Level",
+      "worksheet": [
+        "0.0… 27.0 [dBu]"
+      ],
+      "unit": "dBu"
+    },
+    {
+      "name": "AI REF LEVEL",
+      "worksheet_label": "Ref. Level VU/PPM",
+      "worksheet": [
+        "-30.0... -10.0 [dBFS]",
+        "-9.0... +13.0 [dBu]"
+      ],
+      "unit": "dBu"
+    },
+    {
+      "name": "AI REF PPM LEVEL",
+      "worksheet_label": "Ref. Level VU/PPM",
+      "worksheet": [
+        "-30.0... -10.0 [dBFS]",
+        "-9.0... +13.0 [dBu]"
+      ],
+      "unit": "dBu"
+    },
+    {
+      "name": "ANALOG OUT",
+      "worksheet_label": "Out Level",
+      "worksheet": [
+        "-20.0… 0.0 [dBFS]",
+        "-6.0... +24.0 [dBu]",
+        "-6.0...+24.0 [dBu]"
+      ],
+      "unit": "dBu"
+    },
+    {
+      "name": "B1 ATTACK",
+      "worksheet_label": "B1 Attack",
+      "worksheet": [
+        "4.0... 39.0 [k]"
+      ],
+      "unit": "k"
+    },
+    {
+      "name": "B1 COMP THRSH",
+      "worksheet_label": "B1 Compression Threshold",
+      "worksheet": [
+        "-16.0… -1.3, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B1 DIFF GR",
+      "worksheet_label": "B1MaxDeltGR",
+      "worksheet": [
+        "0.0... 24.0, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B1 LIMIT ATTACK",
+      "worksheet_label": "B1 Lim Att",
+      "worksheet": [
+        "0.0%... 100% [%]"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "B1 OUTPUT MIX",
+      "worksheet_label": "B1 Out Mix",
+      "worksheet": [
+        "-3.0... + 3.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B2 ATTACK",
+      "worksheet_label": "B2 Attack",
+      "worksheet": [
+        "4.0... 39.0 [k]"
+      ],
+      "unit": "k"
+    },
+    {
+      "name": "B2 COMP THRSH",
+      "worksheet_label": "B2 Compression Threshold",
+      "worksheet": [
+        "-16.0… -1.3, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B2 DIFF GR",
+      "worksheet_label": "B2MaxDeltGR",
+      "worksheet": [
+        "0.0... 24.0, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B2 LIMIT ATTACK",
+      "worksheet_label": "B2 Lim Att",
+      "worksheet": [
+        "0.0%... 100% [%]"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "B2 OUTPUT MIX",
+      "worksheet_label": "B2 Out Mix",
+      "worksheet": [
+        "-3.0... + 3.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B3 ATTACK",
+      "worksheet_label": "B3 Attack",
+      "worksheet": [
+        "4.0... 39.0 [k]"
+      ],
+      "unit": "k"
+    },
+    {
+      "name": "B3 CLIP THRSH",
+      "worksheet_label": "MB Limit Threshold",
+      "worksheet": [
+        "-3.0... 6.0, off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B3 COMP THRSH",
+      "worksheet_label": "B3 Compression Threshold",
+      "worksheet": [
+        "-16.0… -1.3, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B3 DIFF GR",
+      "worksheet_label": "B3MaxDeltGR",
+      "worksheet": [
+        "0.0... 24.0, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B3 LIMIT ATTACK",
+      "worksheet_label": "B3 Lim Att",
+      "worksheet": [
+        "0.0%... 100% [%]"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "B3 OUTPUT MIX",
+      "worksheet_label": "B3 Out Mix",
+      "worksheet": [
+        "-3.0... + 3.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B4 ATTACK",
+      "worksheet_label": "B4 Attack",
+      "worksheet": [
+        "4.0... 39.0 [k]"
+      ],
+      "unit": "k"
+    },
+    {
+      "name": "B4 COMP THRSH",
+      "worksheet_label": "B4 Compression Threshold",
+      "worksheet": [
+        "-16.0… -1.3, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B4 DIFF GR",
+      "worksheet_label": "B4MaxDeltGR",
+      "worksheet": [
+        "0.0... 24.0, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B4 LIMIT ATTACK",
+      "worksheet_label": "B4 Lim Att",
+      "worksheet": [
+        "0.0%... 100% [%]"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "B4 OUTPUT MIX",
+      "worksheet_label": "B4 Out Mix",
+      "worksheet": [
+        "-3.0... + 3.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B5 CLIP THRSH",
+      "worksheet_label": "HF Clip Thr",
+      "worksheet": [
+        "-16.0... -0.2, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B5 DIFF GR",
+      "worksheet_label": "B5MaxDeltGR",
+      "worksheet": [
+        "0.0... 24.0, Off [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "B5 OUTPUT MIX",
+      "worksheet_label": "B5 Out Mix",
+      "worksheet": [
+        "-3.0... + 3.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "BAND 23 COUPL",
+      "worksheet_label": "B2/B3 Coupl",
+      "worksheet": [
+        "0... 100% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "BAND 32 COUPL",
+      "worksheet_label": "B3/B2 Coupl",
+      "worksheet": [
+        "0... 100% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "BAND 34 COUPL",
+      "worksheet_label": "B3/B4 Coupl",
+      "worksheet": [
+        "0... 100% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "BAND 45 COUPL",
+      "worksheet_label": "B4/B5 Coupl",
+      "worksheet": [
+        "0... 100% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "BASS CLIP",
+      "worksheet_label": "Bass Clip Threshold",
+      "worksheet": [
+        "-6.0... 0.0 [dB]",
+        "-6.0… 0.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "BASS COUPLING",
+      "worksheet_label": "B2/B1 Coupl",
+      "worksheet": [
+        "0... 100% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "COMP DRIVE",
+      "worksheet_label": "Composite Drive",
+      "worksheet": [
+        "Off, 0.0... 3.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "COMP1 OUT",
+      "worksheet_label": "Level",
+      "worksheet": [
+        "-12.0... +12.0 [dBu]"
+      ],
+      "unit": "dBu"
+    },
+    {
+      "name": "COMP2 OUT",
+      "worksheet_label": "Level",
+      "worksheet": [
+        "-12.0... +12.0 [dBu]"
+      ],
+      "unit": "dBu"
+    },
+    {
+      "name": "DI BALANCE",
+      "worksheet_label": "Right Channel Balance",
+      "worksheet": [
+        "-3.0... +3.0 [dB]",
+        "-3.0… +3.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "DI REF LEVEL",
+      "worksheet_label": "Ref. Level VU/PPM",
+      "worksheet": [
+        "-30.0... -10.0 [dBFS]",
+        "-9.0... +13.0 [dBu]"
+      ],
+      "unit": "dBFS"
+    },
+    {
+      "name": "DI REF PPM LEVEL",
+      "worksheet_label": "Ref. Level VU/PPM",
+      "worksheet": [
+        "-30.0... -10.0 [dBFS]",
+        "-9.0... +13.0 [dBu]"
+      ],
+      "unit": "dBFS"
+    },
+    {
+      "name": "DO LEVEL",
+      "worksheet_label": "Out Level",
+      "worksheet": [
+        "-20.0… 0.0 [dBFS]",
+        "-6.0... +24.0 [dBu]",
+        "-6.0...+24.0 [dBu]"
+      ],
+      "unit": "dBFS"
+    },
+    {
+      "name": "DO SAMPLE RATE",
+      "worksheet_label": "Sample Rate",
+      "worksheet": [
+        "32, 44.1, 48 [kHz]"
+      ],
+      "unit": ""
+    },
+    {
+      "name": "DRIVE W2",
+      "worksheet_label": "OSComp Dr",
+      "worksheet": [
+        "-2.0... 2.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "DWNWRD EXP",
+      "worksheet_label": "Down Expand",
+      "worksheet": [
+        "Off, -6.0… +12.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "FINAL CLIP DRV",
+      "worksheet_label": "Final Clip Drive",
+      "worksheet": [
+        "-3.0... +5.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "GATE THRESH",
+      "worksheet_label": "Gate Threshold",
+      "worksheet": [
+        "Off, -44.0... -15.0 [dB]",
+        "Off, -44.0… -15.0 [dB]",
+        "Off, -44… -15.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "HF LIMITER",
+      "worksheet_label": "HF Limiter",
+      "worksheet": [
+        "Off, -23.7... 0.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "IBOC AO LEVEL",
+      "worksheet_label": "Out Level",
+      "worksheet": [
+        "-20.0… 0.0 [dBFS]",
+        "-6.0... +24.0 [dBu]",
+        "-6.0...+24.0 [dBu]"
+      ],
+      "unit": "dBu"
+    },
+    {
+      "name": "IBOC DO LEVEL",
+      "worksheet_label": "Out Level",
+      "worksheet": [
+        "-20.0… 0.0 [dBFS]",
+        "-6.0... +24.0 [dBu]",
+        "-6.0...+24.0 [dBu]"
+      ],
+      "unit": "dBFS"
+    },
+    {
+      "name": "IBOC EQ FREQ",
+      "worksheet_label": "HD EQ freq",
+      "worksheet": [
+        "2.0…20.2 [kHz]"
+      ],
+      "unit": "kHz"
+    },
+    {
+      "name": "IBOC EQ GAIN",
+      "worksheet_label": "HD EQ gain",
+      "worksheet": [
+        "-6.0…0.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "IBOC LIM DR",
+      "worksheet_label": "HD Limiter Drive",
+      "worksheet": [
+        "0.0... 12.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "IDLE GR",
+      "worksheet_label": "Idle Gain",
+      "worksheet": [
+        "-10.0…10.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "ITU412 THR",
+      "worksheet_label": "Multiplex Power Threshold",
+      "worksheet": [
+        "Off, 10.0... -2.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "LOW BASS FREQ",
+      "worksheet_label": "Bass Freq",
+      "worksheet": [
+        "80.0... 500.0 [Hz]",
+        "80.0… 500.0 [Hz]"
+      ],
+      "unit": "Hz"
+    },
+    {
+      "name": "LOW BASS GAIN",
+      "worksheet_label": "Bass Gain",
+      "worksheet": [
+        "0 … 12 [dB]",
+        "0.0... 12.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "LOW BASS Q",
+      "worksheet_label": "Bass Slope",
+      "worksheet": [
+        "6,12,18 [dB/Oct]",
+        "6,12,18 [db/Oct]"
+      ],
+      "unit": "dB/oct"
+    },
+    {
+      "name": "MAX DIST CONTRL",
+      "worksheet_label": "Max Dist Ctrl",
+      "worksheet": [
+        "0.0... 18.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "MB DRIVE",
+      "worksheet_label": "MB Drive",
+      "worksheet": [
+        "0... 25 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "MB GATE THR",
+      "worksheet_label": "Gate Threshold",
+      "worksheet": [
+        "Off, -44.0... -15.0 [dB]",
+        "Off, -44.0… -15.0 [dB]",
+        "Off, -44… -15.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "MOD REDUCE 1",
+      "worksheet_label": "Mod. Red. 1",
+      "worksheet": [
+        "-20.0%…0.0% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "MOD REDUCE 2",
+      "worksheet_label": "Mod. Red. 2",
+      "worksheet": [
+        "-20.0%…0.0% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "MULTIBAND CLIP",
+      "worksheet_label": "MB Clipping",
+      "worksheet": [
+        "-4.0... 5.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "PEQ HIGH FREQ",
+      "worksheet_label": "High Freq",
+      "worksheet": [
+        "1.0... 15.0 [Hz]"
+      ],
+      "unit": "kHz"
+    },
+    {
+      "name": "PEQ HIGH GAIN",
+      "worksheet_label": "High Gain",
+      "worksheet": [
+        "-10.0... +10.0 [dB]",
+        "-10.0...10.0 [dB]",
+        "-10.0…10.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "PEQ HIGH WIDTH",
+      "worksheet_label": "High Width",
+      "worksheet": [
+        "4.0... 0.8 [dB]"
+      ],
+      "unit": "oct"
+    },
+    {
+      "name": "PEQ LOW FREQ",
+      "worksheet_label": "Low Freq",
+      "worksheet": [
+        "20.0... 500.0 [Hz]",
+        "20.0... 500.0 [dB]"
+      ],
+      "unit": "Hz"
+    },
+    {
+      "name": "PEQ LOW GAIN",
+      "worksheet_label": "Low Gain",
+      "worksheet": [
+        "-10.0... 10.0 [dB]",
+        "-10.0… 10.0 [dB]",
+        "-10.0…+10.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "PEQ LOW WIDTH",
+      "worksheet_label": "Low Width",
+      "worksheet": [
+        "4.0... 0.8 [dB]"
+      ],
+      "unit": "oct"
+    },
+    {
+      "name": "PEQ MID FREQ",
+      "worksheet_label": "Mid Freq",
+      "worksheet": [
+        "250... 6000 [Hz]",
+        "250… 6000 [Hz]"
+      ],
+      "unit": "Hz"
+    },
+    {
+      "name": "PEQ MID GAIN",
+      "worksheet_label": "Mid Gain",
+      "worksheet": [
+        "-10.0... +10.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "PEQ MID WIDTH",
+      "worksheet_label": "Mid Width",
+      "worksheet": [
+        "4.0... 0.8 [dB]",
+        "4.0… 0.8 [dB]"
+      ],
+      "unit": "oct"
+    },
+    {
+      "name": "PILOT LEVEL",
+      "worksheet_label": "Pilot Level",
+      "worksheet": [
+        "6.0%...12.0% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "SE RATIO WIDTH",
+      "worksheet_label": "Ratio Limit",
+      "worksheet": [
+        "70%... 100% []",
+        "70%...100% []"
+      ],
+      "unit": "%"
+    },
+    {
+      "name": "SPEECH BC THR",
+      "worksheet_label": "SpeechBCThr",
+      "worksheet": [
+        "-6.0… 0.0 [dB]"
+      ],
+      "unit": "dB"
+    },
+    {
+      "name": "SPEECH THR",
+      "worksheet_label": "Speech Thr",
+      "worksheet": [
+        "-6.0... 0.0 [dB]"
+      ],
+      "unit": "dB"
+    }
+  ],
+  "units_by_shared_conversion": {
+    "AGC MASTER TH": {
+      "unit": "dB",
+      "conversion": "0x14b5e0",
+      "from": [
+        "AGC BASS TH"
+      ]
+    },
+    "HF DE ESS": {
+      "unit": "dB",
+      "conversion": "0x146920",
+      "from": [
+        "HF LIMITER"
+      ]
+    },
+    "DRIVE W1": {
+      "unit": "dB",
+      "conversion": "0x1477c0",
+      "from": [
+        "DRIVE W2"
+      ]
+    },
+    "DRIVE W3": {
+      "unit": "dB",
+      "conversion": "0x1477c0",
+      "from": [
+        "DRIVE W2"
+      ]
+    },
+    "MIX W3": {
+      "unit": "dB",
+      "conversion": "0x1477c0",
+      "from": [
+        "DRIVE W2"
+      ]
+    }
+  },
+  "other_documents_tables": [
+    {
+      "group": "other",
+      "name": "ADMIN",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "All screens"
+        },
+        {
+          "type": "UserString",
+          "value": "All screens except Security"
+        },
+        {
+          "type": "UserString",
+          "value": "Presets, Modify, Save, Memory and Automation"
+        },
+        {
+          "type": "UserString",
+          "value": "Presets and Automation"
+        },
+        {
+          "type": "UserString",
+          "value": "Presets"
+        }
+      ]
+    },
+    {
+      "group": "test",
+      "name": "TEST COMP DRIVE",
+      "values": [
+        {
+          "type": "String",
+          "value": "Off"
+        },
+        {
+          "type": "Cent",
+          "value": 0
+        },
+        {
+          "type": "Cent",
+          "value": 10
+        },
+        {
+          "type": "Cent",
+          "value": 20
+        },
+        {
+          "type": "Cent",
+          "value": 30
+        },
+        {
+          "type": "Cent",
+          "value": 40
+        },
+        {
+          "type": "Cent",
+          "value": 50
+        },
+        {
+          "type": "Cent",
+          "value": 60
+        },
+        {
+          "type": "Cent",
+          "value": 70
+        },
+        {
+          "type": "Cent",
+          "value": 80
+        },
+        {
+          "type": "Cent",
+          "value": 90
+        },
+        {
+          "type": "Cent",
+          "value": 100
+        },
+        {
+          "type": "Cent",
+          "value": 110
+        },
+        {
+          "type": "Cent",
+          "value": 120
+        },
+        {
+          "type": "Cent",
+          "value": 130
+        },
+        {
+          "type": "Cent",
+          "value": 140
+        },
+        {
+          "type": "Cent",
+          "value": 150
+        },
+        {
+          "type": "Cent",
+          "value": 160
+        },
+        {
+          "type": "Cent",
+          "value": 170
+        },
+        {
+          "type": "Cent",
+          "value": 180
+        },
+        {
+          "type": "Cent",
+          "value": 190
+        },
+        {
+          "type": "Cent",
+          "value": 200
+        },
+        {
+          "type": "Cent",
+          "value": 210
+        },
+        {
+          "type": "Cent",
+          "value": 220
+        },
+        {
+          "type": "Cent",
+          "value": 230
+        },
+        {
+          "type": "Cent",
+          "value": 240
+        },
+        {
+          "type": "Cent",
+          "value": 250
+        },
+        {
+          "type": "Cent",
+          "value": 260
+        },
+        {
+          "type": "Cent",
+          "value": 270
+        },
+        {
+          "type": "Cent",
+          "value": 280
+        },
+        {
+          "type": "Cent",
+          "value": 290
+        },
+        {
+          "type": "Cent",
+          "value": 300
+        }
+      ]
+    },
+    {
+      "group": "test",
+      "name": "TEST CLIP DEFEAT",
+      "values": [
+        {
+          "type": "Int",
+          "value": 0
+        },
+        {
+          "type": "Int",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "group": "test",
+      "name": "TEST PHASE ROTATOR",
+      "values": [
+        {
+          "type": "String",
+          "value": "In"
+        },
+        {
+          "type": "String",
+          "value": "Out"
+        }
+      ]
+    },
+    {
+      "group": "test",
+      "name": "TEST PILOT",
+      "values": [
+        {
+          "type": "String",
+          "value": "Off"
+        },
+        {
+          "type": "String",
+          "value": "On"
+        }
+      ]
+    },
+    {
+      "group": "test",
+      "name": "TEST LOW LATENCY",
+      "values": [
+        {
+          "type": "String",
+          "value": "Xmitter"
+        },
+        {
+          "type": "String",
+          "value": "Monitor"
+        }
+      ]
+    },
+    {
+      "group": "test",
+      "name": "TEST ITU412 THR",
+      "values": [
+        {
+          "type": "Cent",
+          "value": -200
+        },
+        {
+          "type": "Cent",
+          "value": -190
+        },
+        {
+          "type": "Cent",
+          "value": -180
+        },
+        {
+          "type": "Cent",
+          "value": -170
+        },
+        {
+          "type": "Cent",
+          "value": -160
+        },
+        {
+          "type": "Cent",
+          "value": -150
+        },
+        {
+          "type": "Cent",
+          "value": -140
+        },
+        {
+          "type": "Cent",
+          "value": -130
+        },
+        {
+          "type": "Cent",
+          "value": -120
+        },
+        {
+          "type": "Cent",
+          "value": -110
+        },
+        {
+          "type": "Cent",
+          "value": -100
+        },
+        {
+          "type": "Cent",
+          "value": -90
+        },
+        {
+          "type": "Cent",
+          "value": -80
+        },
+        {
+          "type": "Cent",
+          "value": -70
+        },
+        {
+          "type": "Cent",
+          "value": -60
+        },
+        {
+          "type": "Cent",
+          "value": -50
+        },
+        {
+          "type": "Cent",
+          "value": -40
+        },
+        {
+          "type": "Cent",
+          "value": -30
+        },
+        {
+          "type": "Cent",
+          "value": -20
+        },
+        {
+          "type": "Cent",
+          "value": -10
+        },
+        {
+          "type": "Cent",
+          "value": 0
+        },
+        {
+          "type": "Cent",
+          "value": 10
+        },
+        {
+          "type": "Cent",
+          "value": 20
+        },
+        {
+          "type": "Cent",
+          "value": 30
+        },
+        {
+          "type": "Cent",
+          "value": 40
+        },
+        {
+          "type": "Cent",
+          "value": 50
+        },
+        {
+          "type": "Cent",
+          "value": 60
+        },
+        {
+          "type": "Cent",
+          "value": 70
+        },
+        {
+          "type": "Cent",
+          "value": 80
+        },
+        {
+          "type": "Cent",
+          "value": 90
+        },
+        {
+          "type": "Cent",
+          "value": 100
+        },
+        {
+          "type": "Cent",
+          "value": 110
+        },
+        {
+          "type": "Cent",
+          "value": 120
+        },
+        {
+          "type": "Cent",
+          "value": 130
+        },
+        {
+          "type": "Cent",
+          "value": 140
+        },
+        {
+          "type": "Cent",
+          "value": 150
+        },
+        {
+          "type": "Cent",
+          "value": 160
+        },
+        {
+          "type": "Cent",
+          "value": 170
+        },
+        {
+          "type": "Cent",
+          "value": 180
+        },
+        {
+          "type": "Cent",
+          "value": 190
+        },
+        {
+          "type": "Cent",
+          "value": 200
+        },
+        {
+          "type": "Cent",
+          "value": 210
+        },
+        {
+          "type": "Cent",
+          "value": 220
+        },
+        {
+          "type": "Cent",
+          "value": 230
+        },
+        {
+          "type": "Cent",
+          "value": 240
+        },
+        {
+          "type": "Cent",
+          "value": 250
+        },
+        {
+          "type": "Cent",
+          "value": 260
+        },
+        {
+          "type": "Cent",
+          "value": 270
+        },
+        {
+          "type": "Cent",
+          "value": 280
+        },
+        {
+          "type": "Cent",
+          "value": 290
+        },
+        {
+          "type": "Cent",
+          "value": 300
+        },
+        {
+          "type": "Cent",
+          "value": 310
+        },
+        {
+          "type": "Cent",
+          "value": 320
+        },
+        {
+          "type": "Cent",
+          "value": 330
+        },
+        {
+          "type": "Cent",
+          "value": 340
+        },
+        {
+          "type": "Cent",
+          "value": 350
+        },
+        {
+          "type": "Cent",
+          "value": 360
+        },
+        {
+          "type": "Cent",
+          "value": 370
+        },
+        {
+          "type": "Cent",
+          "value": 380
+        },
+        {
+          "type": "Cent",
+          "value": 390
+        },
+        {
+          "type": "Cent",
+          "value": 400
+        },
+        {
+          "type": "Cent",
+          "value": 410
+        },
+        {
+          "type": "Cent",
+          "value": 420
+        },
+        {
+          "type": "Cent",
+          "value": 430
+        },
+        {
+          "type": "Cent",
+          "value": 440
+        },
+        {
+          "type": "Cent",
+          "value": 450
+        },
+        {
+          "type": "Cent",
+          "value": 460
+        },
+        {
+          "type": "Cent",
+          "value": 470
+        },
+        {
+          "type": "Cent",
+          "value": 480
+        },
+        {
+          "type": "Cent",
+          "value": 490
+        },
+        {
+          "type": "Cent",
+          "value": 500
+        },
+        {
+          "type": "Cent",
+          "value": 510
+        },
+        {
+          "type": "Cent",
+          "value": 520
+        },
+        {
+          "type": "Cent",
+          "value": 530
+        },
+        {
+          "type": "Cent",
+          "value": 540
+        },
+        {
+          "type": "Cent",
+          "value": 550
+        },
+        {
+          "type": "Cent",
+          "value": 560
+        },
+        {
+          "type": "Cent",
+          "value": 570
+        },
+        {
+          "type": "Cent",
+          "value": 580
+        },
+        {
+          "type": "Cent",
+          "value": 590
+        },
+        {
+          "type": "Cent",
+          "value": 600
+        },
+        {
+          "type": "Cent",
+          "value": 610
+        },
+        {
+          "type": "Cent",
+          "value": 620
+        },
+        {
+          "type": "Cent",
+          "value": 630
+        },
+        {
+          "type": "Cent",
+          "value": 640
+        },
+        {
+          "type": "Cent",
+          "value": 650
+        },
+        {
+          "type": "Cent",
+          "value": 660
+        },
+        {
+          "type": "Cent",
+          "value": 670
+        },
+        {
+          "type": "Cent",
+          "value": 680
+        },
+        {
+          "type": "Cent",
+          "value": 690
+        },
+        {
+          "type": "Cent",
+          "value": 700
+        },
+        {
+          "type": "Cent",
+          "value": 710
+        },
+        {
+          "type": "Cent",
+          "value": 720
+        },
+        {
+          "type": "Cent",
+          "value": 730
+        },
+        {
+          "type": "Cent",
+          "value": 740
+        },
+        {
+          "type": "Cent",
+          "value": 750
+        },
+        {
+          "type": "Cent",
+          "value": 760
+        },
+        {
+          "type": "Cent",
+          "value": 770
+        },
+        {
+          "type": "Cent",
+          "value": 780
+        },
+        {
+          "type": "Cent",
+          "value": 790
+        },
+        {
+          "type": "Cent",
+          "value": 800
+        },
+        {
+          "type": "Cent",
+          "value": 810
+        },
+        {
+          "type": "Cent",
+          "value": 820
+        },
+        {
+          "type": "Cent",
+          "value": 830
+        },
+        {
+          "type": "Cent",
+          "value": 840
+        },
+        {
+          "type": "Cent",
+          "value": 850
+        },
+        {
+          "type": "Cent",
+          "value": 860
+        },
+        {
+          "type": "Cent",
+          "value": 870
+        },
+        {
+          "type": "Cent",
+          "value": 880
+        },
+        {
+          "type": "Cent",
+          "value": 890
+        },
+        {
+          "type": "Cent",
+          "value": 900
+        },
+        {
+          "type": "Cent",
+          "value": 910
+        },
+        {
+          "type": "Cent",
+          "value": 920
+        },
+        {
+          "type": "Cent",
+          "value": 930
+        },
+        {
+          "type": "Cent",
+          "value": 940
+        },
+        {
+          "type": "Cent",
+          "value": 950
+        },
+        {
+          "type": "Cent",
+          "value": 960
+        },
+        {
+          "type": "Cent",
+          "value": 970
+        },
+        {
+          "type": "Cent",
+          "value": 980
+        },
+        {
+          "type": "Cent",
+          "value": 990
+        },
+        {
+          "type": "Cent",
+          "value": 1000
+        },
+        {
+          "type": "String",
+          "value": "Off"
+        }
+      ]
+    },
+    {
+      "group": "test",
+      "name": "TEST MOD REDUCE 1",
+      "values": [
+        {
+          "type": "Cent",
+          "value": -2000
+        },
+        {
+          "type": "Cent",
+          "value": -1950
+        },
+        {
+          "type": "Cent",
+          "value": -1900
+        },
+        {
+          "type": "Cent",
+          "value": -1850
+        },
+        {
+          "type": "Cent",
+          "value": -1800
+        },
+        {
+          "type": "Cent",
+          "value": -1750
+        },
+        {
+          "type": "Cent",
+          "value": -1700
+        },
+        {
+          "type": "Cent",
+          "value": -1650
+        },
+        {
+          "type": "Cent",
+          "value": -1600
+        },
+        {
+          "type": "Cent",
+          "value": -1550
+        },
+        {
+          "type": "Cent",
+          "value": -1500
+        },
+        {
+          "type": "Cent",
+          "value": -1450
+        },
+        {
+          "type": "Cent",
+          "value": -1400
+        },
+        {
+          "type": "Cent",
+          "value": -1350
+        },
+        {
+          "type": "Cent",
+          "value": -1300
+        },
+        {
+          "type": "Cent",
+          "value": -1250
+        },
+        {
+          "type": "Cent",
+          "value": -1200
+        },
+        {
+          "type": "Cent",
+          "value": -1150
+        },
+        {
+          "type": "Cent",
+          "value": -1100
+        },
+        {
+          "type": "Cent",
+          "value": -1050
+        },
+        {
+          "type": "Cent",
+          "value": -1000
+        },
+        {
+          "type": "Cent",
+          "value": -950
+        },
+        {
+          "type": "Cent",
+          "value": -900
+        },
+        {
+          "type": "Cent",
+          "value": -850
+        },
+        {
+          "type": "Cent",
+          "value": -800
+        },
+        {
+          "type": "Cent",
+          "value": -750
+        },
+        {
+          "type": "Cent",
+          "value": -700
+        },
+        {
+          "type": "Cent",
+          "value": -650
+        },
+        {
+          "type": "Cent",
+          "value": -600
+        },
+        {
+          "type": "Cent",
+          "value": -550
+        },
+        {
+          "type": "Cent",
+          "value": -500
+        },
+        {
+          "type": "Cent",
+          "value": -450
+        },
+        {
+          "type": "Cent",
+          "value": -400
+        },
+        {
+          "type": "Cent",
+          "value": -350
+        },
+        {
+          "type": "Cent",
+          "value": -300
+        },
+        {
+          "type": "Cent",
+          "value": -250
+        },
+        {
+          "type": "Cent",
+          "value": -200
+        },
+        {
+          "type": "Cent",
+          "value": -150
+        },
+        {
+          "type": "Cent",
+          "value": -100
+        },
+        {
+          "type": "Cent",
+          "value": -50
+        },
+        {
+          "type": "Cent",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "group": "test",
+      "name": "TEST MOD REDUCE 2",
+      "values": [
+        {
+          "type": "Cent",
+          "value": -2000
+        },
+        {
+          "type": "Cent",
+          "value": -1950
+        },
+        {
+          "type": "Cent",
+          "value": -1900
+        },
+        {
+          "type": "Cent",
+          "value": -1850
+        },
+        {
+          "type": "Cent",
+          "value": -1800
+        },
+        {
+          "type": "Cent",
+          "value": -1750
+        },
+        {
+          "type": "Cent",
+          "value": -1700
+        },
+        {
+          "type": "Cent",
+          "value": -1650
+        },
+        {
+          "type": "Cent",
+          "value": -1600
+        },
+        {
+          "type": "Cent",
+          "value": -1550
+        },
+        {
+          "type": "Cent",
+          "value": -1500
+        },
+        {
+          "type": "Cent",
+          "value": -1450
+        },
+        {
+          "type": "Cent",
+          "value": -1400
+        },
+        {
+          "type": "Cent",
+          "value": -1350
+        },
+        {
+          "type": "Cent",
+          "value": -1300
+        },
+        {
+          "type": "Cent",
+          "value": -1250
+        },
+        {
+          "type": "Cent",
+          "value": -1200
+        },
+        {
+          "type": "Cent",
+          "value": -1150
+        },
+        {
+          "type": "Cent",
+          "value": -1100
+        },
+        {
+          "type": "Cent",
+          "value": -1050
+        },
+        {
+          "type": "Cent",
+          "value": -1000
+        },
+        {
+          "type": "Cent",
+          "value": -950
+        },
+        {
+          "type": "Cent",
+          "value": -900
+        },
+        {
+          "type": "Cent",
+          "value": -850
+        },
+        {
+          "type": "Cent",
+          "value": -800
+        },
+        {
+          "type": "Cent",
+          "value": -750
+        },
+        {
+          "type": "Cent",
+          "value": -700
+        },
+        {
+          "type": "Cent",
+          "value": -650
+        },
+        {
+          "type": "Cent",
+          "value": -600
+        },
+        {
+          "type": "Cent",
+          "value": -550
+        },
+        {
+          "type": "Cent",
+          "value": -500
+        },
+        {
+          "type": "Cent",
+          "value": -450
+        },
+        {
+          "type": "Cent",
+          "value": -400
+        },
+        {
+          "type": "Cent",
+          "value": -350
+        },
+        {
+          "type": "Cent",
+          "value": -300
+        },
+        {
+          "type": "Cent",
+          "value": -250
+        },
+        {
+          "type": "Cent",
+          "value": -200
+        },
+        {
+          "type": "Cent",
+          "value": -150
+        },
+        {
+          "type": "Cent",
+          "value": -100
+        },
+        {
+          "type": "Cent",
+          "value": -50
+        },
+        {
+          "type": "Cent",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Input: Analog",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Input: Analog"
+        },
+        {
+          "type": "UserString",
+          "value": "Input: Analog"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Input: Digital",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Input: Digital"
+        },
+        {
+          "type": "UserString",
+          "value": "Input: Digital"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Bypass",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Bypass"
+        },
+        {
+          "type": "UserString",
+          "value": "Bypass"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Exit Bypass",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Exit Bypass"
+        },
+        {
+          "type": "UserString",
+          "value": "Exit Bypass"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Monitor Mute",
+      "values": [
+        {
+          "type": "String",
+          "value": "Monitor Mute"
+        },
+        {
+          "type": "String",
+          "value": "Monitor Mute"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Mod. Reduction 1",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Mod. Reduction 1"
+        },
+        {
+          "type": "UserString",
+          "value": "Mod. Reduction 1"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Mod. Reduction 2",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Mod. Reduction 2"
+        },
+        {
+          "type": "UserString",
+          "value": "Mod. Reduction 2"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Stereo",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Stereo"
+        },
+        {
+          "type": "UserString",
+          "value": "Stereo"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Mono-R",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Mono-R"
+        },
+        {
+          "type": "UserString",
+          "value": "Mono-R"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Mono-L",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Mono-L"
+        },
+        {
+          "type": "UserString",
+          "value": "Mono-L"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Mono-Sum",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Mono-Sum"
+        },
+        {
+          "type": "UserString",
+          "value": "Mono-Sum"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Reset to Hour",
+      "values": [
+        {
+          "type": "String",
+          "value": "Reset to Hour"
+        },
+        {
+          "type": "String",
+          "value": "Reset to Hour"
+        }
+      ]
+    },
+    {
+      "group": "contact-actions",
+      "name": "Reset to Midnight",
+      "values": [
+        {
+          "type": "String",
+          "value": "Reset to Midnight"
+        },
+        {
+          "type": "String",
+          "value": "Reset to Midnight"
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "SET HOUR",
+      "values": [
+        {
+          "type": "String",
+          "value": "00:"
+        },
+        {
+          "type": "String",
+          "value": "01:"
+        },
+        {
+          "type": "String",
+          "value": "02:"
+        },
+        {
+          "type": "String",
+          "value": "03:"
+        },
+        {
+          "type": "String",
+          "value": "04:"
+        },
+        {
+          "type": "String",
+          "value": "05:"
+        },
+        {
+          "type": "String",
+          "value": "06:"
+        },
+        {
+          "type": "String",
+          "value": "07:"
+        },
+        {
+          "type": "String",
+          "value": "08:"
+        },
+        {
+          "type": "String",
+          "value": "09:"
+        },
+        {
+          "type": "String",
+          "value": "10:"
+        },
+        {
+          "type": "String",
+          "value": "11:"
+        },
+        {
+          "type": "String",
+          "value": "12:"
+        },
+        {
+          "type": "String",
+          "value": "13:"
+        },
+        {
+          "type": "String",
+          "value": "14:"
+        },
+        {
+          "type": "String",
+          "value": "15:"
+        },
+        {
+          "type": "String",
+          "value": "16:"
+        },
+        {
+          "type": "String",
+          "value": "17:"
+        },
+        {
+          "type": "String",
+          "value": "18:"
+        },
+        {
+          "type": "String",
+          "value": "19:"
+        },
+        {
+          "type": "String",
+          "value": "20:"
+        },
+        {
+          "type": "String",
+          "value": "21:"
+        },
+        {
+          "type": "String",
+          "value": "22:"
+        },
+        {
+          "type": "String",
+          "value": "23:"
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "SET MINUTE",
+      "values": [
+        {
+          "type": "String",
+          "value": "00:"
+        },
+        {
+          "type": "String",
+          "value": "01:"
+        },
+        {
+          "type": "String",
+          "value": "02:"
+        },
+        {
+          "type": "String",
+          "value": "03:"
+        },
+        {
+          "type": "String",
+          "value": "04:"
+        },
+        {
+          "type": "String",
+          "value": "05:"
+        },
+        {
+          "type": "String",
+          "value": "06:"
+        },
+        {
+          "type": "String",
+          "value": "07:"
+        },
+        {
+          "type": "String",
+          "value": "08:"
+        },
+        {
+          "type": "String",
+          "value": "09:"
+        },
+        {
+          "type": "String",
+          "value": "10:"
+        },
+        {
+          "type": "String",
+          "value": "11:"
+        },
+        {
+          "type": "String",
+          "value": "12:"
+        },
+        {
+          "type": "String",
+          "value": "13:"
+        },
+        {
+          "type": "String",
+          "value": "14:"
+        },
+        {
+          "type": "String",
+          "value": "15:"
+        },
+        {
+          "type": "String",
+          "value": "16:"
+        },
+        {
+          "type": "String",
+          "value": "17:"
+        },
+        {
+          "type": "String",
+          "value": "18:"
+        },
+        {
+          "type": "String",
+          "value": "19:"
+        },
+        {
+          "type": "String",
+          "value": "20:"
+        },
+        {
+          "type": "String",
+          "value": "21:"
+        },
+        {
+          "type": "String",
+          "value": "22:"
+        },
+        {
+          "type": "String",
+          "value": "23:"
+        },
+        {
+          "type": "String",
+          "value": "24:"
+        },
+        {
+          "type": "String",
+          "value": "25:"
+        },
+        {
+          "type": "String",
+          "value": "26:"
+        },
+        {
+          "type": "String",
+          "value": "27:"
+        },
+        {
+          "type": "String",
+          "value": "28:"
+        },
+        {
+          "type": "String",
+          "value": "29:"
+        },
+        {
+          "type": "String",
+          "value": "30:"
+        },
+        {
+          "type": "String",
+          "value": "31:"
+        },
+        {
+          "type": "String",
+          "value": "32:"
+        },
+        {
+          "type": "String",
+          "value": "33:"
+        },
+        {
+          "type": "String",
+          "value": "34:"
+        },
+        {
+          "type": "String",
+          "value": "35:"
+        },
+        {
+          "type": "String",
+          "value": "36:"
+        },
+        {
+          "type": "String",
+          "value": "37:"
+        },
+        {
+          "type": "String",
+          "value": "38:"
+        },
+        {
+          "type": "String",
+          "value": "39:"
+        },
+        {
+          "type": "String",
+          "value": "40:"
+        },
+        {
+          "type": "String",
+          "value": "41:"
+        },
+        {
+          "type": "String",
+          "value": "42:"
+        },
+        {
+          "type": "String",
+          "value": "43:"
+        },
+        {
+          "type": "String",
+          "value": "44:"
+        },
+        {
+          "type": "String",
+          "value": "45:"
+        },
+        {
+          "type": "String",
+          "value": "46:"
+        },
+        {
+          "type": "String",
+          "value": "47:"
+        },
+        {
+          "type": "String",
+          "value": "48:"
+        },
+        {
+          "type": "String",
+          "value": "49:"
+        },
+        {
+          "type": "String",
+          "value": "50:"
+        },
+        {
+          "type": "String",
+          "value": "51:"
+        },
+        {
+          "type": "String",
+          "value": "52:"
+        },
+        {
+          "type": "String",
+          "value": "53:"
+        },
+        {
+          "type": "String",
+          "value": "54:"
+        },
+        {
+          "type": "String",
+          "value": "55:"
+        },
+        {
+          "type": "String",
+          "value": "56:"
+        },
+        {
+          "type": "String",
+          "value": "57:"
+        },
+        {
+          "type": "String",
+          "value": "58:"
+        },
+        {
+          "type": "String",
+          "value": "59:"
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "SET SECOND",
+      "values": [
+        {
+          "type": "String",
+          "value": "00"
+        },
+        {
+          "type": "String",
+          "value": "01"
+        },
+        {
+          "type": "String",
+          "value": "02"
+        },
+        {
+          "type": "String",
+          "value": "03"
+        },
+        {
+          "type": "String",
+          "value": "04"
+        },
+        {
+          "type": "String",
+          "value": "05"
+        },
+        {
+          "type": "String",
+          "value": "06"
+        },
+        {
+          "type": "String",
+          "value": "07"
+        },
+        {
+          "type": "String",
+          "value": "08"
+        },
+        {
+          "type": "String",
+          "value": "09"
+        },
+        {
+          "type": "String",
+          "value": "10"
+        },
+        {
+          "type": "String",
+          "value": "11"
+        },
+        {
+          "type": "String",
+          "value": "12"
+        },
+        {
+          "type": "String",
+          "value": "13"
+        },
+        {
+          "type": "String",
+          "value": "14"
+        },
+        {
+          "type": "String",
+          "value": "15"
+        },
+        {
+          "type": "String",
+          "value": "16"
+        },
+        {
+          "type": "String",
+          "value": "17"
+        },
+        {
+          "type": "String",
+          "value": "18"
+        },
+        {
+          "type": "String",
+          "value": "19"
+        },
+        {
+          "type": "String",
+          "value": "20"
+        },
+        {
+          "type": "String",
+          "value": "21"
+        },
+        {
+          "type": "String",
+          "value": "22"
+        },
+        {
+          "type": "String",
+          "value": "23"
+        },
+        {
+          "type": "String",
+          "value": "24"
+        },
+        {
+          "type": "String",
+          "value": "25"
+        },
+        {
+          "type": "String",
+          "value": "26"
+        },
+        {
+          "type": "String",
+          "value": "27"
+        },
+        {
+          "type": "String",
+          "value": "28"
+        },
+        {
+          "type": "String",
+          "value": "29"
+        },
+        {
+          "type": "String",
+          "value": "30"
+        },
+        {
+          "type": "String",
+          "value": "31"
+        },
+        {
+          "type": "String",
+          "value": "32"
+        },
+        {
+          "type": "String",
+          "value": "33"
+        },
+        {
+          "type": "String",
+          "value": "34"
+        },
+        {
+          "type": "String",
+          "value": "35"
+        },
+        {
+          "type": "String",
+          "value": "36"
+        },
+        {
+          "type": "String",
+          "value": "37"
+        },
+        {
+          "type": "String",
+          "value": "38"
+        },
+        {
+          "type": "String",
+          "value": "39"
+        },
+        {
+          "type": "String",
+          "value": "40"
+        },
+        {
+          "type": "String",
+          "value": "41"
+        },
+        {
+          "type": "String",
+          "value": "42"
+        },
+        {
+          "type": "String",
+          "value": "43"
+        },
+        {
+          "type": "String",
+          "value": "44"
+        },
+        {
+          "type": "String",
+          "value": "45"
+        },
+        {
+          "type": "String",
+          "value": "46"
+        },
+        {
+          "type": "String",
+          "value": "47"
+        },
+        {
+          "type": "String",
+          "value": "48"
+        },
+        {
+          "type": "String",
+          "value": "49"
+        },
+        {
+          "type": "String",
+          "value": "50"
+        },
+        {
+          "type": "String",
+          "value": "51"
+        },
+        {
+          "type": "String",
+          "value": "52"
+        },
+        {
+          "type": "String",
+          "value": "53"
+        },
+        {
+          "type": "String",
+          "value": "54"
+        },
+        {
+          "type": "String",
+          "value": "55"
+        },
+        {
+          "type": "String",
+          "value": "56"
+        },
+        {
+          "type": "String",
+          "value": "57"
+        },
+        {
+          "type": "String",
+          "value": "58"
+        },
+        {
+          "type": "String",
+          "value": "59"
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "SET DAY",
+      "values": [
+        {
+          "type": "String",
+          "value": "01"
+        },
+        {
+          "type": "String",
+          "value": "02"
+        },
+        {
+          "type": "String",
+          "value": "03"
+        },
+        {
+          "type": "String",
+          "value": "04"
+        },
+        {
+          "type": "String",
+          "value": "05"
+        },
+        {
+          "type": "String",
+          "value": "06"
+        },
+        {
+          "type": "String",
+          "value": "07"
+        },
+        {
+          "type": "String",
+          "value": "08"
+        },
+        {
+          "type": "String",
+          "value": "09"
+        },
+        {
+          "type": "String",
+          "value": "10"
+        },
+        {
+          "type": "String",
+          "value": "11"
+        },
+        {
+          "type": "String",
+          "value": "12"
+        },
+        {
+          "type": "String",
+          "value": "13"
+        },
+        {
+          "type": "String",
+          "value": "14"
+        },
+        {
+          "type": "String",
+          "value": "15"
+        },
+        {
+          "type": "String",
+          "value": "16"
+        },
+        {
+          "type": "String",
+          "value": "17"
+        },
+        {
+          "type": "String",
+          "value": "18"
+        },
+        {
+          "type": "String",
+          "value": "19"
+        },
+        {
+          "type": "String",
+          "value": "20"
+        },
+        {
+          "type": "String",
+          "value": "21"
+        },
+        {
+          "type": "String",
+          "value": "22"
+        },
+        {
+          "type": "String",
+          "value": "23"
+        },
+        {
+          "type": "String",
+          "value": "24"
+        },
+        {
+          "type": "String",
+          "value": "25"
+        },
+        {
+          "type": "String",
+          "value": "26"
+        },
+        {
+          "type": "String",
+          "value": "27"
+        },
+        {
+          "type": "String",
+          "value": "28"
+        },
+        {
+          "type": "String",
+          "value": "29"
+        },
+        {
+          "type": "String",
+          "value": "30"
+        },
+        {
+          "type": "String",
+          "value": "31"
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "SET MONTH",
+      "values": [
+        {
+          "type": "String",
+          "value": "JAN"
+        },
+        {
+          "type": "String",
+          "value": "FEB"
+        },
+        {
+          "type": "String",
+          "value": "MAR"
+        },
+        {
+          "type": "String",
+          "value": "APR"
+        },
+        {
+          "type": "String",
+          "value": "MAY"
+        },
+        {
+          "type": "String",
+          "value": "JUN"
+        },
+        {
+          "type": "String",
+          "value": "JUL"
+        },
+        {
+          "type": "String",
+          "value": "AUG"
+        },
+        {
+          "type": "String",
+          "value": "SEP"
+        },
+        {
+          "type": "String",
+          "value": "OCT"
+        },
+        {
+          "type": "String",
+          "value": "NOV"
+        },
+        {
+          "type": "String",
+          "value": "DEC"
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "SET YEAR",
+      "values": [
+        {
+          "type": "Int",
+          "value": 2000
+        },
+        {
+          "type": "Int",
+          "value": 2001
+        },
+        {
+          "type": "Int",
+          "value": 2002
+        },
+        {
+          "type": "Int",
+          "value": 2003
+        },
+        {
+          "type": "Int",
+          "value": 2004
+        },
+        {
+          "type": "Int",
+          "value": 2005
+        },
+        {
+          "type": "Int",
+          "value": 2006
+        },
+        {
+          "type": "Int",
+          "value": 2007
+        },
+        {
+          "type": "Int",
+          "value": 2008
+        },
+        {
+          "type": "Int",
+          "value": 2009
+        },
+        {
+          "type": "Int",
+          "value": 2010
+        },
+        {
+          "type": "Int",
+          "value": 2011
+        },
+        {
+          "type": "Int",
+          "value": 2012
+        },
+        {
+          "type": "Int",
+          "value": 2013
+        },
+        {
+          "type": "Int",
+          "value": 2014
+        },
+        {
+          "type": "Int",
+          "value": 2015
+        },
+        {
+          "type": "Int",
+          "value": 2016
+        },
+        {
+          "type": "Int",
+          "value": 2017
+        },
+        {
+          "type": "Int",
+          "value": 2018
+        },
+        {
+          "type": "Int",
+          "value": 2019
+        },
+        {
+          "type": "Int",
+          "value": 2020
+        },
+        {
+          "type": "Int",
+          "value": 2021
+        },
+        {
+          "type": "Int",
+          "value": 2022
+        },
+        {
+          "type": "Int",
+          "value": 2023
+        },
+        {
+          "type": "Int",
+          "value": 2024
+        },
+        {
+          "type": "Int",
+          "value": 2025
+        },
+        {
+          "type": "Int",
+          "value": 2026
+        },
+        {
+          "type": "Int",
+          "value": 2027
+        },
+        {
+          "type": "Int",
+          "value": 2028
+        },
+        {
+          "type": "Int",
+          "value": 2029
+        },
+        {
+          "type": "Int",
+          "value": 2030
+        },
+        {
+          "type": "Int",
+          "value": 2031
+        },
+        {
+          "type": "Int",
+          "value": 2032
+        },
+        {
+          "type": "Int",
+          "value": 2033
+        },
+        {
+          "type": "Int",
+          "value": 2034
+        },
+        {
+          "type": "Int",
+          "value": 2035
+        },
+        {
+          "type": "Int",
+          "value": 2036
+        },
+        {
+          "type": "Int",
+          "value": 2037
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "CLOCK CONTROL",
+      "values": [
+        {
+          "type": "String",
+          "value": "Internal"
+        },
+        {
+          "type": "String",
+          "value": "Line Sync"
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "TIME ZONE",
+      "values": [
+        {
+          "type": "Int",
+          "value": -12
+        },
+        {
+          "type": "Int",
+          "value": -11
+        },
+        {
+          "type": "Int",
+          "value": -10
+        },
+        {
+          "type": "Int",
+          "value": -9
+        },
+        {
+          "type": "Int",
+          "value": -8
+        },
+        {
+          "type": "Int",
+          "value": -7
+        },
+        {
+          "type": "Int",
+          "value": -6
+        },
+        {
+          "type": "Int",
+          "value": -5
+        },
+        {
+          "type": "Int",
+          "value": -4
+        },
+        {
+          "type": "Int",
+          "value": -3
+        },
+        {
+          "type": "Int",
+          "value": -2
+        },
+        {
+          "type": "Int",
+          "value": -1
+        },
+        {
+          "type": "Int",
+          "value": 0
+        },
+        {
+          "type": "Int",
+          "value": 1
+        },
+        {
+          "type": "Int",
+          "value": 2
+        },
+        {
+          "type": "Int",
+          "value": 3
+        },
+        {
+          "type": "Int",
+          "value": 4
+        },
+        {
+          "type": "Int",
+          "value": 5
+        },
+        {
+          "type": "Int",
+          "value": 6
+        },
+        {
+          "type": "Int",
+          "value": 7
+        },
+        {
+          "type": "Int",
+          "value": 8
+        },
+        {
+          "type": "Int",
+          "value": 9
+        },
+        {
+          "type": "Int",
+          "value": 10
+        },
+        {
+          "type": "Int",
+          "value": 11
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "TIME FORMAT",
+      "values": [
+        {
+          "type": "String",
+          "value": "12hr"
+        },
+        {
+          "type": "String",
+          "value": "24hr"
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "DATE FORMAT",
+      "values": [
+        {
+          "type": "String",
+          "value": "MMM.DD,YYYY"
+        },
+        {
+          "type": "String",
+          "value": "DD,MMM.YYYY"
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "DAYLIGHT BEGINS",
+      "values": [
+        {
+          "type": "String",
+          "value": "Off"
+        },
+        {
+          "type": "String",
+          "value": "First Week APR"
+        },
+        {
+          "type": "String",
+          "value": "Second Week APR"
+        },
+        {
+          "type": "String",
+          "value": "Third Week APR"
+        },
+        {
+          "type": "String",
+          "value": "Fourth Week APR"
+        },
+        {
+          "type": "String",
+          "value": "Last Week APR"
+        }
+      ]
+    },
+    {
+      "group": "time",
+      "name": "DAYLIGHT ENDS",
+      "values": [
+        {
+          "type": "String",
+          "value": "Off"
+        },
+        {
+          "type": "String",
+          "value": "First Week OCT"
+        },
+        {
+          "type": "String",
+          "value": "Second Week OCT"
+        },
+        {
+          "type": "String",
+          "value": "Third Week OCT"
+        },
+        {
+          "type": "String",
+          "value": "Fourth Week OCT"
+        },
+        {
+          "type": "String",
+          "value": "Last Week OCT"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "AUTO SET HOUR",
+      "values": [
+        {
+          "type": "String",
+          "value": "00:"
+        },
+        {
+          "type": "String",
+          "value": "01:"
+        },
+        {
+          "type": "String",
+          "value": "02:"
+        },
+        {
+          "type": "String",
+          "value": "03:"
+        },
+        {
+          "type": "String",
+          "value": "04:"
+        },
+        {
+          "type": "String",
+          "value": "05:"
+        },
+        {
+          "type": "String",
+          "value": "06:"
+        },
+        {
+          "type": "String",
+          "value": "07:"
+        },
+        {
+          "type": "String",
+          "value": "08:"
+        },
+        {
+          "type": "String",
+          "value": "09:"
+        },
+        {
+          "type": "String",
+          "value": "10:"
+        },
+        {
+          "type": "String",
+          "value": "11:"
+        },
+        {
+          "type": "String",
+          "value": "12:"
+        },
+        {
+          "type": "String",
+          "value": "13:"
+        },
+        {
+          "type": "String",
+          "value": "14:"
+        },
+        {
+          "type": "String",
+          "value": "15:"
+        },
+        {
+          "type": "String",
+          "value": "16:"
+        },
+        {
+          "type": "String",
+          "value": "17:"
+        },
+        {
+          "type": "String",
+          "value": "18:"
+        },
+        {
+          "type": "String",
+          "value": "19:"
+        },
+        {
+          "type": "String",
+          "value": "20:"
+        },
+        {
+          "type": "String",
+          "value": "21:"
+        },
+        {
+          "type": "String",
+          "value": "22:"
+        },
+        {
+          "type": "String",
+          "value": "23:"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "AUTO SET MINUTE",
+      "values": [
+        {
+          "type": "String",
+          "value": "00:"
+        },
+        {
+          "type": "String",
+          "value": "01:"
+        },
+        {
+          "type": "String",
+          "value": "02:"
+        },
+        {
+          "type": "String",
+          "value": "03:"
+        },
+        {
+          "type": "String",
+          "value": "04:"
+        },
+        {
+          "type": "String",
+          "value": "05:"
+        },
+        {
+          "type": "String",
+          "value": "06:"
+        },
+        {
+          "type": "String",
+          "value": "07:"
+        },
+        {
+          "type": "String",
+          "value": "08:"
+        },
+        {
+          "type": "String",
+          "value": "09:"
+        },
+        {
+          "type": "String",
+          "value": "10:"
+        },
+        {
+          "type": "String",
+          "value": "11:"
+        },
+        {
+          "type": "String",
+          "value": "12:"
+        },
+        {
+          "type": "String",
+          "value": "13:"
+        },
+        {
+          "type": "String",
+          "value": "14:"
+        },
+        {
+          "type": "String",
+          "value": "15:"
+        },
+        {
+          "type": "String",
+          "value": "16:"
+        },
+        {
+          "type": "String",
+          "value": "17:"
+        },
+        {
+          "type": "String",
+          "value": "18:"
+        },
+        {
+          "type": "String",
+          "value": "19:"
+        },
+        {
+          "type": "String",
+          "value": "20:"
+        },
+        {
+          "type": "String",
+          "value": "21:"
+        },
+        {
+          "type": "String",
+          "value": "22:"
+        },
+        {
+          "type": "String",
+          "value": "23:"
+        },
+        {
+          "type": "String",
+          "value": "24:"
+        },
+        {
+          "type": "String",
+          "value": "25:"
+        },
+        {
+          "type": "String",
+          "value": "26:"
+        },
+        {
+          "type": "String",
+          "value": "27:"
+        },
+        {
+          "type": "String",
+          "value": "28:"
+        },
+        {
+          "type": "String",
+          "value": "29:"
+        },
+        {
+          "type": "String",
+          "value": "30:"
+        },
+        {
+          "type": "String",
+          "value": "31:"
+        },
+        {
+          "type": "String",
+          "value": "32:"
+        },
+        {
+          "type": "String",
+          "value": "33:"
+        },
+        {
+          "type": "String",
+          "value": "34:"
+        },
+        {
+          "type": "String",
+          "value": "35:"
+        },
+        {
+          "type": "String",
+          "value": "36:"
+        },
+        {
+          "type": "String",
+          "value": "37:"
+        },
+        {
+          "type": "String",
+          "value": "38:"
+        },
+        {
+          "type": "String",
+          "value": "39:"
+        },
+        {
+          "type": "String",
+          "value": "40:"
+        },
+        {
+          "type": "String",
+          "value": "41:"
+        },
+        {
+          "type": "String",
+          "value": "42:"
+        },
+        {
+          "type": "String",
+          "value": "43:"
+        },
+        {
+          "type": "String",
+          "value": "44:"
+        },
+        {
+          "type": "String",
+          "value": "45:"
+        },
+        {
+          "type": "String",
+          "value": "46:"
+        },
+        {
+          "type": "String",
+          "value": "47:"
+        },
+        {
+          "type": "String",
+          "value": "48:"
+        },
+        {
+          "type": "String",
+          "value": "49:"
+        },
+        {
+          "type": "String",
+          "value": "50:"
+        },
+        {
+          "type": "String",
+          "value": "51:"
+        },
+        {
+          "type": "String",
+          "value": "52:"
+        },
+        {
+          "type": "String",
+          "value": "53:"
+        },
+        {
+          "type": "String",
+          "value": "54:"
+        },
+        {
+          "type": "String",
+          "value": "55:"
+        },
+        {
+          "type": "String",
+          "value": "56:"
+        },
+        {
+          "type": "String",
+          "value": "57:"
+        },
+        {
+          "type": "String",
+          "value": "58:"
+        },
+        {
+          "type": "String",
+          "value": "59:"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "AUTO SET SECOND",
+      "values": [
+        {
+          "type": "String",
+          "value": "00"
+        },
+        {
+          "type": "String",
+          "value": "01"
+        },
+        {
+          "type": "String",
+          "value": "02"
+        },
+        {
+          "type": "String",
+          "value": "03"
+        },
+        {
+          "type": "String",
+          "value": "04"
+        },
+        {
+          "type": "String",
+          "value": "05"
+        },
+        {
+          "type": "String",
+          "value": "06"
+        },
+        {
+          "type": "String",
+          "value": "07"
+        },
+        {
+          "type": "String",
+          "value": "08"
+        },
+        {
+          "type": "String",
+          "value": "09"
+        },
+        {
+          "type": "String",
+          "value": "10"
+        },
+        {
+          "type": "String",
+          "value": "11"
+        },
+        {
+          "type": "String",
+          "value": "12"
+        },
+        {
+          "type": "String",
+          "value": "13"
+        },
+        {
+          "type": "String",
+          "value": "14"
+        },
+        {
+          "type": "String",
+          "value": "15"
+        },
+        {
+          "type": "String",
+          "value": "16"
+        },
+        {
+          "type": "String",
+          "value": "17"
+        },
+        {
+          "type": "String",
+          "value": "18"
+        },
+        {
+          "type": "String",
+          "value": "19"
+        },
+        {
+          "type": "String",
+          "value": "20"
+        },
+        {
+          "type": "String",
+          "value": "21"
+        },
+        {
+          "type": "String",
+          "value": "22"
+        },
+        {
+          "type": "String",
+          "value": "23"
+        },
+        {
+          "type": "String",
+          "value": "24"
+        },
+        {
+          "type": "String",
+          "value": "25"
+        },
+        {
+          "type": "String",
+          "value": "26"
+        },
+        {
+          "type": "String",
+          "value": "27"
+        },
+        {
+          "type": "String",
+          "value": "28"
+        },
+        {
+          "type": "String",
+          "value": "29"
+        },
+        {
+          "type": "String",
+          "value": "30"
+        },
+        {
+          "type": "String",
+          "value": "31"
+        },
+        {
+          "type": "String",
+          "value": "32"
+        },
+        {
+          "type": "String",
+          "value": "33"
+        },
+        {
+          "type": "String",
+          "value": "34"
+        },
+        {
+          "type": "String",
+          "value": "35"
+        },
+        {
+          "type": "String",
+          "value": "36"
+        },
+        {
+          "type": "String",
+          "value": "37"
+        },
+        {
+          "type": "String",
+          "value": "38"
+        },
+        {
+          "type": "String",
+          "value": "39"
+        },
+        {
+          "type": "String",
+          "value": "40"
+        },
+        {
+          "type": "String",
+          "value": "41"
+        },
+        {
+          "type": "String",
+          "value": "42"
+        },
+        {
+          "type": "String",
+          "value": "43"
+        },
+        {
+          "type": "String",
+          "value": "44"
+        },
+        {
+          "type": "String",
+          "value": "45"
+        },
+        {
+          "type": "String",
+          "value": "46"
+        },
+        {
+          "type": "String",
+          "value": "47"
+        },
+        {
+          "type": "String",
+          "value": "48"
+        },
+        {
+          "type": "String",
+          "value": "49"
+        },
+        {
+          "type": "String",
+          "value": "50"
+        },
+        {
+          "type": "String",
+          "value": "51"
+        },
+        {
+          "type": "String",
+          "value": "52"
+        },
+        {
+          "type": "String",
+          "value": "53"
+        },
+        {
+          "type": "String",
+          "value": "54"
+        },
+        {
+          "type": "String",
+          "value": "55"
+        },
+        {
+          "type": "String",
+          "value": "56"
+        },
+        {
+          "type": "String",
+          "value": "57"
+        },
+        {
+          "type": "String",
+          "value": "58"
+        },
+        {
+          "type": "String",
+          "value": "59"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "AUTO SET DAY",
+      "values": [
+        {
+          "type": "String",
+          "value": "01"
+        },
+        {
+          "type": "String",
+          "value": "02"
+        },
+        {
+          "type": "String",
+          "value": "03"
+        },
+        {
+          "type": "String",
+          "value": "04"
+        },
+        {
+          "type": "String",
+          "value": "05"
+        },
+        {
+          "type": "String",
+          "value": "06"
+        },
+        {
+          "type": "String",
+          "value": "07"
+        },
+        {
+          "type": "String",
+          "value": "08"
+        },
+        {
+          "type": "String",
+          "value": "09"
+        },
+        {
+          "type": "String",
+          "value": "10"
+        },
+        {
+          "type": "String",
+          "value": "11"
+        },
+        {
+          "type": "String",
+          "value": "12"
+        },
+        {
+          "type": "String",
+          "value": "13"
+        },
+        {
+          "type": "String",
+          "value": "14"
+        },
+        {
+          "type": "String",
+          "value": "15"
+        },
+        {
+          "type": "String",
+          "value": "16"
+        },
+        {
+          "type": "String",
+          "value": "17"
+        },
+        {
+          "type": "String",
+          "value": "18"
+        },
+        {
+          "type": "String",
+          "value": "19"
+        },
+        {
+          "type": "String",
+          "value": "20"
+        },
+        {
+          "type": "String",
+          "value": "21"
+        },
+        {
+          "type": "String",
+          "value": "22"
+        },
+        {
+          "type": "String",
+          "value": "23"
+        },
+        {
+          "type": "String",
+          "value": "24"
+        },
+        {
+          "type": "String",
+          "value": "25"
+        },
+        {
+          "type": "String",
+          "value": "26"
+        },
+        {
+          "type": "String",
+          "value": "27"
+        },
+        {
+          "type": "String",
+          "value": "28"
+        },
+        {
+          "type": "String",
+          "value": "29"
+        },
+        {
+          "type": "String",
+          "value": "30"
+        },
+        {
+          "type": "String",
+          "value": "31"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "AUTO SET MONTH",
+      "values": [
+        {
+          "type": "String",
+          "value": "JAN"
+        },
+        {
+          "type": "String",
+          "value": "FEB"
+        },
+        {
+          "type": "String",
+          "value": "MAR"
+        },
+        {
+          "type": "String",
+          "value": "APR"
+        },
+        {
+          "type": "String",
+          "value": "MAY"
+        },
+        {
+          "type": "String",
+          "value": "JUN"
+        },
+        {
+          "type": "String",
+          "value": "JUL"
+        },
+        {
+          "type": "String",
+          "value": "AUG"
+        },
+        {
+          "type": "String",
+          "value": "SEP"
+        },
+        {
+          "type": "String",
+          "value": "OCT"
+        },
+        {
+          "type": "String",
+          "value": "NOV"
+        },
+        {
+          "type": "String",
+          "value": "DEC"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "AUTO SET YEAR",
+      "values": [
+        {
+          "type": "Int",
+          "value": 2000
+        },
+        {
+          "type": "Int",
+          "value": 2001
+        },
+        {
+          "type": "Int",
+          "value": 2002
+        },
+        {
+          "type": "Int",
+          "value": 2003
+        },
+        {
+          "type": "Int",
+          "value": 2004
+        },
+        {
+          "type": "Int",
+          "value": 2005
+        },
+        {
+          "type": "Int",
+          "value": 2006
+        },
+        {
+          "type": "Int",
+          "value": 2007
+        },
+        {
+          "type": "Int",
+          "value": 2008
+        },
+        {
+          "type": "Int",
+          "value": 2009
+        },
+        {
+          "type": "Int",
+          "value": 2010
+        },
+        {
+          "type": "Int",
+          "value": 2011
+        },
+        {
+          "type": "Int",
+          "value": 2012
+        },
+        {
+          "type": "Int",
+          "value": 2013
+        },
+        {
+          "type": "Int",
+          "value": 2014
+        },
+        {
+          "type": "Int",
+          "value": 2015
+        },
+        {
+          "type": "Int",
+          "value": 2016
+        },
+        {
+          "type": "Int",
+          "value": 2017
+        },
+        {
+          "type": "Int",
+          "value": 2018
+        },
+        {
+          "type": "Int",
+          "value": 2019
+        },
+        {
+          "type": "Int",
+          "value": 2020
+        },
+        {
+          "type": "Int",
+          "value": 2021
+        },
+        {
+          "type": "Int",
+          "value": 2022
+        },
+        {
+          "type": "Int",
+          "value": 2023
+        },
+        {
+          "type": "Int",
+          "value": 2024
+        },
+        {
+          "type": "Int",
+          "value": 2025
+        },
+        {
+          "type": "Int",
+          "value": 2026
+        },
+        {
+          "type": "Int",
+          "value": 2027
+        },
+        {
+          "type": "Int",
+          "value": 2028
+        },
+        {
+          "type": "Int",
+          "value": 2029
+        },
+        {
+          "type": "Int",
+          "value": 2030
+        },
+        {
+          "type": "Int",
+          "value": 2031
+        },
+        {
+          "type": "Int",
+          "value": 2032
+        },
+        {
+          "type": "Int",
+          "value": 2033
+        },
+        {
+          "type": "Int",
+          "value": 2034
+        },
+        {
+          "type": "Int",
+          "value": 2035
+        },
+        {
+          "type": "Int",
+          "value": 2036
+        },
+        {
+          "type": "Int",
+          "value": 2037
+        },
+        {
+          "type": "Int",
+          "value": 2038
+        },
+        {
+          "type": "Int",
+          "value": 2039
+        },
+        {
+          "type": "Int",
+          "value": 2040
+        },
+        {
+          "type": "Int",
+          "value": 2041
+        },
+        {
+          "type": "Int",
+          "value": 2042
+        },
+        {
+          "type": "Int",
+          "value": 2043
+        },
+        {
+          "type": "Int",
+          "value": 2044
+        },
+        {
+          "type": "Int",
+          "value": 2045
+        },
+        {
+          "type": "Int",
+          "value": 2046
+        },
+        {
+          "type": "Int",
+          "value": 2047
+        },
+        {
+          "type": "Int",
+          "value": 2048
+        },
+        {
+          "type": "Int",
+          "value": 2049
+        },
+        {
+          "type": "Int",
+          "value": 2050
+        },
+        {
+          "type": "Int",
+          "value": 2051
+        },
+        {
+          "type": "Int",
+          "value": 2052
+        },
+        {
+          "type": "Int",
+          "value": 2053
+        },
+        {
+          "type": "Int",
+          "value": 2054
+        },
+        {
+          "type": "Int",
+          "value": 2055
+        },
+        {
+          "type": "Int",
+          "value": 2056
+        },
+        {
+          "type": "Int",
+          "value": 2057
+        },
+        {
+          "type": "Int",
+          "value": 2058
+        },
+        {
+          "type": "Int",
+          "value": 2059
+        },
+        {
+          "type": "Int",
+          "value": 2060
+        },
+        {
+          "type": "Int",
+          "value": 2061
+        },
+        {
+          "type": "Int",
+          "value": 2062
+        },
+        {
+          "type": "Int",
+          "value": 2063
+        },
+        {
+          "type": "Int",
+          "value": 2064
+        },
+        {
+          "type": "Int",
+          "value": 2065
+        },
+        {
+          "type": "Int",
+          "value": 2066
+        },
+        {
+          "type": "Int",
+          "value": 2067
+        },
+        {
+          "type": "Int",
+          "value": 2068
+        },
+        {
+          "type": "Int",
+          "value": 2069
+        },
+        {
+          "type": "Int",
+          "value": 2070
+        },
+        {
+          "type": "Int",
+          "value": 2071
+        },
+        {
+          "type": "Int",
+          "value": 2072
+        },
+        {
+          "type": "Int",
+          "value": 2073
+        },
+        {
+          "type": "Int",
+          "value": 2074
+        },
+        {
+          "type": "Int",
+          "value": 2075
+        },
+        {
+          "type": "Int",
+          "value": 2076
+        },
+        {
+          "type": "Int",
+          "value": 2077
+        },
+        {
+          "type": "Int",
+          "value": 2078
+        },
+        {
+          "type": "Int",
+          "value": 2079
+        },
+        {
+          "type": "Int",
+          "value": 2080
+        },
+        {
+          "type": "Int",
+          "value": 2081
+        },
+        {
+          "type": "Int",
+          "value": 2082
+        },
+        {
+          "type": "Int",
+          "value": 2083
+        },
+        {
+          "type": "Int",
+          "value": 2084
+        },
+        {
+          "type": "Int",
+          "value": 2085
+        },
+        {
+          "type": "Int",
+          "value": 2086
+        },
+        {
+          "type": "Int",
+          "value": 2087
+        },
+        {
+          "type": "Int",
+          "value": 2088
+        },
+        {
+          "type": "Int",
+          "value": 2089
+        },
+        {
+          "type": "Int",
+          "value": 2090
+        },
+        {
+          "type": "Int",
+          "value": 2091
+        },
+        {
+          "type": "Int",
+          "value": 2092
+        },
+        {
+          "type": "Int",
+          "value": 2093
+        },
+        {
+          "type": "Int",
+          "value": 2094
+        },
+        {
+          "type": "Int",
+          "value": 2095
+        },
+        {
+          "type": "Int",
+          "value": 2096
+        },
+        {
+          "type": "Int",
+          "value": 2097
+        },
+        {
+          "type": "Int",
+          "value": 2098
+        },
+        {
+          "type": "Int",
+          "value": 2099
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "SUNDAY",
+      "values": [
+        {
+          "type": "String",
+          "value": "_"
+        },
+        {
+          "type": "String",
+          "value": "S"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "MONDAY",
+      "values": [
+        {
+          "type": "String",
+          "value": "_"
+        },
+        {
+          "type": "String",
+          "value": "M"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "TUESDAY",
+      "values": [
+        {
+          "type": "String",
+          "value": "_"
+        },
+        {
+          "type": "String",
+          "value": "T"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "WEDNESDAY",
+      "values": [
+        {
+          "type": "String",
+          "value": "_"
+        },
+        {
+          "type": "String",
+          "value": "W"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "THURSDAY",
+      "values": [
+        {
+          "type": "String",
+          "value": "_"
+        },
+        {
+          "type": "String",
+          "value": "T"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "FRIDAY",
+      "values": [
+        {
+          "type": "String",
+          "value": "_"
+        },
+        {
+          "type": "String",
+          "value": "F"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "SATURDAY",
+      "values": [
+        {
+          "type": "String",
+          "value": "_"
+        },
+        {
+          "type": "String",
+          "value": "S"
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "SET BY WEEK",
+      "values": [
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "SET BY DATE",
+      "values": [
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "group": "automation",
+      "name": "AUTOMATION EVENT",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "No Function"
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        },
+        {
+          "type": "UserString",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "group": "automation-actions",
+      "name": "Bypass",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Bypass"
+        },
+        {
+          "type": "UserString",
+          "value": "Bypass"
+        }
+      ]
+    },
+    {
+      "group": "automation-actions",
+      "name": "Exit Bypass",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Exit Bypass"
+        },
+        {
+          "type": "UserString",
+          "value": "Exit Bypass"
+        }
+      ]
+    },
+    {
+      "group": "automation-actions",
+      "name": "Stereo",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Stereo"
+        },
+        {
+          "type": "UserString",
+          "value": "Stereo"
+        }
+      ]
+    },
+    {
+      "group": "automation-actions",
+      "name": "Mono-R",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Mono-R"
+        },
+        {
+          "type": "UserString",
+          "value": "Mono-R"
+        }
+      ]
+    },
+    {
+      "group": "automation-actions",
+      "name": "Mono-L",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Mono-L"
+        },
+        {
+          "type": "UserString",
+          "value": "Mono-L"
+        }
+      ]
+    },
+    {
+      "group": "automation-actions",
+      "name": "Mono-Sum",
+      "values": [
+        {
+          "type": "UserString",
+          "value": "Mono-Sum"
+        },
+        {
+          "type": "UserString",
+          "value": "Mono-Sum"
+        }
+      ]
+    }
+  ],
+  "sources": {
+    "firmware_image": {
+      "file": "optimod_image.bin",
+      "sha256": "4fa538df59db6f1057c16d32ecf244ff0768271d38250b010e77a608387a30ba"
+    },
+    "firmware_exe": {
+      "file": "8400_ets.exe",
+      "sha256": "8b278497a0496036e45be2c26e5a7f625a0e362c643e6fdb108fbc82d0e306ac"
+    },
+    "pc_remote": {
+      "file": "8400_pc.exe",
+      "sha256": "92061d22d24ed5c3e023db55433a2149b003b7bb12120db648dd4fca30c125b3"
+    },
+    "worksheet": {
+      "file": "8400_V305_Worksheet.pdf",
+      "sha256": "4cd77b974d64a57d7f7c519f84973aa656b9f9f0b6a3f5d140c46c258b6c62cf"
+    },
+    "document_sets": [
+      {
+        "set": "8400_upd/presets",
+        "files": 470
+      },
+      {
+        "set": "8400_upd/user",
+        "files": 10
+      },
+      {
+        "set": "Optimod 8400 PC Remote/presets",
+        "files": 470
+      },
+      {
+        "set": "8400/user",
+        "files": 24
+      },
+      {
+        "set": "p84/onair0.orb",
+        "files": 1
+      }
+    ],
+    "documents_sha256": "a21b56f8ab0b425e465b55bbbac2f92b8bdaa984d840e76c8ad5398f8fb7c135"
+  },
+  "open_questions": [
+    "orban-protocol has no 8400 DeviceModel: 8400 documents start 'OptimodVersion=<00.08>' and files end 'End Preset\\r\\n' (no '<end>'); the onair.orb read from a unit (scratchpad p84/onair0.orb) has LF line ends and 0xFF padding. Document::parse needs a prefix/terminator for the 8400 before readback works. All 974 documents parse with document.rs parse_lines rules (types Int, Cent, String, UserString only).",
+    "'30 HZ HPF' is registered twice: processing (onair.orb/presets) and system (system.orb, Test Modes page). Message 48 'NAME;INDEX;TYPE:VALUE;' carries no scope: which one the unit changes is unproven.",
+    "reference_id is the ordinal of the firmware constructor call (0..273), not a protocol identifier: message 48 addresses parameters by NAME.",
+    "Writable but never stored in a document (evidence 'unobserved'): processing FC HEADROOM, CLIP DENS THR, CLIP W1, DRIVE W1, DRIVE W3, MIX W3 (registered, absent from every preset); system 400 HERTZ TONE, OPERATE, BYPASS, TONE, ACTUAL A OR D, MOD REDUC SW1/SW2, OPERATE MODE, TEST MODE, MUTE, MONITOR MUTE (transient, not in system.orb). A write to these cannot be confirmed by reading the document back. ACTUAL A OR D looks like a status; MONITOR MUTE has the same text at both indices (an action).",
+    "VU PPM and LANGUAGE are registered with value_count 1 ('VU', 'English') in both firmware and PC Remote, although the VU PPM conversion also returns 'PPM' for index 1; the profile keeps the registered count.",
+    "FREQUENCY (test tone) index 31 is the string '13.58676' verbatim from the firmware table 0x384a84 (index 32 = '15kHz'; '16kHz' at 33 is beyond value_count 33).",
+    "PEQ HIGH FREQ indices 0 and 1 both format as Cent:100 (firmware table); readback by D:index tells them apart.",
+    "COMP DRIVE: IMPACT LM100.orb (75 us, in both packages) holds Cent:1000 at D:18 where the table has Cent:170; 941 other records agree. Kept with evidence 'conflict'.",
+    "AGC DRIVE: the YORIN FM 2003 user presets hold Cent:1100 at D:22 (3.0.5 table: Cent:1200); they come from older firmware. Factory presets and unit documents agree with the 3.0.5 table.",
+    "LO/HI LATEN SW appears in the MINIMUM-DELAY factory presets (String:<High>;D:1) but has no registration in 3.0.5 firmware or PC Remote; it is not writable.",
+    "TOTAL MOD LEVEL (system.orb Cent:10000;D:0) is computed from MOD LEVEL and TEST PILOT at run time (conversion 0x1481e0 reads other parameters); excluded.",
+    "Text parameters (UserString: MY STATION, NETWORK IP/SUBNET/GATEWAY, MODEM INIT STRING, REMOTE CONTACT 1-8, passcode) and time.orb/test.orb/automation parameters are excluded from parameters.json; tables of the latter are in other_documents_tables."
+  ]
+}
