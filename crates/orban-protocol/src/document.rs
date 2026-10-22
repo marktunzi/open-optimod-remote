@@ -50,6 +50,8 @@ impl Document {
             crate::adapter::DeviceModel::Optimod8500 => "OptimodVersion=<8500.",
             crate::adapter::DeviceModel::Optimod6300 => "OptimodVersion=<6300.",
             crate::adapter::DeviceModel::Optimod2300 => "OptimodVersion=<2300.",
+            // The 8400 3.0.5 writes 00.08 documents that end `End Preset`.
+            crate::adapter::DeviceModel::Optimod8400 => "OptimodVersion=<00.08>",
             crate::adapter::DeviceModel::Optimod8600 => "OptimodVersion=<8600.",
             crate::adapter::DeviceModel::Optimod8700i
             | crate::adapter::DeviceModel::Optimod8700Hd => "OptimodVersion=<8700.",
@@ -80,7 +82,12 @@ impl Document {
             return Err("Oversized document".into());
         }
         let raw = std::str::from_utf8(bytes).map_err(|_| "Unsupported document encoding")?;
-        if !raw.starts_with(version_prefix) || !raw.ends_with("End Preset<end>\r\n") {
+        let end = if version_prefix == "OptimodVersion=<00.08>" {
+            raw.ends_with("End Preset\n") || raw.ends_with("End Preset\r\n")
+        } else {
+            raw.ends_with("End Preset<end>\r\n")
+        };
+        if !raw.starts_with(version_prefix) || !end {
             return Err("Invalid or unsupported Optimod document".into());
         }
         Self::parse_lines(raw, false)

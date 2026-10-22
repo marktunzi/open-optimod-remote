@@ -33,6 +33,8 @@ pub enum DeviceModel {
     Optimod2300,
     #[serde(rename = "optimod-6300")]
     Optimod6300,
+    #[serde(rename = "optimod-8400")]
+    Optimod8400,
     #[serde(rename = "optimod-8600")]
     Optimod8600,
     #[serde(rename = "optimod-8700i")]
@@ -46,7 +48,7 @@ pub enum DeviceModel {
 }
 
 impl DeviceModel {
-    pub const SELECTABLE: [Self; 14] = [
+    pub const SELECTABLE: [Self; 15] = [
         Self::Auto,
         Self::Optimod5700i,
         Self::Optimod5500i,
@@ -56,6 +58,7 @@ impl DeviceModel {
         Self::Optimod8500,
         Self::Optimod2300,
         Self::Optimod6300,
+        Self::Optimod8400,
         Self::Optimod8600,
         Self::Optimod8700i,
         Self::Optimod8700Hd,
@@ -74,6 +77,7 @@ impl DeviceModel {
             Self::Optimod8500 => "OPTIMOD 8500",
             Self::Optimod2300 => "OPTIMOD 2300",
             Self::Optimod6300 => "OPTIMOD 6300",
+            Self::Optimod8400 => "OPTIMOD-FM 8400",
             Self::Optimod8600 => "OPTIMOD 8600",
             Self::Optimod8700i => "OPTIMOD 8700i",
             Self::Optimod8700Hd => "OPTIMOD-FM 8700HD",
@@ -102,6 +106,8 @@ pub enum SkinId {
     Optimod2300,
     #[serde(rename = "optimod-6300")]
     Optimod6300,
+    #[serde(rename = "optimod-8400")]
+    Optimod8400,
     #[serde(rename = "optimod-8600")]
     Optimod8600,
     #[serde(rename = "optimod-8700i")]
@@ -131,6 +137,8 @@ pub enum Evidence {
 #[serde(rename_all = "kebab-case")]
 pub enum TransportKind {
     PcRemoteTcp,
+    /// The 8400's own PC Remote session (TCP 51200, meters over UDP); see `crate::o8400`.
+    Pc8400Tcp,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -640,7 +648,7 @@ const STATIC_METERS: MeterProfile = MeterProfile {
 };
 
 /// Exact banners with a parameter profile. Only these can write.
-const EXACT: [(&str, AdapterDescriptor); 7] = [
+const EXACT: [(&str, AdapterDescriptor); 8] = [
     ("5700i V 3.0.1.20", VERIFIED_5700I),
     (
         "5500 V 1.2.8.24",
@@ -740,6 +748,7 @@ const EXACT: [(&str, AdapterDescriptor); 7] = [
             evidence: Evidence::Static,
         },
     ),
+    ("8400 V 3.0.5.7", PC_8400),
     (
         "8700HD V 1.0.2.161",
         AdapterDescriptor {
@@ -761,7 +770,35 @@ const EXACT: [(&str, AdapterDescriptor); 7] = [
     ),
 ];
 
-const ADAPTERS: [AdapterDescriptor; 13] = [
+/// The 8400 3.0.5 (software 3.0.5.7): captured from the original 8400 PC
+/// Remote 3.0 and the original firmware (virtual 8400, 21 October 2026).
+/// Its session is `crate::o8400`; the banner is made from the login answer's
+/// software version. Meters arrive over UDP, not as opcode 228.
+const PC_8400: AdapterDescriptor = AdapterDescriptor {
+    id: "pc-remote-8400-3.0.5.7",
+    model: DeviceModel::Optimod8400,
+    skin: SkinId::Optimod8400,
+    transport: TransportKind::Pc8400Tcp,
+    default_port: crate::o8400::DEFAULT_PORT,
+    default_terminal_port: 23,
+    product_mark: "OPTIMOD-FM 8400",
+    firmware_prefix: "8400 V ",
+    capabilities: STATIC_FULL,
+    meter_profile: None,
+    frame_cut: None,
+    on_air_archive: false,
+    wire: WIRE_8400,
+    evidence: Evidence::Static,
+};
+
+/// Not used by the 8400 session; its messages are in `crate::o8400`.
+const WIRE_8400: Wire = Wire {
+    file_sync: true,
+    factory_recall: false,
+    ..WIRE_5700I
+};
+
+const ADAPTERS: [AdapterDescriptor; 14] = [
     AdapterDescriptor {
         id: "pc-remote-5700i-family",
         model: DeviceModel::Optimod5700i,
@@ -888,6 +925,24 @@ const ADAPTERS: [AdapterDescriptor; 13] = [
         frame_cut: None,
         on_air_archive: false,
         wire: WIRE_5700I,
+        evidence: Evidence::None,
+    },
+    // Other 8400 software: identification only. The 8400 PC Remote 3.0
+    // needs software 3.0.0.0 or later.
+    AdapterDescriptor {
+        id: "pc-remote-8400-family",
+        model: DeviceModel::Optimod8400,
+        skin: SkinId::Optimod8400,
+        transport: TransportKind::Pc8400Tcp,
+        default_port: crate::o8400::DEFAULT_PORT,
+        default_terminal_port: 23,
+        product_mark: "OPTIMOD-FM 8400",
+        firmware_prefix: "8400 V ",
+        capabilities: READ_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: false,
+        wire: WIRE_8400,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
