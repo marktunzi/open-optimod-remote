@@ -1,4 +1,5 @@
 mod devices;
+mod o8400;
 use axum::{
     Json, Router,
     extract::{Request, State},
@@ -2380,6 +2381,10 @@ async fn owner(app: App, rx: mpsc::Receiver<Command>) {
 
 async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: ReconnectPolicy) {
     let mut device: Option<Device> = None;
+    // An 8400 has its own session; at most one of `device` and `unit` is set.
+    let mut unit: Option<o8400::Unit> = None;
+    let mut keepalive = interval(o8400::KEEPALIVE_PERIOD);
+    keepalive.set_missed_tick_behavior(MissedTickBehavior::Delay);
     // What a lost session reconnects to; set by a successful connect.
     let mut target: Option<ReconnectTarget> = None;
     let mut pending: Option<PendingReconnect> = None;
@@ -2391,12 +2396,16 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
           let Some(command)=command else{break};
           match command{
            Command::Connect(body,reply)=>{
-            if device.is_some(){let _=reply.send(Err("Disconnect the current device first".into()));continue;}
+            if device.is_some()||unit.is_some(){let _=reply.send(Err("Disconnect the current device first".into()));continue;}
             // A manual connection replaces any pending automatic one.
             pending=None;
             target=None;
             *app.state.write().await = Snapshot::default();
             let remembered=ReconnectTarget::from(&body,&app);
+            if o8400::wanted(&body) {
+             match o8400::connect(body,&app).await{Ok(u)=>{unit=Some(u);target=Some(remembered);let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
+             continue;
+            }
             match make_device(body,&app).await{Ok(d)=>{device=Some(d);target=Some(remembered);let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
            }
            Command::Disconnect(reply)=>{
@@ -2404,12 +2413,17 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             pending=None;
             target=None;
             let disconnecting=device.take();
+            let disconnecting_unit=unit.take();
             let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=None;state.reconnect=None;drop(state);app.meters.send_replace(json!({"live":false}));
-            let result=if let Some(d)=disconnecting{d.session.disconnect().await}else{Ok(())};
+            let result=if let Some(d)=disconnecting{d.session.disconnect().await}else if let Some(u)=disconnecting_unit{u.disconnect().await}else{Ok(())};
             let _=reply.send(result);
            }
            Command::Refresh(reply)=>{
-            let result=if let Some(d)=&mut device{
+            let result=if let Some(u)=&mut unit{
+             let result=o8400::synchronize(&app,u).await;
+             if let Err(e)=&result{app.state.write().await.sync_error=Some(format!("Settings could not be read: {e}"));}
+             result
+            }else if let Some(d)=&mut device{
              let result=synchronize(&app,d).await;
              if let Err(e)=&result{app.state.write().await.sync_error=Some(sync_failure(d,e));}
              result
@@ -2417,7 +2431,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             let _=reply.send(result);
            }
            Command::Recall(body,reply)=>{
-            let result=if let Some(d)=&mut device{recall(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            let result=if let Some(u)=&mut unit{o8400::recall(u,&app,body).await}else if let Some(d)=&mut device{recall(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             tick.reset();
            match result {
             Ok(())=>{let _=reply.send(Ok(()));}
@@ -2427,7 +2441,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             }
            }
            Command::Change(body,reply)=>{
-            let result=if let Some(d)=&mut device{change(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            let result=if let Some(u)=&mut unit{o8400::change(u,&app,body).await}else if let Some(d)=&mut device{change(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             match result {
              Ok(())=>{let _=reply.send(Ok(()));}
             Err(e)=>{
@@ -2437,12 +2451,12 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             }
            }
            Command::PresetFile(body,reply)=>{
-            let result=if let Some(d)=&mut device{manage_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{manage_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             tick.reset();
             let _=reply.send(result.map_err(|e| e.message));
            }
            Command::RestoreSetup(body,reply)=>{
-            let result=if let Some(d)=&mut device{restore_setup(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{restore_setup(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             let _=reply.send(result.map_err(|e| e.message));
            }
            Command::CancelReconnect(reply)=>{
@@ -2455,7 +2469,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             let _=reply.send(Ok(()));
            }
            Command::ApplyPreset(body,reply)=>{
-            let result=if let Some(d)=&mut device{apply_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{apply_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             match result {
             Ok(())=>{let _=reply.send(Ok(()));}
             Err(e)=>{
@@ -2470,6 +2484,15 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
              pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
           }
           if let Some(d)=device.as_mut().filter(|d| d.pushed.is_some()) {on_air_pushed(&app,d).await;}
+         }
+         _=keepalive.tick(),if unit.is_some()=>{
+          let u=unit.as_mut().unwrap();
+          if let Err(e)=o8400::keepalive(u).await {
+             let lost=format!("The PC Remote session was lost: {e}");
+             if let Some(u)=unit.take(){let _=u.disconnect().await;}
+             end_session(&app,&mut device,lost.clone()).await;
+             pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
+          }
          }
          _=tick.tick(),if device.as_ref().is_some_and(|d| d.session.info.capabilities.live_meters)=>{
           let d=device.as_mut().unwrap();let result=async{d.session.send(219,b"").await?;drain(d,&app).await}.await;
@@ -2494,9 +2517,10 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
           // The same reset of the visible state as a manual connect, keeping the status.
           let status=app.state.read().await.reconnect.clone();
           *app.state.write().await=Snapshot{reconnect:status,..Snapshot::default()};
-          match make_device(attempt.target.connect(),&app).await {
-           Ok(d)=>{
-            device=Some(d);
+          let body=attempt.target.connect();
+          let made=if o8400::wanted(&body){o8400::connect(body,&app).await.map(|u|{unit=Some(u);})}else{make_device(body,&app).await.map(|d|{device=Some(d);})};
+          match made {
+           Ok(())=>{
             target=Some(attempt.target);
             app.state.write().await.reconnect=None;
            }
@@ -2523,6 +2547,9 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
     }
     if let Some(d) = device {
         let _ = d.session.disconnect().await;
+    }
+    if let Some(u) = unit {
+        let _ = u.disconnect().await;
     }
 }
 
