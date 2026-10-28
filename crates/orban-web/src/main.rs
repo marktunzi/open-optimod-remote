@@ -1,5 +1,7 @@
+mod automation;
 mod devices;
 mod o8400;
+mod security;
 use axum::{
     Json, Router,
     extract::{Request, State},
@@ -178,6 +180,9 @@ enum Command {
     PresetFile(PresetFile, Reply),
     RestoreSetup(RestoreSetup, Reply),
     BackupFiles(oneshot::Sender<Result<Vec<BackupFile>, String>>),
+    /// The unit's file for `request` (242 automation, 241 passcodes), decrypted.
+    ReadUnitFile(u16, oneshot::Sender<Result<Option<String>, String>>),
+    WriteUnitFile(UnitFileWrite, Reply),
     RestorePresetFiles(RestorePresetFiles, Reply),
     CancelReconnect(Reply),
 }
@@ -190,6 +195,15 @@ struct BackupFile {
     /// Restore only: the file's modification time, milliseconds since 1970.
     #[serde(default)]
     modified: Option<u64>,
+}
+/// A unit file the original PC Remote replaces whole: the automation
+/// events (235, named) or the passcodes (230, without a name).
+struct UnitFileWrite {
+    kind: u16,
+    name: Option<&'static str>,
+    document: Zeroizing<String>,
+    expected_host: String,
+    expected_session: String,
 }
 #[derive(Deserialize)]
 struct RestorePresetFiles {
@@ -435,6 +449,14 @@ async fn main() {
         .route("/api/backup/restore-setup", post(restore_setup_handler))
         .route("/api/backup/files", get(backup_files_handler))
         .route(
+            "/api/automation",
+            get(automation_handler).post(automation_write_handler),
+        )
+        .route(
+            "/api/security",
+            get(security_handler).post(security_write_handler),
+        )
+        .route(
             "/api/backup/restore-presets",
             post(restore_preset_files_handler),
         )
@@ -645,6 +667,98 @@ async fn backup_files_handler(State(app): State<App>) -> ApiResult {
         "firmware": state.firmware,
         "files": files,
     })))
+}
+async fn read_unit_file(
+    app: &App,
+    request: u16,
+) -> Result<Option<String>, (StatusCode, Json<JsonValue>)> {
+    let (tx, rx) = oneshot::channel();
+    app.commands
+        .try_send(Command::ReadUnitFile(request, tx))
+        .map_err(|_| api_error("Another command is still in progress"))?;
+    rx.await.map_err(api_error)?.map_err(api_error)
+}
+async fn automation_handler(State(app): State<App>) -> ApiResult {
+    let text = read_unit_file(&app, 242).await?;
+    let events = text
+        .as_deref()
+        .map(automation::parse)
+        .transpose()
+        .map_err(api_error)?
+        .unwrap_or_default();
+    Ok(Json(
+        json!({"events": events, "functions": automation::FUNCTIONS}),
+    ))
+}
+#[derive(Deserialize)]
+struct AutomationWrite {
+    events: Vec<automation::Event>,
+    confirmed: bool,
+    expected_host: String,
+    expected_session: String,
+}
+async fn automation_write_handler(
+    State(app): State<App>,
+    Json(body): Json<AutomationWrite>,
+) -> ApiResult {
+    if !body.confirmed {
+        return Err(api_error("Confirm the change first"));
+    }
+    let document = Zeroizing::new(automation::render(&body.events).map_err(api_error)?);
+    dispatch(app, |r| {
+        Command::WriteUnitFile(
+            UnitFileWrite {
+                kind: 235,
+                name: Some("Automation.orb57autom"),
+                document,
+                expected_host: body.expected_host,
+                expected_session: body.expected_session,
+            },
+            r,
+        )
+    })
+    .await
+}
+async fn security_handler(State(app): State<App>) -> ApiResult {
+    let text = read_unit_file(&app, 241).await?;
+    let entries = text
+        .as_deref()
+        .map(security::parse)
+        .transpose()
+        .map_err(api_error)?
+        .unwrap_or_default();
+    Ok(Json(
+        json!({"passcodes": entries, "levels": security::LEVELS}),
+    ))
+}
+#[derive(Deserialize)]
+struct SecurityWrite {
+    passcodes: Vec<security::Passcode>,
+    confirmed: bool,
+    expected_host: String,
+    expected_session: String,
+}
+async fn security_write_handler(
+    State(app): State<App>,
+    Json(body): Json<SecurityWrite>,
+) -> ApiResult {
+    if !body.confirmed {
+        return Err(api_error("Confirm the change first"));
+    }
+    let document = Zeroizing::new(security::render(&body.passcodes).map_err(api_error)?);
+    dispatch(app, |r| {
+        Command::WriteUnitFile(
+            UnitFileWrite {
+                kind: 230,
+                name: None,
+                document,
+                expected_host: body.expected_host,
+                expected_session: body.expected_session,
+            },
+            r,
+        )
+    })
+    .await
 }
 async fn restore_preset_files_handler(
     State(app): State<App>,
@@ -1978,6 +2092,151 @@ async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>,
 /// The original PC Remote's Restore of user preset files: each file as
 /// opcode 231 with its modification time (a Windows FILETIME, low and high
 /// word), its name and the archive sealed with the access code, then 222.
+/// The answer to `request`: 242 is answered by 235 (automation), 241 by 230
+/// (passcodes). A unit without automation events sends nothing.
+async fn read_unit_file_from(
+    device: &mut Device,
+    app: &App,
+    request: u16,
+) -> Result<Option<String>, String> {
+    if device.session.adapter().wire.preset_file_delete.is_none() {
+        return Err(format!(
+            "Not available for {}",
+            device.session.info.model.label()
+        ));
+    }
+    let reply = match request {
+        242 => 235,
+        241 => 230,
+        _ => return Err("Unsupported file request".into()),
+    };
+    // The original client sends F4h before these requests; without it the
+    // unit leaves 241 unanswered (28 October 2026).
+    device.session.send(244, b"").await?;
+    let files = read_files(app, device, request, reply).await?;
+    let Some((_, data)) = files.into_iter().next() else {
+        return Ok(None);
+    };
+    let plain = device.session.decrypt_file(&data)?;
+    String::from_utf8(plain)
+        .map(Some)
+        .map_err(|_| "Unsupported document encoding".into())
+}
+
+/// Replaces the unit's automation or passcode file as the original client
+/// does, then reads it back and requires it to be the document sent.
+async fn write_unit_file(
+    device: &mut Device,
+    app: &App,
+    body: UnitFileWrite,
+) -> Result<(), OperationError> {
+    if device.session.adapter().wire.preset_file_delete.is_none() {
+        return Err(OperationError::safe(format!(
+            "Not available for {}",
+            device.session.info.model.label()
+        )));
+    }
+    if device.session.info.access_level != 0 {
+        return Err(OperationError::safe(
+            "Changes are not enabled for this access level",
+        ));
+    }
+    {
+        let state = app.state.read().await;
+        ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
+        if state.host != body.expected_host {
+            return Err(OperationError::safe(
+                "The active device changed. Review the connection first",
+            ));
+        }
+    }
+    // The session's own passcode must stay, with full access, or the app
+    // (and the original client with the same code) loses this unit.
+    if body.kind == 230 {
+        let passcodes = security::parse(&body.document).map_err(OperationError::safe)?;
+        if !passcodes
+            .iter()
+            .any(|p| p.code.eq_ignore_ascii_case(&device.code) && p.level == security::LEVELS[0])
+        {
+            return Err(OperationError::safe(
+                "Keep the passcode this connection uses, with access to all screens",
+            ));
+        }
+    }
+    // With no events left the original client deletes the automation file.
+    let request = if body.kind == 235 { 242 } else { 241 };
+    if body.document.is_empty() {
+        let name = body
+            .name
+            .ok_or_else(|| OperationError::safe("Nothing to save"))?;
+        device
+            .session
+            .send(237, format!("{name}\n").as_bytes())
+            .await
+            .map_err(OperationError::uncertain)?;
+        let end = tokio::time::Instant::now() + Duration::from_secs(10);
+        loop {
+            match read_unit_file_from(device, app, request).await {
+                Ok(None) => return Ok(()),
+                _ if tokio::time::Instant::now() + Duration::from_millis(500) > end => {
+                    return Err(OperationError::uncertain(
+                        "The processor still holds automation events. Open the window again to see what it holds",
+                    ));
+                }
+                _ => sleep(Duration::from_millis(500)).await,
+            }
+        }
+    }
+    let iv = *uuid::Uuid::new_v4().as_bytes();
+    let sealed = orban_protocol::archive::encrypt(body.document.as_bytes(), &device.code, iv)
+        .map_err(OperationError::safe)?;
+    let header = match body.name {
+        Some(name) => {
+            let millis = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or_default();
+            let filetime = millis * 10_000 + 116_444_736_000_000_000;
+            format!(
+                "{}\n{}\n{name}\n{}\n",
+                filetime & 0xffff_ffff,
+                filetime >> 32,
+                sealed.len()
+            )
+        }
+        None => format!("0\n0\n\n{}\n", sealed.len()),
+    };
+    let mut message = header.into_bytes();
+    message.extend(sealed);
+    device
+        .session
+        .send(body.kind, &message)
+        .await
+        .map_err(OperationError::uncertain)?;
+    // Unlike a 229 or 231 upload, these get no boundary answer of their own.
+    // The unit takes the file a moment later: read until it matches.
+    let normalize = |text: &str| text.replace("\r\n", "\n");
+    let end = tokio::time::Instant::now() + Duration::from_secs(10);
+    loop {
+        let read = read_unit_file_from(device, app, request).await;
+        let last = tokio::time::Instant::now() + Duration::from_millis(500) > end;
+        match read {
+            Ok(Some(text)) if normalize(&text) == normalize(&body.document) => return Ok(()),
+            Ok(_) if last => {
+                return Err(OperationError::uncertain(
+                    "The processor's file does not show the change. Open the window again to see what it holds",
+                ));
+            }
+            Err(e) if last || session_lost(device, &e).is_some() => {
+                return Err(OperationError::uncertain(format!(
+                    "The change could not be confirmed. {e}"
+                )));
+            }
+            _ => sleep(Duration::from_millis(500)).await,
+        }
+    }
+}
+
 async fn restore_preset_files(
     device: &mut Device,
     app: &App,
@@ -2977,6 +3236,17 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{backup_files(d,&app).await}else{Err("Not connected".to_owned())};
             tick.reset();
             let _=reply.send(result);
+           }
+           Command::ReadUnitFile(request,reply)=>{
+            let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{read_unit_file_from(d,&app,request).await}else{Err("Not connected".to_owned())};
+            tick.reset();
+            let _=reply.send(result);
+           }
+           Command::WriteUnitFile(body,reply)=>{
+            Activity::count(&app.activity.device_writes);
+            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{write_unit_file(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            tick.reset();
+            let _=reply.send(result.map_err(|e| e.message));
            }
            Command::RestorePresetFiles(body,reply)=>{
             Activity::count(&app.activity.device_writes);

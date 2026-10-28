@@ -1174,3 +1174,4 @@ body {background:#1f1f1e;color:var(--app-text);}
 .preset-actions {display:flex;flex-wrap:wrap;gap:8px;}
 .preset-name {display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
 .recall-confirmation ul {margin:6px 0 0;padding-left:18px;}
+

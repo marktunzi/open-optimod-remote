@@ -103,6 +103,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         )
         errorsItem.keyEquivalentModifierMask = [.command, .shift]
         errorsItem.target = self
+        let automationItem = applicationMenu.addItem(withTitle: "Automation…", action: #selector(showAutomation(_:)), keyEquivalent: "")
+        automationItem.target = self
+        let securityItem = applicationMenu.addItem(withTitle: "Security…", action: #selector(showSecurity(_:)), keyEquivalent: "")
+        securityItem.target = self
         let diagnosticsItem = applicationMenu.addItem(
             withTitle: "Diagnostics…",
             action: #selector(showDiagnostics(_:)),
@@ -282,6 +286,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
             for line in complete.split(separator: "\n") {
                 let control = line.trimmingCharacters(in: .whitespaces)
                 if control == "diagnostics" { self.showDiagnostics(nil); continue }
+                if control == "automation" { self.showAutomation(nil); continue }
+                if control == "security" { self.showSecurity(nil); continue }
+                // Test hook: `tool automation|security WORDS…` acts as the window's controls do.
+                let words = control.split(separator: " ").map(String.init)
+                if words.count > 2, words[0] == "tool" {
+                    (words[1] == "automation" ? self.automationWindowController as ToolWindowController : self.securityWindowController)
+                        .perform(Array(words.dropFirst(2)))
+                    continue
+                }
                 self.windows.perform(control: control)
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
@@ -292,6 +305,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
     }
 
     private var diagnosticsWindowController: DiagnosticsWindowController?
+    private lazy var automationWindowController = AutomationWindowController()
+    private lazy var securityWindowController = SecurityWindowController()
+
+    @objc private func showAutomation(_ sender: Any?) { automationWindowController.show() }
+    @objc private func showSecurity(_ sender: Any?) { securityWindowController.show() }
 
     @objc private func showDiagnostics(_ sender: Any?) {
         if diagnosticsWindowController == nil { diagnosticsWindowController = DiagnosticsWindowController() }
