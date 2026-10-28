@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import UniformTypeIdentifiers
 import WebKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, DeviceWindowBridgeDelegate {
@@ -137,6 +138,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         windowMenu.addItem(withTitle: "Bring All to Front", action: #selector(NSApplication.arrangeInFront(_:)), keyEquivalent: "")
         windowItem.submenu = windowMenu
         mainMenu.addItem(windowItem)
+
+        // The client's Help › Operating Manual opens the PDF its installer
+        // put next to it. Orban's manual is not part of this app: the user
+        // chooses it once (from the Orban installer or download) per model.
+        let helpItem = NSMenuItem()
+        let helpMenu = NSMenu(title: "Help")
+        helpMenu.addItem(withTitle: "Operating Manual", action: #selector(showManual(_:)), keyEquivalent: "?").target = self
+        helpMenu.addItem(withTitle: "Choose Operating Manual…", action: #selector(chooseManual(_:)), keyEquivalent: "").target = self
+        helpItem.submenu = helpMenu
+        mainMenu.addItem(helpItem)
+        NSApp.helpMenu = helpMenu
         NSApp.mainMenu = mainMenu
         NSApp.windowsMenu = windowMenu
     }
@@ -288,6 +300,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
                 if control == "diagnostics" { self.showDiagnostics(nil); continue }
                 if control == "automation" { self.showAutomation(nil); continue }
                 if control == "security" { self.showSecurity(nil); continue }
+                if control == "manual" { self.showManual(nil); continue }
                 // Test hook: `connections all|group NAME` selects that sidebar row.
                 if control.hasPrefix("connections ") {
                     self.showConnections(nil)
@@ -341,6 +354,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
               let kind = DeviceWindowKind(rawValue: raw)
         else { return }
         windows.show(kind)
+    }
+
+    /// The connected processor's model, which picks its manual.
+    private var manualModel: (key: String, label: String) {
+        let model = DeviceSessionStore.shared.device?.model
+        return (model?.rawValue ?? "optimod", model?.label ?? "OPTIMOD")
+    }
+
+    @objc private func showManual(_ sender: Any?) {
+        let key = "operatingManual.\(manualModel.key)"
+        if let path = UserDefaults.standard.string(forKey: key), FileManager.default.fileExists(atPath: path) {
+            NSWorkspace.shared.open(URL(fileURLWithPath: path))
+        } else {
+            chooseManual(sender)
+        }
+    }
+
+    @objc private func chooseManual(_ sender: Any?) {
+        let (key, label) = manualModel
+        let open = { (url: URL) in
+            UserDefaults.standard.set(url.path, forKey: "operatingManual.\(key)")
+            NSWorkspace.shared.open(url)
+        }
+        if let url = FilePanelTestHook.nextOpen?.first {
+            FilePanelTestHook.nextOpen = nil
+            return open(url)
+        }
+        let panel = NSOpenPanel()
+        panel.title = "Choose the \(label) Operating Manual"
+        panel.message = "Choose the Operating Manual PDF that comes with Orban's PC Remote installer (for the 5700i: 5700i_3.0_Operating_Manual.pdf)."
+        panel.allowedContentTypes = [.pdf]
+        panel.allowsMultipleSelection = false
+        if panel.runModal() == .OK, let url = panel.url { open(url) }
     }
 
     @objc private func showConnections(_ sender: Any?) {

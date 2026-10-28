@@ -68,6 +68,6 @@ Every field the client binds on a tab is in the native window ([M2A](2026-10-28-
 | Automation | Open Optimod Remote › Automation… (native) | PASS ([M1F](2026-10-28-m1f-automation-security.md)) |
 | Security | Open Optimod Remote › Security… (native) | PASS ([M1F](2026-10-28-m1f-automation-security.md)) |
 | 5700i Diagnostics | Open Optimod Remote › Diagnostics… | PASS ([M1E](2026-10-28-m1e-diagnostics.md)) |
-| Operating Manual, About | — | UNTESTED |
+| Operating Manual, About | Help › Operating Manual (the user's Orban PDF, remembered per model); About panel | PASS ([M4B](2026-10-28-m4b-help-about.md)) |
 
 **Model status: NOT COMPLETE.**
