@@ -225,3 +225,46 @@ async fn an_unfinished_login_is_closed_with_a_reset() {
         Err(std::io::ErrorKind::ConnectionReset)
     );
 }
+
+/// Issue #1: a 5500 must connect whether or not its login answer ends with a
+/// session line, and its first boundary is the 8700HD generation's F9h.
+#[tokio::test]
+async fn a_5500_logs_in_with_or_without_a_session_line_and_asks_f9h() {
+    for answer in [
+        &b"connect ok\n0\n5500 V 1.2.8.24\n"[..],
+        &b"connect ok\n0\n5500 V 1.2.8.24\n4711\n"[..],
+    ] {
+        let server = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = server.local_addr().unwrap();
+        let worker = tokio::spawn(async move {
+            let (mut s, _) = server.accept().await.unwrap();
+            let mut b = [0; 14];
+            s.read_exact(&mut b).await.unwrap();
+            s.write_all(answer).await.unwrap();
+            let mut request = [0; 21];
+            s.read_exact(&mut request).await.unwrap();
+            assert_eq!(request.to_vec(), message::encode(249, b"").unwrap());
+            s.write_all(&message::encode(250, b"").unwrap())
+                .await
+                .unwrap();
+            let mut rest = Vec::new();
+            let _ = s.read_to_end(&mut rest).await;
+        });
+        let mut session = Session::connect(address, "9876", Duration::from_secs(5))
+            .await
+            .unwrap();
+        assert_eq!(session.info.model, DeviceModel::Optimod5500);
+        let boundary = session.adapter().wire.boundary;
+        assert_eq!(boundary, (249, 250));
+        session.send(boundary.0, b"").await.unwrap();
+        assert_eq!(
+            session.next_event().await.unwrap(),
+            Message::Other {
+                kind: 250,
+                data: Vec::new()
+            }
+        );
+        session.disconnect().await.unwrap();
+        worker.await.unwrap();
+    }
+}

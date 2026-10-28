@@ -44,18 +44,29 @@ async fn run() -> Result<(), String> {
     disconnect
 }
 async fn diagnose(session: &mut Session, seconds: u64) -> Result<(), String> {
-    session.send(239, b"").await?;
-    session.send(240, b"").await?;
-    session.send(250, b"").await?;
+    // The opcodes of this unit's PC Remote generation; the 5700i answers its
+    // setup request F0h with E9h.
+    let wire = session.adapter().wire;
+    let (request, answer) = wire.boundary;
+    let (setup_request, setup) = wire.setup_request.unwrap_or((240, 233));
+    session.send(wire.on_air_request, b"").await?;
+    session.send(setup_request, b"").await?;
+    session.send(request, b"").await?;
     let mut counts = Vec::new();
     loop {
         match session.next_event().await? {
-            Message::File { kind, data, .. } if kind == 229 || kind == 233 => {
+            Message::File { kind, data, .. } if kind == 229 || kind == setup => {
                 let plain = Zeroizing::new(session.decrypt_file(&data)?);
-                let document = Document::parse(&plain)?;
+                // File-sync units send their documents with LF line ends.
+                let text = Zeroizing::new(
+                    String::from_utf8_lossy(&plain)
+                        .replace("\r\n", "\n")
+                        .replace('\n', "\r\n"),
+                );
+                let document = Document::parse_for_model(text.as_bytes(), session.info.model)?;
                 counts.push((kind, document.fields.len()));
             }
-            Message::Other { kind: 251, .. } => break,
+            Message::Other { kind, .. } if kind == answer => break,
             _ => {}
         }
     }
@@ -76,7 +87,7 @@ async fn diagnose(session: &mut Session, seconds: u64) -> Result<(), String> {
     while started.elapsed() < Duration::from_secs(seconds) {
         let cycle = Instant::now();
         session.send(219, b"").await?;
-        session.send(250, b"").await?;
+        session.send(request, b"").await?;
         loop {
             match session.next_event().await? {
                 Message::Meters { bank, values } => {
@@ -87,7 +98,7 @@ async fn diagnose(session: &mut Session, seconds: u64) -> Result<(), String> {
                     }
                     previous[i] = Some(values);
                 }
-                Message::Other { kind: 251, .. } => break,
+                Message::Other { kind, .. } if kind == answer => break,
                 _ => {}
             }
         }

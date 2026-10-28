@@ -186,6 +186,17 @@ pub struct AdapterDescriptor {
     pub evidence: Evidence,
 }
 
+/// The last line of the login answer.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LoginSeed {
+    Always,
+    Never,
+    /// Read when the unit sends it with the rest of the answer. The original
+    /// client reads the answer in one buffer and drops what it does not use,
+    /// so its code does not show whether this firmware sends the line.
+    IfSent,
+}
+
 /// Opcodes that differ between PC Remote generations.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Wire {
@@ -209,8 +220,8 @@ pub struct Wire {
     /// direction; the receiver answers it with the same opcode, which is also
     /// the boundary answer. `None` where this was not observed.
     pub file_end: Option<u16>,
-    /// The login answer ends with a session number line.
-    pub login_seed: bool,
+    /// Whether the login answer ends with a session number line.
+    pub login_seed: LoginSeed,
     /// File messages carry a file name line; without it, a requested file
     /// is told from a pushed one only by the request in flight.
     pub file_names: bool,
@@ -232,7 +243,7 @@ pub const WIRE_PC_REMOTE: Wire = Wire {
     file_sync: false,
     factory_presets: &[],
     file_end: None,
-    login_seed: true,
+    login_seed: LoginSeed::Always,
     file_names: true,
     factory_recall: true,
     preset_file_delete: None,
@@ -271,10 +282,23 @@ pub const WIRE_8700HD: Wire = Wire {
     // FAh; the original PC Remote follows its Recall upload with FAh, and
     // the unit answers it with FAh (captures, 21 October 2026).
     file_end: Some(250),
-    login_seed: true,
+    login_seed: LoginSeed::Always,
     file_names: true,
     factory_recall: true,
     preset_file_delete: None,
+};
+
+/// 5500 1.2.8.24: the 8700HD generation. `5500PC.exe` 1.2.8.24 sends the same
+/// opcode sequences as `8700PC.exe` 1.0.2.161 (sync: EFh, F3h, F0h, F1h, EEh,
+/// F9h; presets: DFh, E2h, F2h, F9h) and names the 5500i's files:
+/// `OnAir.orb55onair`, `Setup.orb55setup`, `.orb55user`. Its installer holds
+/// the same 27 factory presets as the 5500i's. Derived statically (issue #1:
+/// the 5700i boundary FAh/FBh never got an answer from a 5500).
+pub const WIRE_5500: Wire = Wire {
+    user_extension: ".orb55user",
+    factory_presets: &FACTORY_5500I,
+    login_seed: LoginSeed::IfSent,
+    ..WIRE_8700HD
 };
 
 /// 5500i 3.1.0.2: captured from the original PC Remote 3.1.0.2 and the
@@ -291,7 +315,7 @@ pub const WIRE_5500I: Wire = Wire {
     file_sync: true,
     factory_presets: &FACTORY_5500I,
     file_end: Some(251),
-    login_seed: true,
+    login_seed: LoginSeed::Always,
     file_names: true,
     factory_recall: true,
     preset_file_delete: None,
@@ -341,7 +365,7 @@ pub const WIRE_6300: Wire = Wire {
     file_sync: true,
     factory_presets: &FACTORY_6300,
     file_end: Some(250),
-    login_seed: true,
+    login_seed: LoginSeed::Always,
     file_names: true,
     factory_recall: true,
     preset_file_delete: None,
@@ -436,7 +460,7 @@ pub const WIRE_2300: Wire = Wire {
     file_sync: true,
     factory_presets: &FACTORY_2300,
     file_end: None,
-    login_seed: false,
+    login_seed: LoginSeed::Never,
     file_names: false,
     factory_recall: false,
     preset_file_delete: None,
@@ -689,8 +713,8 @@ const EXACT: [(&str, AdapterDescriptor); 8] = [
             capabilities: STATIC_FULL_WITH_PRESET_FILES,
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
-            on_air_archive: false,
-            wire: WIRE_PC_REMOTE,
+            on_air_archive: true,
+            wire: WIRE_5500,
             evidence: Evidence::Static,
         },
     ),
@@ -868,8 +892,8 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         capabilities: READ_ONLY,
         meter_profile: None,
         frame_cut: None,
-        on_air_archive: false,
-        wire: WIRE_PC_REMOTE,
+        on_air_archive: true,
+        wire: WIRE_5500,
         evidence: Evidence::None,
     },
     AdapterDescriptor {

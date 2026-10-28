@@ -1,5 +1,7 @@
 use crate::{
-    adapter::{AdapterDescriptor, AdapterRegistry, Capabilities, DeviceModel, Evidence, SkinId},
+    adapter::{
+        AdapterDescriptor, AdapterRegistry, Capabilities, DeviceModel, Evidence, LoginSeed, SkinId,
+    },
     auth,
     framing::{Decoder, Frame},
     message::{self, Message},
@@ -13,6 +15,9 @@ use tokio::{
 use zeroize::Zeroizing;
 /// Longest wait for the unit to close its side after a disconnect.
 const CLOSE_DRAIN: Duration = Duration::from_secs(1);
+/// How long a session line the unit may not send is waited for; units that
+/// send it send it with the rest of the login answer.
+const SEED_GRACE: Duration = Duration::from_millis(1500);
 #[derive(Debug, serde::Serialize)]
 pub struct Info {
     pub access_level: u8,
@@ -144,11 +149,20 @@ impl Session {
             ));
         }
         // The 2300 ends its login answer after the firmware line.
-        if adapter.wire.login_seed {
-            login_line(stream, end)
-                .await?
-                .parse::<u32>()
-                .map_err(|_| "Invalid session seed")?;
+        let seed = match adapter.wire.login_seed {
+            LoginSeed::Always => Some(login_line(stream, end).await?),
+            LoginSeed::Never => None,
+            LoginSeed::IfSent => {
+                let grace = end.min(Instant::now() + SEED_GRACE);
+                match login_line(stream, grace).await {
+                    Ok(line) => Some(line),
+                    Err(_) if Instant::now() >= grace && grace < end => None,
+                    Err(e) => return Err(e),
+                }
+            }
+        };
+        if let Some(seed) = seed {
+            seed.parse::<u32>().map_err(|_| "Invalid session seed")?;
         }
         Ok((access_level, firmware, adapter))
     }

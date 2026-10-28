@@ -5091,6 +5091,18 @@ mod tests {
         setup: "Setup.orbsetup",
     };
 
+    /// The 5500 may end its login answer without a session line (issue #1).
+    const M5500: FileModel = FileModel {
+        wire: orban_protocol::adapter::WIRE_5500,
+        model: DeviceModel::Optimod5500,
+        login: b"connect ok\n0\n5500 V 1.2.8.24\n",
+        terminal: b"Orban Optimod 5500 V 1.2.8.24\n\r",
+        version: "8300.10",
+        user: ".ORB55USER",
+        on_air: "OnAir.orb55onair",
+        setup: "Setup.orb55setup",
+    };
+
     const M6300: FileModel = FileModel {
         wire: orban_protocol::adapter::WIRE_6300,
         model: DeviceModel::Optimod6300,
@@ -5163,11 +5175,20 @@ mod tests {
     }
 
     fn file_for(kind: u16, name: &str, text: &str) -> Vec<u8> {
-        let sealed =
-            orban_protocol::archive::encrypt(text.as_bytes(), FILE_UNIT_CODE, [7; 16]).unwrap();
+        orban_protocol::message::encode(kind, &file_body_with(FILE_UNIT_CODE, name, text)).unwrap()
+    }
+
+    /// A named file message body sealed with `code`.
+    fn file_body_with(code: &str, name: &str, text: &str) -> Vec<u8> {
+        let sealed = orban_protocol::archive::encrypt(text.as_bytes(), code, [7; 16]).unwrap();
         let mut body = format!("0\n0\n{name}\n{}\n", sealed.len()).into_bytes();
         body.extend(sealed);
-        orban_protocol::message::encode(kind, &body).unwrap()
+        body
+    }
+
+    /// A file body for the preset-file tests, whose code is 1234.
+    fn file_body(name: &str, text: &str) -> Vec<u8> {
+        file_body_with("1234", name, text)
     }
 
     impl FakeFileUnit {
@@ -5489,6 +5510,11 @@ mod tests {
     #[tokio::test]
     async fn the_5500i_syncs_writes_and_recalls_with_its_own_opcodes() {
         file_sync_round_trip(M5500I, 27).await;
+    }
+
+    #[tokio::test]
+    async fn the_5500_syncs_writes_and_recalls_with_the_8700hd_opcodes() {
+        file_sync_round_trip(M5500, 27).await;
     }
 
     #[tokio::test]
@@ -6606,13 +6632,6 @@ mod tests {
         }
     }
 
-    fn cent(index: u32, value: i32) -> Field {
-        Field {
-            index,
-            value: Value::Cent(value),
-        }
-    }
-
     fn int(index: u32, value: i32) -> Field {
         Field {
             index,
@@ -6620,39 +6639,39 @@ mod tests {
         }
     }
 
-    fn optimod_5500(readback: Field) -> WriteCase {
+    /// A two-band 5700i field exists only in the statically derived supplement.
+    fn static_5700i(readback: Field) -> WriteCase {
         WriteCase {
-            banner: "5500 V 1.2.8.24",
-            terminal_banner: "Orban Optimod 5500 test",
-            family: "8300.10",
-            name: "2B BASS ATTACK",
-            before: cent(7, 1100),
-            target: 8,
-            wire: "2B BASS ATTACK;8;Cent:1200;1;",
+            banner: "5700i V 3.0.1.20",
+            terminal_banner: "Orban Optimod 5700i test",
+            family: "5700.51",
+            name: "2B DRIVE",
+            before: int(10, 0),
+            target: 11,
+            wire: "2B DRIVE;11;Int:1;1;",
             readback,
         }
     }
 
     #[tokio::test]
     async fn static_profile_writes_are_confirmed_by_a_full_readback() {
-        let outcome = simulated_write(optimod_5500(cent(8, 1200))).await;
-        assert_eq!(outcome.evidence, Evidence::Static);
+        let outcome = simulated_write(static_5700i(int(11, 1))).await;
         assert!(outcome.result.is_ok(), "{:?}", outcome.result.err());
         assert_eq!((outcome.changes, outcome.readbacks), (1, 1));
-        let field = &outcome.state.processing.unwrap().fields["2B BASS ATTACK"];
-        assert_eq!(field, &cent(8, 1200));
+        let field = &outcome.state.processing.unwrap().fields["2B DRIVE"];
+        assert_eq!(field, &int(11, 1));
     }
 
     #[tokio::test]
     async fn static_profile_mismatch_shows_the_processor_value_and_never_retries() {
-        let outcome = simulated_write(optimod_5500(cent(7, 1100))).await;
+        let outcome = simulated_write(static_5700i(int(10, 0))).await;
         assert_eq!(
             outcome.result.unwrap_err().message,
             "The processor did not confirm the change"
         );
         assert_eq!((outcome.changes, outcome.readbacks), (1, 1));
-        let field = &outcome.state.processing.unwrap().fields["2B BASS ATTACK"];
-        assert_eq!(field, &cent(7, 1100));
+        let field = &outcome.state.processing.unwrap().fields["2B DRIVE"];
+        assert_eq!(field, &int(10, 0));
     }
 
     #[tokio::test]
@@ -6709,6 +6728,11 @@ mod tests {
         let pc_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let pc_address = pc_listener.local_addr().unwrap();
         let banner = case.banner;
+        let users = Arc::new(std::sync::Mutex::new(
+            case.users.iter().map(|u| u.to_string()).collect::<Vec<_>>(),
+        ));
+        let on_air = Arc::new(std::sync::Mutex::new(case.on_air.to_string()));
+        let (pc_users, pc_on_air) = (users.clone(), on_air.clone());
         tokio::spawn(async move {
             let (mut stream, _) = pc_listener.accept().await.unwrap();
             loop {
@@ -6728,14 +6752,39 @@ mod tests {
                     Ok(count) => count,
                 };
                 for frame in decoder.feed(&buffer[..count]).unwrap() {
-                    let reply = match orban_protocol::message::decode(&frame).unwrap() {
-                        Message::Other { kind: 219, .. } => Some(220),
-                        Message::Other { kind: 250, .. } => Some(251),
-                        _ => None,
+                    // The 5500 answers in the 8700HD generation: F9h by FAh,
+                    // F2h by one E7h file per user preset.
+                    let mut reply = Vec::new();
+                    match orban_protocol::message::decode(&frame).unwrap() {
+                        Message::Other { kind: 219, .. } => reply.push((220, Vec::new())),
+                        Message::Other { kind: 249, .. } => reply.push((250, Vec::new())),
+                        Message::Other { kind: 238, .. } => {
+                            let name = pc_on_air.lock().unwrap().clone();
+                            let text = format!(
+                                "OptimodVersion=<8300.10>\nPreset Name=<{name}> size=1\nC:<AGC DRIVE>Int:10;D:20;\nEnd Preset<end>\n"
+                            );
+                            reply.push((229, file_body("OnAir.orb55onair", &text)));
+                        }
+                        Message::Other { kind: 239, .. } => reply.push((
+                            232,
+                            file_body(
+                                "Setup.orb55setup",
+                                "OptimodVersion=<8300.10>\nPreset Name=<SYSTEM PRESET> size=1\nC:<CONTRAST>Int:2;D:2;\nEnd Preset<end>\n",
+                            ),
+                        )),
+                        Message::Other { kind: 242, .. } => {
+                            for user in pc_users.lock().unwrap().iter() {
+                                let text = format!(
+                                    "OptimodVersion=<8300.10>\r\nPreset Name=<{user}> size=1\r\nC:<AGC DRIVE>Int:10;D:20;\r\nEnd Preset<end>\r\n"
+                                );
+                                reply.push((231, file_body(&format!("{user}.orb55user"), &text)));
+                            }
+                        }
+                        _ => {}
                     };
-                    if let Some(kind) = reply {
+                    for (kind, body) in reply {
                         let _ = stream
-                            .write_all(&orban_protocol::message::encode(kind, b"").unwrap())
+                            .write_all(&orban_protocol::message::encode(kind, &body).unwrap())
                             .await;
                     }
                 }
@@ -6745,10 +6794,6 @@ mod tests {
         let terminal_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let terminal_address = terminal_listener.local_addr().unwrap();
         let commands = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
-        let users = Arc::new(std::sync::Mutex::new(
-            case.users.iter().map(|u| u.to_string()).collect::<Vec<_>>(),
-        ));
-        let on_air = Arc::new(std::sync::Mutex::new(case.on_air.to_string()));
         let (server_commands, server_users, server_on_air) =
             (commands.clone(), users.clone(), on_air.clone());
         let terminal_banner = case.terminal_banner;

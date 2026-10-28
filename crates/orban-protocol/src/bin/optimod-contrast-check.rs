@@ -17,10 +17,11 @@ async fn main() {
     }
 }
 async fn barrier(s: &mut Session) -> Result<(), String> {
+    let (request, answer) = s.adapter().wire.boundary;
     s.send(219, b"").await?;
-    s.send(250, b"").await?;
+    s.send(request, b"").await?;
     loop {
-        if matches!(s.next_event().await?, Message::Other { kind: 251, .. }) {
+        if matches!(s.next_event().await?, Message::Other { kind, .. } if kind == answer) {
             return Ok(());
         }
     }
