@@ -2452,6 +2452,10 @@ async fn setup_presets(
     device: &mut Device,
     app: &App,
 ) -> Result<Vec<(String, Zeroizing<Vec<u8>>)>, String> {
+    // The client enables Open Setup and Save Setup As with Setup (level 2 or lower).
+    if !device.session.info.access().setup {
+        return Err("System Setup is not enabled for this access level".into());
+    }
     let wire = device.session.adapter().wire;
     let (Some(extension), Some((request, reply))) = (wire.setup_presets, wire.user_presets_request)
     else {
