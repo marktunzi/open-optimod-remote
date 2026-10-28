@@ -124,6 +124,8 @@ enum ProfileSystemSettings {
     /// Client Setup page titles that cover one of the groups above.
     private static let clientTabAliases: [String: [String]] = [
         "Network & Time": ["Network", "Network/Remote"],
+        "Output": ["Output 1", "Input/Output 2"],
+        "Input": ["Input/Output 1"],
         "Remote Control": ["Remote Interface", "Remote Interface / Silence"],
         "HD & Diversity": ["HD Digital Radio", "Diversity Delay"],
     ]

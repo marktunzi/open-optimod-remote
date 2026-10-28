@@ -578,8 +578,29 @@ def system_layouts(layout):
         if not q["title"].startswith("Input/Output"):
             title = re.sub(r" \d+$", "", title)
         pages.append(dict(title=title, width=q["width"], height=q["height"], reference_dialog=q["reference_dialog"],
-                          controls=q["controls"], groups=q["groups"]))
+                          controls=q["controls"], groups=q["groups"] or input_output_groups(q["controls"])))
     return pages
+
+
+# The PEG screens draw the analog and digital rows of one Input/Output screen
+# under their own headings, with the same row labels ("Right Channel
+# Balance", "Ref. Lev VU"): a section per family keeps them apart.
+FAMILIES = [("AI ", "Analog Input"), ("DI ", "Digital Input"), ("ANALOG OUT", "Analog Output"), ("AO ", "Analog Output"),
+            ("DO ", "Digital Output")]
+
+
+def input_output_groups(controls):
+    families = collections.defaultdict(list)
+    for c in controls:
+        title = next((t for prefix, t in FAMILIES if c["name"].startswith(prefix)), None)
+        if title:
+            families[title].append(c)
+    if len(families) < 2:
+        return []
+    return [dict(x=min(c["x"] for c in cs) - 5, y=min(c["y"] for c in cs) - 5,
+                 w=max(c["x"] for c in cs) - min(c["x"] for c in cs) + 10,
+                 h=max(c["y"] for c in cs) - min(c["y"] for c in cs) + 10, text=title)
+            for title, cs in families.items()]
 
 
 # --------------------------------------------------------------------------- main

@@ -98,7 +98,22 @@
         "options": []
       }
     ],
-    "groups": []
+    "groups": [
+      {
+        "x": 110,
+        "y": 85,
+        "w": 123,
+        "h": 48,
+        "text": "Analog Input"
+      },
+      {
+        "x": 110,
+        "y": 157,
+        "w": 123,
+        "h": 29,
+        "text": "Digital Input"
+      }
+    ]
   },
   {
     "title": "Input/Output 2",
@@ -242,7 +257,22 @@
         ]
       }
     ],
-    "groups": []
+    "groups": [
+      {
+        "x": 100,
+        "y": 63,
+        "w": 112,
+        "h": 10,
+        "text": "Analog Output"
+      },
+      {
+        "x": 100,
+        "y": 123,
+        "w": 112,
+        "h": 64,
+        "text": "Digital Output"
+      }
+    ]
   },
   {
     "title": "Input/Output 3",
