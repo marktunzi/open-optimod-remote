@@ -734,24 +734,8 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
         guard idle, let context, context.canRestore else { return }
         let date = ISO8601DateFormatter.string(from: Date(), timeZone: TimeZone(identifier: "UTC")!, formatOptions: [.withFullDate])
         if PresetFileFormat.backsUpFiles(context.snapshot.adapterID) {
-            setBusy(true, message: "Reading the setup file and every user preset file…")
-            api.json("backup/files") { [weak self] result in
-                guard let self else { return }
-                switch result {
-                case let .failure(error): self.finish(.failure(error), failure: "Backup failed", success: nil)
-                case let .success(json):
-                    self.setBusy(false, message: "")
-                    let files = (json["files"] as? [[String: Any]] ?? []).compactMap { file -> (name: String, data: Data)? in
-                        guard let name = file["name"] as? String, let document = file["document"] as? String else { return nil }
-                        return (name, Data(document.utf8))
-                    }
-                    let folder = "\(PresetBackup.safeFilename(context.snapshot.host.isEmpty ? "Optimod" : context.snapshot.host)) backup \(date)"
-                    self.chooseSaveLocation(title: "Save Backup", name: "\(folder).zip", type: .zip) { url in
-                        try PresetBackup.zip(folder: folder, files: files).write(to: url, options: .atomic)
-                        let presets = files.count - 1
-                        self.announce("Backup saved: the setup file and \(presets) preset \(presets == 1 ? "file" : "files")")
-                    }
-                }
+            chooseBackupFormat { [weak self] password in
+                self?.saveBackupFiles(context: context, date: date, password: password)
             }
             return
         }
@@ -771,6 +755,101 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
         }
     }
 
+    /// The client's "Choose backup file format": plain text, encrypted with
+    /// the session's password, or with a password entered here. Calls back
+    /// with nil for plain text, "" for the session password, else the password.
+    private func chooseBackupFormat(then: @escaping (String?) -> Void) {
+        guard let window else { return }
+        let alert = NSAlert()
+        alert.messageText = "Choose backup file format"
+        let format = NSPopUpButton()
+        format.addItems(withTitles: ["Save backup files in plain text.",
+                                     "Encrypt backup files with current session password.",
+                                     "Encrypt backup files with password entered below."])
+        let password = NSSecureTextField()
+        password.placeholderString = "Enter Password"
+        let confirm = NSSecureTextField()
+        confirm.placeholderString = "Confirm Password"
+        format.target = self
+        format.action = #selector(backupFormatChanged(_:))
+        password.isEnabled = false
+        confirm.isEnabled = false
+        let stack = NSStackView(views: [format, password, confirm])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.frame = NSRect(x: 0, y: 0, width: 340, height: 90)
+        for view in [format, password, confirm] { view.widthAnchor.constraint(equalToConstant: 340).isActive = true }
+        alert.accessoryView = stack
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        activeAlert = alert
+        alert.beginSheetModal(for: window) { [weak self] response in
+            self?.activeAlert = nil
+            guard response == .alertFirstButtonReturn else { return }
+            switch format.indexOfSelectedItem {
+            case 0: then(nil)
+            case 1: then("")
+            default:
+                guard !password.stringValue.isEmpty, password.stringValue == confirm.stringValue else {
+                    self?.showStatus("The passwords are empty or do not match; no backup was saved")
+                    NSSound.beep()
+                    return
+                }
+                then(password.stringValue)
+            }
+        }
+    }
+
+    /// The password boxes count only for "password entered below".
+    @objc private func backupFormatChanged(_ sender: NSPopUpButton) {
+        let entered = sender.indexOfSelectedItem == 2
+        sender.superview?.subviews.compactMap { $0 as? NSSecureTextField }.forEach { $0.isEnabled = entered }
+    }
+
+    private func saveBackupFiles(context: PresetBrowserContext, date: String, password: String?) {
+        setBusy(true, message: "Reading the setup file and every user preset file…")
+        api.json("backup/files") { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case let .failure(error): self.finish(.failure(error), failure: "Backup failed", success: nil)
+            case let .success(json):
+                let plain = (json["files"] as? [[String: Any]] ?? []).compactMap { file -> (name: String, document: String)? in
+                    guard let name = file["name"] as? String, let document = file["document"] as? String else { return nil }
+                    return (name, document)
+                }
+                guard let password else {
+                    self.setBusy(false, message: "")
+                    return self.writeBackup(context: context, date: date, files: plain.map { ($0.name, Data($0.document.utf8)) })
+                }
+                let body: [String: Any] = ["files": plain.map { ["name": $0.name, "document": $0.document] },
+                                           "password": password.isEmpty ? NSNull() : password]
+                self.api.json("backup/encrypt", body: body) { result in
+                    switch result {
+                    case let .failure(error): self.finish(.failure(error), failure: "Backup failed", success: nil)
+                    case let .success(json):
+                        self.setBusy(false, message: "")
+                        let files = (json["files"] as? [[String: Any]] ?? []).compactMap { file -> (name: String, data: Data)? in
+                            guard let name = file["name"] as? String, let hex = file["data"] as? String,
+                                  let data = Data(hexadecimal: hex) else { return nil }
+                            return (name, data)
+                        }
+                        self.writeBackup(context: context, date: date, files: files)
+                    }
+                }
+            }
+        }
+    }
+
+    private func writeBackup(context: PresetBrowserContext, date: String, files: [(name: String, data: Data)]) {
+        let folder = "\(PresetBackup.safeFilename(context.snapshot.host.isEmpty ? "Optimod" : context.snapshot.host)) backup \(date)"
+        chooseSaveLocation(title: "Save Backup", name: "\(folder).zip", type: .zip) { [weak self] url in
+            try PresetBackup.zip(folder: folder, files: files).write(to: url, options: .atomic)
+            let presets = files.count - 1
+            self?.announce("Backup saved: the setup file and \(presets) preset \(presets == 1 ? "file" : "files")")
+        }
+    }
+
     @objc private func restoreBackup() {
         guard idle, let context, context.canRestore else { return }
         let adapterID = context.snapshot.adapterID
@@ -778,7 +857,68 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
             let types = [UTType(filenameExtension: context.fileFormat.fileExtension) ?? .data, UTType(filenameExtension: "orb57setup") ?? .data]
             chooseFiles(title: "Choose the Backup Folder or Files", multiple: true, folders: true, types: types) { [weak self] urls in
                 guard let self else { return }
-                let files = try Self.readBackupFiles(urls, adapterID: adapterID)
+                let raw = try Self.readBackupFiles(urls, adapterID: adapterID)
+                self.decryptBackup(raw, password: nil) { files in
+                    do { try self.restoreFiles(files, adapterID: adapterID) }
+                    catch { self.finish(.failure(error), failure: "Restore failed", success: nil) }
+                }
+            }
+            return
+        }
+        restoreJSONBackup(adapterID: adapterID)
+    }
+
+    /// Encrypted files of the client's backup, decrypted by the service with
+    /// the session's password first, then with one the user enters.
+    private func decryptBackup(_ raw: [(name: String, data: Data, modified: UInt64?)], password: String?,
+                               then: @escaping ([PresetBackupFile]) -> Void) {
+        let plain = raw.compactMap { file -> PresetBackupFile? in
+            guard file.data.isEmpty || file.data.starts(with: Data("OptimodVersion=<".utf8)),
+                  let document = String(data: file.data, encoding: .utf8) else { return nil }
+            return PresetBackupFile(name: file.name, document: document, modified: file.modified)
+        }
+        guard plain.count < raw.count else { return then(plain) }
+        setBusy(true, message: "Decrypting the backup files…")
+        let body: [String: Any] = ["files": raw.map { ["name": $0.name, "data": $0.data.hexadecimal] },
+                                   "password": password ?? NSNull()]
+        api.json("backup/decrypt", body: body) { [weak self] result in
+            guard let self else { return }
+            self.setBusy(false, message: "")
+            switch result {
+            case let .success(json):
+                let files = (json["files"] as? [[String: Any]] ?? []).enumerated().compactMap { index, file -> PresetBackupFile? in
+                    guard let name = file["name"] as? String, let document = file["document"] as? String else { return nil }
+                    return PresetBackupFile(name: name, document: document, modified: raw.indices.contains(index) ? raw[index].modified : nil)
+                }
+                then(files)
+            case let .failure(error) where error.localizedDescription.contains("encrypted with another password"):
+                self.askBackupPassword(retry: password != nil) { entered in
+                    self.decryptBackup(raw, password: entered, then: then)
+                }
+            case let .failure(error):
+                self.finish(.failure(error), failure: "Restore failed", success: nil)
+            }
+        }
+    }
+
+    private func askBackupPassword(retry: Bool, then: @escaping (String) -> Void) {
+        guard let window else { return }
+        let alert = NSAlert()
+        alert.messageText = retry ? "That password does not open this backup" : "This backup is encrypted"
+        alert.informativeText = "Enter the password it was saved with."
+        let field = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        alert.accessoryView = field
+        alert.addButton(withTitle: "Open")
+        alert.addButton(withTitle: "Cancel")
+        alert.window.initialFirstResponder = field
+        activeAlert = alert
+        alert.beginSheetModal(for: window) { [weak self] response in
+            self?.activeAlert = nil
+            if response == .alertFirstButtonReturn, !field.stringValue.isEmpty { then(field.stringValue) }
+        }
+    }
+
+    private func restoreFiles(_ files: [PresetBackupFile], adapterID: String?) throws {
                 let sorted = try PresetBackup.sort(files, adapterID: adapterID)
                 guard sorted.setup != nil || !sorted.presets.isEmpty else {
                     throw SystemSettingsAPIError.service("There is no setup or preset file in this selection.")
@@ -801,9 +941,9 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
                         self.restore(presets: sorted.presets, setup: changes.isEmpty ? nil : sorted.setup?.document)
                     }
                 }
-            }
-            return
-        }
+    }
+
+    private func restoreJSONBackup(adapterID: String?) {
         chooseFiles(title: "Choose an Open Optimod Remote Backup", multiple: false, folders: false, types: [.json]) { [weak self] urls in
             guard let self, let url = urls.first else { return }
             let setup = try PresetBackup.systemDocument(of: Data(contentsOf: url), adapterID: adapterID)
@@ -819,7 +959,7 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
     }
 
     /// The files of a selection; a chosen folder contributes its setup and preset files.
-    private static func readBackupFiles(_ urls: [URL], adapterID: String?) throws -> [PresetBackupFile] {
+    private static func readBackupFiles(_ urls: [URL], adapterID: String?) throws -> [(name: String, data: Data, modified: UInt64?)] {
         let presetExtension = PresetFileFormat.forAdapter(adapterID).fileExtension
         var chosen: [URL] = []
         for url in urls {
@@ -833,12 +973,11 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
         }
         return try chosen.map { url in
             let data = try Data(contentsOf: url)
-            guard data.count <= 65_535, let document = String(data: data, encoding: .utf8) else {
+            guard data.count <= 65_535 else {
                 throw SystemSettingsAPIError.service("\(url.lastPathComponent) is not a backup file of this processor.")
             }
             let date = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
-            return PresetBackupFile(name: url.lastPathComponent, document: document,
-                                    modified: date.map { UInt64($0.timeIntervalSince1970 * 1000) })
+            return (url.lastPathComponent, data, date.map { UInt64($0.timeIntervalSince1970 * 1000) })
         }
     }
 
@@ -963,6 +1102,19 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
         case "name":
             nameField?.stringValue = rest
             validateName()
+        case "accessory":
+            // Test hook: `accessory N VALUE` sets the Nth control of the open
+            // sheet's extra view: a text field's text or a pop-up's item number.
+            let parts = rest.split(separator: " ", maxSplits: 1).map(String.init)
+            guard let index = parts.first.flatMap(Int.init), let view = activeAlert?.accessoryView else { return }
+            let controls = ([view] + view.subviews).filter { $0 is NSTextField || $0 is NSPopUpButton }
+            guard controls.indices.contains(index) else { return }
+            let value = parts.count > 1 ? parts[1] : ""
+            if let popup = controls[index] as? NSPopUpButton {
+                popup.selectItem(at: Int(value) ?? 0)
+                if let action = popup.action { NSApp.sendAction(action, to: popup.target, from: popup) }
+            }
+            else if let field = controls[index] as? NSTextField { field.stringValue = value }
         case "confirm", "cancel":
             guard let alert = activeAlert, let window else { return }
             if verb == "confirm", alert.buttons.first?.isEnabled == false { return }
@@ -1058,5 +1210,24 @@ private extension NSToolbarItem.Identifier {
 private extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
+    }
+}
+
+extension Data {
+    /// Lowercase hexadecimal, as the service's backup file data.
+    var hexadecimal: String { map { String(format: "%02x", $0) }.joined() }
+
+    init?(hexadecimal text: String) {
+        guard text.count % 2 == 0 else { return nil }
+        var bytes = [UInt8]()
+        bytes.reserveCapacity(text.count / 2)
+        var index = text.startIndex
+        while index < text.endIndex {
+            let next = text.index(index, offsetBy: 2)
+            guard let byte = UInt8(text[index..<next], radix: 16) else { return nil }
+            bytes.append(byte)
+            index = next
+        }
+        self.init(bytes)
     }
 }

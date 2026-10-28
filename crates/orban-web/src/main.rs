@@ -451,6 +451,8 @@ async fn main() {
         .route("/api/backup/setup-plan", post(setup_plan_handler))
         .route("/api/backup/restore-setup", post(restore_setup_handler))
         .route("/api/backup/files", get(backup_files_handler))
+        .route("/api/backup/encrypt", post(backup_encrypt_handler))
+        .route("/api/backup/decrypt", post(backup_decrypt_handler))
         .route(
             "/api/automation",
             get(automation_handler).post(automation_write_handler),
@@ -671,6 +673,127 @@ async fn backup_files_handler(State(app): State<App>) -> ApiResult {
         "firmware": state.firmware,
         "files": files,
     })))
+}
+/// A backup file of the original client: plain text, or encrypted as the
+/// unit's own files are (`archive`) with the session's access code or a
+/// password the user chose (its "Choose backup file format" dialog).
+#[derive(Deserialize, Serialize)]
+struct CryptFile {
+    name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    document: Option<String>,
+    /// The file's bytes, hexadecimal.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    data: Option<String>,
+}
+#[derive(Deserialize)]
+struct BackupCrypt {
+    files: Vec<CryptFile>,
+    /// None: the access code of the connected processor's saved connection.
+    #[serde(default)]
+    password: Option<String>,
+}
+fn plain_backup(bytes: &[u8]) -> bool {
+    bytes.is_empty() || bytes.starts_with(b"OptimodVersion=<")
+}
+fn to_hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+fn from_hex(text: &str) -> Result<Vec<u8>, String> {
+    if text.len() % 2 != 0 || text.len() > 2 * 65_535 {
+        return Err("Invalid file data".into());
+    }
+    (0..text.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&text[i..i + 2], 16).map_err(|_| "Invalid file data".into()))
+        .collect()
+}
+/// The password of a backup: the one given, else the session's access code.
+async fn backup_password(
+    app: &App,
+    password: Option<String>,
+) -> Result<Zeroizing<String>, (StatusCode, Json<JsonValue>)> {
+    if let Some(password) = password.filter(|p| !p.is_empty()) {
+        if !password.is_ascii() || password.len() > 64 {
+            return Err(api_error("Use a password of up to 64 plain characters"));
+        }
+        return Ok(Zeroizing::new(password));
+    }
+    let id = {
+        let state = app.state.read().await;
+        if !state.connected {
+            return Err(api_error("Connect to the processor first"));
+        }
+        state
+            .device_id
+            .clone()
+            .ok_or_else(|| api_error("Enter the backup password"))?
+    };
+    book_task(app, move |book| book.code(&id)).await
+}
+async fn backup_encrypt_handler(
+    State(app): State<App>,
+    Json(body): Json<BackupCrypt>,
+) -> ApiResult {
+    let code = backup_password(&app, body.password).await?;
+    let mut files = Vec::new();
+    for file in body.files {
+        let plain = file
+            .document
+            .ok_or_else(|| api_error("Missing file text"))?;
+        let iv = *uuid::Uuid::new_v4().as_bytes();
+        let data = if plain.is_empty() {
+            // An empty file is the IV alone, as the client writes an empty automation list.
+            iv.to_vec()
+        } else {
+            orban_protocol::archive::encrypt(plain.as_bytes(), &code, iv).map_err(api_error)?
+        };
+        files.push(CryptFile {
+            name: file.name,
+            document: None,
+            data: Some(to_hex(&data)),
+        });
+    }
+    Ok(Json(json!({ "files": files })))
+}
+async fn backup_decrypt_handler(
+    State(app): State<App>,
+    Json(body): Json<BackupCrypt>,
+) -> ApiResult {
+    let mut code = None;
+    let mut files = Vec::new();
+    for file in body.files {
+        let bytes = from_hex(file.data.as_deref().unwrap_or_default()).map_err(api_error)?;
+        let plain = if plain_backup(&bytes) {
+            bytes
+        } else {
+            if code.is_none() {
+                code = Some(backup_password(&app, body.password.clone()).await?);
+            }
+            let plain = if bytes.len() == 16 {
+                Vec::new()
+            } else {
+                orban_protocol::archive::decrypt(&bytes, code.as_ref().unwrap()).unwrap_or_default()
+            };
+            if !plain_backup(&plain) || (plain.is_empty() && bytes.len() != 16) {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    Json(
+                        json!({"error": format!("{} is encrypted with another password", file.name), "needs_password": true}),
+                    ),
+                ));
+            }
+            plain
+        };
+        let document = String::from_utf8(plain)
+            .map_err(|_| api_error(format!("{} is not a backup file", file.name)))?;
+        files.push(CryptFile {
+            name: file.name,
+            document: Some(document),
+            data: None,
+        });
+    }
+    Ok(Json(json!({ "files": files })))
 }
 async fn read_unit_file(
     app: &App,

@@ -58,8 +58,8 @@ Every field the client binds on a tab is in the native window ([M2A](2026-10-28-
 | Save Preset | native Presets window › Save (replaces the on-air user preset) | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md), native [M1G](2026-10-28-m1g-native-presets.md) |
 | Save Preset As | native Presets window › Save As… | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md), native [M1G](2026-10-28-m1g-native-presets.md) |
 | Delete Preset | native Presets window › ⋯ › Delete… (or Delete key) | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md), native [M1G](2026-10-28-m1g-native-presets.md) |
-| Backup to PC | native Presets window › ⋯ › Back Up… (the client's plain-text files) | PASS | [M1D](2026-10-28-m1d-backup-restore.md), native [M1G](2026-10-28-m1g-native-presets.md) |
-| Restore from PC | native Presets window › ⋯ › Restore from Backup… (backup folder or files) | PASS; encrypted client backups not read | [M1D](2026-10-28-m1d-backup-restore.md), native [M1G](2026-10-28-m1g-native-presets.md) |
+| Backup to PC | native Presets window › ⋯ › Back Up… (the client's three formats) | PASS | [M1D](2026-10-28-m1d-backup-restore.md), native [M1G](2026-10-28-m1g-native-presets.md), [M4A](2026-10-28-m4a-encrypted-backups.md) |
+| Restore from PC | native Presets window › ⋯ › Restore from Backup… (backup folder or files) | PASS, plain and encrypted (session or entered password) | [M1D](2026-10-28-m1d-backup-restore.md), native [M1G](2026-10-28-m1g-native-presets.md), [M4A](2026-10-28-m4a-encrypted-backups.md) |
 
 ## Tools and Help
 
