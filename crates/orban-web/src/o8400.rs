@@ -51,6 +51,8 @@ pub struct Unit {
     processing_baseline: Option<Document>,
     /// The time of the last message to the unit.
     pub last_sent: Instant,
+    /// The time of the last keepalive answer.
+    answered: Instant,
 }
 
 impl Unit {
@@ -92,6 +94,7 @@ pub async fn connect(body: Connect, app: &App) -> Result<Unit, String> {
         meters: None,
         processing_baseline: None,
         last_sent: Instant::now(),
+        answered: Instant::now(),
     };
     let synced = synchronize(app, &mut unit).await;
     if let Err(error) = &synced
@@ -522,5 +525,51 @@ pub async fn keepalive(unit: &mut Unit) -> Result<(), String> {
     }
     let result = unit.session.keepalive().await;
     unit.last_sent = Instant::now();
-    result
+    keepalive_outcome(&mut unit.answered, result)
+}
+
+/// A late keepalive answer is not a lost session, as for the PC Remote
+/// models: only a closed connection or `UNANSWERED_LIMIT` without any answer
+/// ends it. (A busy 8400 answered one keepalive 7.9 s late and went on.)
+fn keepalive_outcome(answered: &mut Instant, result: Result<(), String>) -> Result<(), String> {
+    match result {
+        Ok(()) => {
+            *answered = Instant::now();
+            Ok(())
+        }
+        Err(error) if crate::is_definite_disconnect(&error) => Err(error),
+        Err(_) if answered.elapsed() < crate::UNANSWERED_LIMIT => Ok(()),
+        Err(error) => Err(format!(
+            "The processor has not answered for {} seconds. {error}",
+            crate::UNANSWERED_LIMIT.as_secs()
+        )),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ago(seconds: u64) -> Instant {
+        Instant::now() - Duration::from_secs(seconds)
+    }
+
+    #[test]
+    fn a_late_keepalive_answer_keeps_the_session() {
+        let timed_out = || Err("Receive timed out".to_owned());
+        // 8 s without an answer (as the busy unit): the session stays.
+        let mut answered = ago(8);
+        assert!(keepalive_outcome(&mut answered, timed_out()).is_ok());
+        // The late answer comes: the clock starts again.
+        assert!(keepalive_outcome(&mut answered, Ok(())).is_ok());
+        assert!(answered.elapsed() < Duration::from_secs(1));
+        let mut answered = ago(19);
+        assert!(keepalive_outcome(&mut answered, timed_out()).is_ok());
+        let mut answered = ago(21);
+        let lost = keepalive_outcome(&mut answered, timed_out()).unwrap_err();
+        assert!(lost.contains("20 seconds"), "{lost}");
+        // A closed connection ends it at once.
+        let mut answered = Instant::now();
+        assert!(keepalive_outcome(&mut answered, Err("Device disconnected".into())).is_err());
+    }
 }
