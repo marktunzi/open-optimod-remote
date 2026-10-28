@@ -165,6 +165,9 @@ async fn receive_meters(socket: UdpSocket, unit: IpAddr, app: App) {
             continue;
         }
         if let Some(values) = o8400::meter_values(&buffer[..count]) {
+            app.activity
+                .meter_frames
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             app.meters
                 .send_replace(json!({"live":true,"bank":1,"values":values}));
         }

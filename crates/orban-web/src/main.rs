@@ -28,7 +28,10 @@ use std::{
     convert::Infallible,
     ffi::OsStr,
     net::SocketAddr,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
     time::Duration,
 };
 use tokio::{
@@ -135,6 +138,28 @@ struct App {
     /// adapter has one, otherwise the 5700i reference used for read-only display.
     profile: Arc<std::sync::RwLock<Arc<Profile>>>,
     book: Arc<std::sync::Mutex<devices::Book>>,
+    /// What the owner did on the processor, so the app's windows can show
+    /// that they share one session instead of each opening their own.
+    activity: Arc<Activity>,
+}
+/// Counters of processor traffic since the service started. A window that
+/// opens, closes or reloads must not move any of them except meter readers.
+#[derive(Default)]
+struct Activity {
+    /// Logins started, by hand or by an automatic reconnect.
+    session_opens: AtomicU64,
+    /// Meter requests sent by the one meter poll (PC Remote, opcode 219).
+    meter_polls: AtomicU64,
+    /// Live meter frames received from the processor.
+    meter_frames: AtomicU64,
+    /// Commands that can change the processor: edits, recalls, preset
+    /// files, preset uploads and setup restores.
+    device_writes: AtomicU64,
+}
+impl Activity {
+    fn count(counter: &AtomicU64) {
+        counter.fetch_add(1, Ordering::Relaxed);
+    }
 }
 type Reply = oneshot::Sender<Result<(), String>>;
 enum Command {
@@ -329,6 +354,7 @@ async fn main() {
     let (tx, rx) = mpsc::channel(8);
     let (meters, _) = watch::channel(json!({"live":false}));
     let app = App {
+        activity: Arc::default(),
         state: Arc::new(RwLock::new(Snapshot::default())),
         meters,
         commands: tx,
@@ -359,6 +385,7 @@ async fn main() {
         .route("/api/state", get(state))
         .route("/api/profile", get(profile_handler))
         .route("/api/meters", get(meters_handler))
+        .route("/api/diagnostics", get(diagnostics_handler))
         .route("/api/connect", post(connect_handler))
         .route("/api/disconnect", post(disconnect_handler))
         .route("/api/reconnect/cancel", post(cancel_reconnect_handler))
@@ -456,6 +483,22 @@ async fn meters_handler(
         WatchStream::new(app.meters.subscribe()).map(|v| Ok(Event::default().data(v.to_string()))),
     )
     .keep_alive(KeepAlive::default())
+}
+/// The shared session as the app's windows see it: which processor, and how
+/// much traffic the one owner has had with it. Reading this sends nothing.
+async fn diagnostics_handler(State(app): State<App>) -> Json<JsonValue> {
+    let state = app.state.read().await;
+    let activity = &app.activity;
+    Json(json!({
+        "device_id": state.device_id,
+        "session_id": state.session_id,
+        "connected": state.connected,
+        "session_opens": activity.session_opens.load(Ordering::Relaxed),
+        "meter_polls": activity.meter_polls.load(Ordering::Relaxed),
+        "meter_frames": activity.meter_frames.load(Ordering::Relaxed),
+        "device_writes": activity.device_writes.load(Ordering::Relaxed),
+        "meter_readers": app.meters.receiver_count(),
+    }))
 }
 type ApiResult = Result<Json<JsonValue>, (StatusCode, Json<JsonValue>)>;
 fn api_error(e: impl ToString) -> (StatusCode, Json<JsonValue>) {
@@ -1318,6 +1361,7 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
         match event {
             Message::Meters { bank, values } => {
                 if bank == 1 {
+                    Activity::count(&app.activity.meter_frames);
                     app.meters
                         .send_replace(json!({"live":true,"bank":bank,"values":values}));
                 }
@@ -2397,6 +2441,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
           match command{
            Command::Connect(body,reply)=>{
             if device.is_some()||unit.is_some(){let _=reply.send(Err("Disconnect the current device first".into()));continue;}
+            Activity::count(&app.activity.session_opens);
             // A manual connection replaces any pending automatic one.
             pending=None;
             target=None;
@@ -2431,6 +2476,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             let _=reply.send(result);
            }
            Command::Recall(body,reply)=>{
+            Activity::count(&app.activity.device_writes);
             let result=if let Some(u)=&mut unit{o8400::recall(u,&app,body).await}else if let Some(d)=&mut device{recall(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             tick.reset();
            match result {
@@ -2441,6 +2487,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             }
            }
            Command::Change(body,reply)=>{
+            Activity::count(&app.activity.device_writes);
             let result=if let Some(u)=&mut unit{o8400::change(u,&app,body).await}else if let Some(d)=&mut device{change(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             match result {
              Ok(())=>{let _=reply.send(Ok(()));}
@@ -2451,11 +2498,13 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             }
            }
            Command::PresetFile(body,reply)=>{
+            Activity::count(&app.activity.device_writes);
             let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{manage_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             tick.reset();
             let _=reply.send(result.map_err(|e| e.message));
            }
            Command::RestoreSetup(body,reply)=>{
+            Activity::count(&app.activity.device_writes);
             let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{restore_setup(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             let _=reply.send(result.map_err(|e| e.message));
            }
@@ -2469,6 +2518,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
             let _=reply.send(Ok(()));
            }
            Command::ApplyPreset(body,reply)=>{
+            Activity::count(&app.activity.device_writes);
             let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{apply_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             match result {
             Ok(())=>{let _=reply.send(Ok(()));}
@@ -2495,7 +2545,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
           }
          }
          _=tick.tick(),if device.as_ref().is_some_and(|d| d.session.info.capabilities.live_meters)=>{
-          let d=device.as_mut().unwrap();let result=async{d.session.send(219,b"").await?;drain(d,&app).await}.await;
+          let d=device.as_mut().unwrap();Activity::count(&app.activity.meter_polls);let result=async{d.session.send(219,b"").await?;drain(d,&app).await}.await;
           if let Err(e)=result && let Some(lost)=session_lost(d,&e) {
              end_session(&app,&mut device,lost.clone()).await;
              pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
@@ -2518,6 +2568,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
           let status=app.state.read().await.reconnect.clone();
           *app.state.write().await=Snapshot{reconnect:status,..Snapshot::default()};
           let body=attempt.target.connect();
+          Activity::count(&app.activity.session_opens);
           let made=if o8400::wanted(&body){o8400::connect(body,&app).await.map(|u|{unit=Some(u);})}else{make_device(body,&app).await.map(|d|{device=Some(d);})};
           match made {
            Ok(())=>{
@@ -2777,6 +2828,7 @@ mod tests {
         let (meters, _) = watch::channel(json!({"live":false}));
         let storage = tempfile::tempdir().unwrap();
         let app = App {
+            activity: Arc::default(),
             state: Arc::new(RwLock::new(Snapshot::default())),
             meters,
             commands,
@@ -2883,6 +2935,7 @@ mod tests {
             raw: String::new(),
         };
         let app = App {
+            activity: Arc::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -3040,6 +3093,7 @@ mod tests {
         let storage = tempfile::tempdir().unwrap();
         let current = processing("CURRENT", 20);
         let app = App {
+            activity: Arc::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -4716,6 +4770,7 @@ mod tests {
         let (meters, _) = watch::channel(json!({"live":false}));
         let storage = tempfile::tempdir().unwrap();
         let app = App {
+            activity: Arc::default(),
             state: Arc::new(RwLock::new(Snapshot::default())),
             meters,
             commands,
@@ -5110,6 +5165,7 @@ mod tests {
         let storage = tempfile::tempdir().unwrap();
         let current = processing("CURRENT", 20);
         let app = App {
+            activity: Arc::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -5330,11 +5386,55 @@ mod tests {
             assert_eq!(response.status(), expected, "{site:?}");
         }
     }
+    /// Each window reads the one meter stream; opening one adds a reader and
+    /// sends nothing to the processor.
+    #[tokio::test]
+    async fn windows_read_the_one_session_without_traffic() {
+        let (tx, mut rx) = mpsc::channel(8);
+        let (meters, _) = watch::channel(json!({"live":false}));
+        let storage = tempfile::tempdir().unwrap();
+        let app = App {
+            activity: Arc::default(),
+            state: Arc::new(RwLock::new(Snapshot::default())),
+            meters,
+            commands: tx,
+            profile: shared_profile(reference_profile()),
+            book: Arc::new(std::sync::Mutex::new(
+                devices::Book::open(
+                    storage.path().join("connections.json"),
+                    Box::new(devices::FileVault::new(
+                        storage.path().join("credentials.json"),
+                    )),
+                )
+                .unwrap(),
+            )),
+        };
+        let meters_window = app.meters.subscribe();
+        let processing_window = app.meters.subscribe();
+        let Json(read) = diagnostics_handler(State(app.clone())).await;
+        assert_eq!(read["meter_readers"], 2);
+        for counter in [
+            "session_opens",
+            "meter_polls",
+            "meter_frames",
+            "device_writes",
+        ] {
+            assert_eq!(read[counter], 0, "{counter}");
+        }
+        drop((meters_window, processing_window));
+        let Json(read) = diagnostics_handler(State(app)).await;
+        assert_eq!(read["meter_readers"], 0);
+        assert!(
+            rx.try_recv().is_err(),
+            "reading diagnostics queued a command"
+        );
+    }
     #[tokio::test]
     async fn no_device_means_no_write_and_no_optimistic_state() {
         let (tx, rx) = mpsc::channel(8);
         let (meters, _) = watch::channel(json!({"live":false}));
         let app = App {
+            activity: Arc::default(),
             state: Arc::new(RwLock::new(Snapshot::default())),
             meters,
             commands: tx,
@@ -5500,6 +5600,7 @@ mod tests {
                 .unwrap(),
         );
         let app = App {
+            activity: Arc::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -5788,6 +5889,7 @@ mod tests {
             kind: orban_protocol::presets::PresetKind::User,
         }));
         let app = App {
+            activity: Arc::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -6173,6 +6275,7 @@ mod tests {
         let (meters, _) = watch::channel(json!({"live":false}));
         let storage = tempfile::tempdir().unwrap();
         let app = App {
+            activity: Arc::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
