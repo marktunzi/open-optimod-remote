@@ -106,7 +106,9 @@ const EMBEDDED: [Embedded; 8] = [
         meters: Some(include_str!("../../../profiles/6300/4.1.1.19/meters.json")),
         supplement: None,
         supplement_layouts: None,
-        system_layouts: None,
+        system_layouts: Some(include_str!(
+            "../../../profiles/6300/4.1.1.19/system-layouts.json"
+        )),
     },
     Embedded {
         adapter_id: "pc-remote-2300-2.0.3.85",
@@ -128,7 +130,9 @@ const EMBEDDED: [Embedded; 8] = [
         meters: Some(include_str!("../../../profiles/8700i/1.5.1.11/meters.json")),
         supplement: None,
         supplement_layouts: None,
-        system_layouts: None,
+        system_layouts: Some(include_str!(
+            "../../../profiles/8700i/1.5.1.11/system-layouts.json"
+        )),
     },
     Embedded {
         adapter_id: "pc-remote-8400-3.0.5.7",
@@ -137,7 +141,9 @@ const EMBEDDED: [Embedded; 8] = [
         meters: Some(include_str!("../../../profiles/8400/3.0.5.7/meters.json")),
         supplement: None,
         supplement_layouts: None,
-        system_layouts: None,
+        system_layouts: Some(include_str!(
+            "../../../profiles/8400/3.0.5.7/system-layouts.json"
+        )),
     },
     Embedded {
         adapter_id: "pc-remote-8700hd-1.0.2.161",

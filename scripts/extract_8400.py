@@ -565,6 +565,23 @@ OPEN_QUESTIONS = [
 ]
 
 
+def system_layouts(layout):
+    """The client's System Setup screens for the System Settings window, in its
+    order: Input/Output 1-5, then the System Setup screens with their own
+    titles. The Quick Setup screens are a wizard over fields of the other
+    screens and are left out."""
+    pages = []
+    for q in layout:
+        if q["path"] != "System" or q["title"].startswith("System Setup: Quick Setup"):
+            continue
+        title = q["title"].removeprefix("System Setup: ")
+        if not q["title"].startswith("Input/Output"):
+            title = re.sub(r" \d+$", "", title)
+        pages.append(dict(title=title, width=q["width"], height=q["height"], reference_dialog=q["reference_dialog"],
+                          controls=q["controls"], groups=q["groups"]))
+    return pages
+
+
 # --------------------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
@@ -787,6 +804,7 @@ def main():
                   fields=[{k: v for k, v in f.items() if not k.startswith("_")} for f in fields])
     (a.out / "parameters.json").write_text(json.dumps(params, indent=2, ensure_ascii=False) + "\n")
     (a.out / "layouts.json").write_text(json.dumps(layout, indent=2, ensure_ascii=False) + "\n")
+    (a.out / "system-layouts.json").write_text(json.dumps(system_layouts(layout), indent=2, ensure_ascii=False) + "\n")
 
     families = collections.Counter(d["version"] for d in docs)
     types = collections.Counter(d["type"] for d in docs)

@@ -342,3 +342,68 @@ fn the_5500_profile_differs_from_the_5500i_where_its_client_does() {
     };
     assert_ne!(reference(&old, "B1 ATTACK"), reference(&new, "B1 ATTACK"));
 }
+
+#[test]
+fn system_settings_follow_each_clients_setup_sheet() {
+    let tabs = |adapter: &str| -> Vec<String> {
+        Profile::for_adapter(adapter)
+            .unwrap()
+            .unwrap()
+            .system_layouts
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["title"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    // 6300PC.exe builds its sheet at 0x44c190; its Stereo Encoder dialog is never added.
+    assert_eq!(
+        tabs("pc-remote-6300-4.1.1.19"),
+        [
+            "Input",
+            "Output 1",
+            "Output 2",
+            "Test",
+            "Utility",
+            "Network",
+            "Misc",
+            "Remote Interface / Silence"
+        ]
+    );
+    // 8700iPC.exe at 0x460400; the Xponential page in that sheet holds processing fields.
+    assert_eq!(
+        tabs("pc-remote-8700i-1.5.1.11"),
+        [
+            "Input",
+            "Output 1",
+            "Stereo Encoder",
+            "Test",
+            "Utility",
+            "Network",
+            "Output 2",
+            "Remote Interface / Silence",
+            "HD Digital Radio",
+            "Digital MPX",
+            "RDS",
+            "RDS Alternate Frequencies",
+            "Dante Input",
+            "Dante Output",
+            "Streaming Audio",
+        ]
+    );
+    // The 8400 client's PEG screens, without the Quick Setup wizard.
+    assert_eq!(
+        tabs("pc-remote-8400-3.0.5.7"),
+        [
+            "Input/Output 1",
+            "Input/Output 2",
+            "Input/Output 3",
+            "Input/Output 4",
+            "Input/Output 5",
+            "Network/Remote",
+            "Security",
+            "Test Modes",
+        ]
+    );
+}

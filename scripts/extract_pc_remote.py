@@ -135,6 +135,9 @@ CONFIGS = {
         # Dialog 380 ("Dialog") holds the five-band compressor attacks and releases.
         page_titles={380: "Compressors"},
         overrides={},
+        # The Setup property sheet the client builds (0x44c190), in its order;
+        # its Stereo Encoder dialog 213 is never added to it.
+        system_pages=[212, 218, 367, 214, 215, 371, 385, 216],
     ),
     "ce8333a7242563aca5b88b27fe39eaabf2306deb488e80596617a0e0db449ad7": dict(
         # 2300 2.0.3.85: an older build. sprintf, itoa, the radio and combo
@@ -176,6 +179,9 @@ CONFIGS = {
                    getbyte=0x4C6F80, setvalue=0x447C90,
                    dialogs=[247, 373, 378], primary=247, max_values=112),
         overrides={},
+        # The Setup property sheet the client builds (0x460400), in its order;
+        # its Xponential page (409) is a processing page.
+        system_pages=[212, 218, 213, 214, 215, 371, 367, 216, 162, 402, 404, 405, 408, 407, 411],
     ),
     "6ff1f203b45345553459e70f043ae681514c98ba130058d677e70170a72ee5b5": dict(
         model="8700hd", adapter="pc-remote-8700hd-1.0.2.161", firmware="1.0.2.161",
