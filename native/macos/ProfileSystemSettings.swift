@@ -61,7 +61,9 @@ enum ProfileSystemSettings {
                 return SettingsSection(title: title, items: items.sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending })
             }
             guard !sections.isEmpty else { continue }
-            if let index = tabs.firstIndex(where: { $0.title == group.title }) {
+            // Leftover fields join the client's page for the same subject.
+            let aliases = [group.title] + (clientTabAliases[group.title] ?? [])
+            if let index = tabs.firstIndex(where: { aliases.contains($0.title) }) {
                 let tab = tabs[index]
                 tabs[index] = SettingsTab(title: tab.title, symbolName: tab.symbolName, sections: tab.sections + sections)
             } else {
@@ -111,11 +113,18 @@ enum ProfileSystemSettings {
         control.x >= box.x && control.x <= box.x + box.w && control.y >= box.y && control.y <= box.y + box.h
     }
 
-    private static let acronyms: Set<String> = ["AES", "AES67", "HD", "FM", "RDS", "MPX", "SCA", "IP", "AF", "PS", "RT", "LF", "HF"]
+    /// Client Setup page titles that cover one of the groups above.
+    private static let clientTabAliases: [String: [String]] = [
+        "Network & Time": ["Network"],
+        "Remote Control": ["Remote Interface", "Remote Interface / Silence"],
+        "HD & Diversity": ["HD Digital Radio"],
+    ]
+
+    private static let acronyms: Set<String> = ["AES", "AES67", "HD", "FM", "RDS", "MPX", "SCA", "IP", "AF", "PS", "RT", "LF", "HF", "ITU"]
 
     static func titleCase(_ text: String) -> String {
         text.trimmingCharacters(in: .whitespaces).split(separator: " ").map { word in
-            acronyms.contains(word.uppercased()) ? word.uppercased() : word.lowercased().capitalized
+            word.uppercased() == "KHZ" ? "kHz" : acronyms.contains(word.uppercased()) ? word.uppercased() : word.lowercased().capitalized
         }.joined(separator: " ")
     }
 
