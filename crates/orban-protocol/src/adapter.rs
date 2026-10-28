@@ -231,6 +231,30 @@ pub struct Wire {
     /// new name and deleted with this opcode and the file name, as the
     /// original PC Remote does. `None` where this was not captured.
     pub preset_file_delete: Option<u16>,
+    /// The unit's automation and passcode files, as the original client
+    /// reads and writes them. `None` where this was not captured.
+    pub tool_files: Option<ToolFiles>,
+    /// What the client's Backup to PC requests besides the preset files,
+    /// with each answer's opcode.
+    pub backup_requests: &'static [(u16, u16)],
+    /// The preset-file answers it keeps, by extension; empty keeps all.
+    pub backup_kept: &'static [&'static str],
+    /// Further files its Restore sends back as preset files (231).
+    pub restore_extensions: &'static [&'static str],
+}
+
+/// Requests for the files behind the client's Automation and Security
+/// dialogs. The unit answers with 235 (automation) and 230 (passcodes) on
+/// every model captured so far; the requests differ.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ToolFiles {
+    /// Sent first, as the original client does; without it the 5700i leaves
+    /// its passcode request unanswered.
+    pub prelude: Option<u16>,
+    pub automation_request: u16,
+    pub passcodes_request: u16,
+    /// The name the client gives the automation file it uploads.
+    pub automation_name: &'static str,
 }
 
 /// The PC Remote generation of the 5700i, where nothing else was captured.
@@ -247,6 +271,10 @@ pub const WIRE_PC_REMOTE: Wire = Wire {
     file_names: true,
     factory_recall: true,
     preset_file_delete: None,
+    tool_files: None,
+    backup_requests: &[(240, 233)],
+    backup_kept: &[],
+    restore_extensions: &[],
 };
 
 /// 5700i 3.0.1.20 (reference unit and virtual 5700i).
@@ -262,6 +290,12 @@ pub const WIRE_5700I: Wire = Wire {
     user_presets_request: Some((243, 231)),
     user_extension: ".orb57user",
     preset_file_delete: Some(237),
+    tool_files: Some(ToolFiles {
+        prelude: Some(244),
+        automation_request: 242,
+        passcodes_request: 241,
+        automation_name: "Automation.orb57autom",
+    }),
     ..WIRE_PC_REMOTE
 };
 
@@ -286,6 +320,10 @@ pub const WIRE_8700HD: Wire = Wire {
     file_names: true,
     factory_recall: true,
     preset_file_delete: None,
+    tool_files: None,
+    backup_requests: &[(240, 233)],
+    backup_kept: &[],
+    restore_extensions: &[],
 };
 
 /// 5500 1.2.8.24: the 8700HD generation. `5500PC.exe` 1.2.8.24 sends the same
@@ -305,7 +343,10 @@ pub const WIRE_5500: Wire = Wire {
 /// original firmware (virtual 5500i, 21 October 2026). The same generation as
 /// the 5700i: FAh is answered by FBh and EFh by `OnAir.orb55onair`. F0h is
 /// answered by `Setup.orbsetup` (E9h), F3h by the unit's preset files (E7h).
-/// A Recall upload ends with FBh, which the unit answers with FBh.
+/// A Recall upload ends with FBh, which the unit answers with FBh. Save and
+/// Save As upload the on-air file (229) and Delete sends EDh with
+/// `NAME.orb55user` and a newline, as on the 5700i; the passcodes come with
+/// F4h and the automation file with F2h (captures, 28 October 2026).
 pub const WIRE_5500I: Wire = Wire {
     boundary: (250, 251),
     on_air_request: 239,
@@ -318,7 +359,18 @@ pub const WIRE_5500I: Wire = Wire {
     login_seed: LoginSeed::Always,
     file_names: true,
     factory_recall: true,
-    preset_file_delete: None,
+    preset_file_delete: Some(237),
+    tool_files: Some(ToolFiles {
+        prelude: None,
+        automation_request: 242,
+        passcodes_request: 244,
+        automation_name: "Automation.orb55autom",
+    }),
+    // Backup to PC keeps setup, network, automation, user presets and setup
+    // presets; Restore sends any of them back as 231 (captures, 28 October).
+    backup_requests: &[(240, 233), (241, 234), (242, 235)],
+    backup_kept: &[".orb55user", ".orb55setup"],
+    restore_extensions: &[".orb55setup", ".orbsetup", ".orb55autom", ".orb55net"],
 };
 
 /// Preset names of the factory `.orb55f50` files of PC Remote 3.1.0.2.
@@ -369,6 +421,10 @@ pub const WIRE_6300: Wire = Wire {
     file_names: true,
     factory_recall: true,
     preset_file_delete: None,
+    tool_files: None,
+    backup_requests: &[(240, 233)],
+    backup_kept: &[],
+    restore_extensions: &[],
 };
 
 /// Preset names of the factory `.orb63f` files of PC Remote 4.1.1.19.
@@ -464,6 +520,10 @@ pub const WIRE_2300: Wire = Wire {
     file_names: false,
     factory_recall: false,
     preset_file_delete: None,
+    tool_files: None,
+    backup_requests: &[(240, 233)],
+    backup_kept: &[],
+    restore_extensions: &[],
 };
 
 /// Preset names of the factory `.orb23f75` files of PC Remote 2.0.3.85.
@@ -487,6 +547,12 @@ const FACTORY_2300: [&str; 10] = [
 pub const WIRE_8700I: Wire = Wire {
     user_extension: ".orb87user",
     factory_presets: &FACTORY_8700I,
+    // The 5500i's file messages are not captured for the 8700i yet.
+    preset_file_delete: None,
+    tool_files: None,
+    backup_requests: &[(240, 233)],
+    backup_kept: &[],
+    restore_extensions: &[],
     ..WIRE_5500I
 };
 
@@ -729,7 +795,7 @@ const EXACT: [(&str, AdapterDescriptor); 8] = [
             default_terminal_port: 23,
             product_mark: "5500i DIGITAL",
             firmware_prefix: "5500i V ",
-            capabilities: STATIC_FULL,
+            capabilities: STATIC_FULL_WITH_PRESET_FILES,
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
             on_air_archive: true,

@@ -403,6 +403,7 @@ final class SecurityWindowController: ToolWindowController, NSTableViewDataSourc
             if let row = passcodes.firstIndex(where: { $0.code == words[1].uppercased() }) { tableView.selectRowIndexes([row], byExtendingSelection: false) }
         case "level" where words.count > 1: levelPopup.selectItem(at: Int(words[1]) ?? 0); levelChosen()
         case "remove": removePasscode()
+        case "revert": revert()
         case "save": save()
         default: break
         }
@@ -420,7 +421,8 @@ final class AutomationWindowController: ToolWindowController, NSTableViewDataSou
         var action: String
     }
 
-    private static let functions = ["Bypass", "Exit Test", "Stereo", "Mono-R", "Mono-L", "Mono-Sum", "SSB", "Mod. Reduction 1",
+    /// The model's functions come with the events; until then the 5700i's.
+    private var functions = ["Bypass", "Exit Test", "Stereo", "Mono-R", "Mono-L", "Mono-Sum", "SSB", "Mod. Reduction 1",
                                     "Mod. Reduction 2", "Exit Mod. Reduction", "Analog Out Delay In", "Analog Out Delay Out",
                                     "Digital Out 1 Delay In", "Digital Out 1 Delay Out", "Digital Out 2 Delay In",
                                     "Digital Out 2 Delay Out", "Stereo Enc Delay In", "Stereo Enc Delay Out"]
@@ -493,6 +495,10 @@ final class AutomationWindowController: ToolWindowController, NSTableViewDataSou
             switch result {
             case let .success(data):
                 self.events = (data["events"] as? [[String: Any]] ?? []).map(self.event(from:))
+                if let functions = data["functions"] as? [String] {
+                    self.functions = functions
+                    self.stateChanged()
+                }
                 self.dirty = false
                 self.tableView.reloadData()
                 if !self.events.isEmpty { self.tableView.selectRowIndexes([0], byExtendingSelection: false) }
@@ -511,7 +517,7 @@ final class AutomationWindowController: ToolWindowController, NSTableViewDataSou
         actionPopup.removeAllItems()
         actionPopup.menu?.addItem(withTitle: "No function", action: nil, keyEquivalent: "")
         actionPopup.menu?.addItem(.separator())
-        for name in presets + Self.functions { actionPopup.menu?.addItem(withTitle: name, action: nil, keyEquivalent: "") }
+        for name in presets + functions { actionPopup.menu?.addItem(withTitle: name, action: nil, keyEquivalent: "") }
         if let current { actionPopup.selectItem(withTitle: current) }
         updateControls()
     }

@@ -203,7 +203,6 @@ struct BackupFile {
 /// events (235, named) or the passcodes (230, without a name).
 struct UnitFileWrite {
     kind: u16,
-    name: Option<&'static str>,
     document: Zeroizing<String>,
     expected_host: String,
     expected_session: String,
@@ -806,16 +805,15 @@ async fn read_unit_file(
     rx.await.map_err(api_error)?.map_err(api_error)
 }
 async fn automation_handler(State(app): State<App>) -> ApiResult {
-    let text = read_unit_file(&app, 242).await?;
+    let text = read_unit_file(&app, 235).await?;
     let events = text
         .as_deref()
         .map(automation::parse)
         .transpose()
         .map_err(api_error)?
         .unwrap_or_default();
-    Ok(Json(
-        json!({"events": events, "functions": automation::FUNCTIONS}),
-    ))
+    let (functions, _, _) = automation::flavour(app.state.read().await.model);
+    Ok(Json(json!({"events": events, "functions": functions})))
 }
 #[derive(Deserialize)]
 struct AutomationWrite {
@@ -831,12 +829,12 @@ async fn automation_write_handler(
     if !body.confirmed {
         return Err(api_error("Confirm the change first"));
     }
-    let document = Zeroizing::new(automation::render(&body.events).map_err(api_error)?);
+    let model = app.state.read().await.model;
+    let document = Zeroizing::new(automation::render(&body.events, model).map_err(api_error)?);
     dispatch(app, |r| {
         Command::WriteUnitFile(
             UnitFileWrite {
                 kind: 235,
-                name: Some("Automation.orb57autom"),
                 document,
                 expected_host: body.expected_host,
                 expected_session: body.expected_session,
@@ -847,16 +845,15 @@ async fn automation_write_handler(
     .await
 }
 async fn security_handler(State(app): State<App>) -> ApiResult {
-    let text = read_unit_file(&app, 241).await?;
+    let text = read_unit_file(&app, 230).await?;
     let entries = text
         .as_deref()
         .map(security::parse)
         .transpose()
         .map_err(api_error)?
         .unwrap_or_default();
-    Ok(Json(
-        json!({"passcodes": entries, "levels": security::LEVELS}),
-    ))
+    let (levels, _, _) = security::flavour(app.state.read().await.model);
+    Ok(Json(json!({"passcodes": entries, "levels": levels})))
 }
 #[derive(Deserialize)]
 struct SecurityWrite {
@@ -872,12 +869,12 @@ async fn security_write_handler(
     if !body.confirmed {
         return Err(api_error("Confirm the change first"));
     }
-    let document = Zeroizing::new(security::render(&body.passcodes).map_err(api_error)?);
+    let model = app.state.read().await.model;
+    let document = Zeroizing::new(security::render(&body.passcodes, model).map_err(api_error)?);
     dispatch(app, |r| {
         Command::WriteUnitFile(
             UnitFileWrite {
                 kind: 230,
-                name: None,
                 document,
                 expected_host: body.expected_host,
                 expected_session: body.expected_session,
@@ -1412,6 +1409,15 @@ async fn synchronize_files(app: &App, device: &mut Device) -> Result<(), String>
     } else {
         None
     };
+    // The status text of the client's Diagnostics answers 204 with the
+    // access code, which the original client sends at every sync.
+    if device.session.adapter().wire.tool_files.is_some()
+        && app.state.read().await.diagnostics.is_none()
+    {
+        let code = device.code.clone();
+        device.session.send(204, code.as_bytes()).await?;
+        drain(device, app).await?;
+    }
     let presets = read_preset_files(app, device).await?;
     let processing = read_on_air_archive(app, device).await?;
     let mut state = app.state.write().await;
@@ -2222,11 +2228,26 @@ async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>,
         ));
     };
     let mut files: Vec<BackupFile> = Vec::new();
-    for (request, reply) in [(240, 233), (presets, preset_reply)] {
+    let requests = wire
+        .backup_requests
+        .iter()
+        .copied()
+        .chain([(presets, preset_reply)]);
+    for (request, reply) in requests {
         for (name, data) in read_files(app, device, request, reply).await? {
+            let lower = name.to_ascii_lowercase();
+            if reply == preset_reply
+                && !wire.backup_kept.is_empty()
+                && !wire.backup_kept.iter().any(|e| lower.ends_with(e))
+            {
+                continue;
+            }
             let plain = device.session.decrypt_file(&data)?;
             let document = String::from_utf8(plain).map_err(|_| "Unsupported document encoding")?;
-            file_document(document.as_bytes(), device.session.info.model)?;
+            // Automation and network files are no processing documents.
+            if reply != 235 && reply != 234 {
+                file_document(document.as_bytes(), device.session.info.model)?;
+            }
             // The unit sends its working copies twice.
             if !files.iter().any(|f| f.name.eq_ignore_ascii_case(&name)) {
                 files.push(BackupFile {
@@ -2248,27 +2269,27 @@ async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>,
 async fn read_unit_file_from(
     device: &mut Device,
     app: &App,
-    request: u16,
+    reply: u16,
 ) -> Result<Option<String>, String> {
-    if device.session.adapter().wire.preset_file_delete.is_none() {
+    let Some(tools) = device.session.adapter().wire.tool_files else {
         return Err(format!(
             "Not available for {}",
             device.session.info.model.label()
         ));
-    }
+    };
     // The passcodes are for a full-access session only, as their write is.
     let access = device.session.info.access();
-    if (request == 241 && !access.security) || (request == 242 && !access.automation) {
+    if (reply == 230 && !access.security) || (reply == 235 && !access.automation) {
         return Err("Security is not available for this access level".into());
     }
-    let reply = match request {
-        242 => 235,
-        241 => 230,
+    let request = match reply {
+        235 => tools.automation_request,
+        230 => tools.passcodes_request,
         _ => return Err("Unsupported file request".into()),
     };
-    // The original client sends F4h before these requests; without it the
-    // unit leaves 241 unanswered (28 October 2026).
-    device.session.send(244, b"").await?;
+    if let Some(prelude) = tools.prelude {
+        device.session.send(prelude, b"").await?;
+    }
     let files = read_files(app, device, request, reply).await?;
     let Some((_, data)) = files.into_iter().next() else {
         return Ok(None);
@@ -2286,12 +2307,12 @@ async fn write_unit_file(
     app: &App,
     body: UnitFileWrite,
 ) -> Result<(), OperationError> {
-    if device.session.adapter().wire.preset_file_delete.is_none() {
+    let Some(tools) = device.session.adapter().wire.tool_files else {
         return Err(OperationError::safe(format!(
             "Not available for {}",
             device.session.info.model.label()
         )));
-    }
+    };
     let access = device.session.info.access();
     if !(if body.kind == 230 {
         access.security
@@ -2315,21 +2336,19 @@ async fn write_unit_file(
     // (and the original client with the same code) loses this unit.
     if body.kind == 230 {
         let passcodes = security::parse(&body.document).map_err(OperationError::safe)?;
-        if !passcodes
-            .iter()
-            .any(|p| p.code.eq_ignore_ascii_case(&device.code) && p.level == security::LEVELS[0])
-        {
+        if !passcodes.iter().any(|p| {
+            p.code.eq_ignore_ascii_case(&device.code)
+                && p.level == security::flavour(device.session.info.model).0[0]
+        }) {
             return Err(OperationError::safe(
                 "Keep the passcode this connection uses, with access to all screens",
             ));
         }
     }
     // With no events left the original client deletes the automation file.
-    let request = if body.kind == 235 { 242 } else { 241 };
+    let name = (body.kind == 235).then_some(tools.automation_name);
     if body.document.is_empty() {
-        let name = body
-            .name
-            .ok_or_else(|| OperationError::safe("Nothing to save"))?;
+        let name = name.ok_or_else(|| OperationError::safe("Nothing to save"))?;
         device
             .session
             .send(237, format!("{name}\n").as_bytes())
@@ -2337,7 +2356,7 @@ async fn write_unit_file(
             .map_err(OperationError::uncertain)?;
         let end = tokio::time::Instant::now() + Duration::from_secs(10);
         loop {
-            match read_unit_file_from(device, app, request).await {
+            match read_unit_file_from(device, app, body.kind).await {
                 Ok(None) => return Ok(()),
                 _ if tokio::time::Instant::now() + Duration::from_millis(500) > end => {
                     return Err(OperationError::uncertain(
@@ -2351,7 +2370,7 @@ async fn write_unit_file(
     let iv = *uuid::Uuid::new_v4().as_bytes();
     let sealed = orban_protocol::archive::encrypt(body.document.as_bytes(), &device.code, iv)
         .map_err(OperationError::safe)?;
-    let header = match body.name {
+    let header = match name {
         Some(name) => {
             let millis = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -2379,7 +2398,7 @@ async fn write_unit_file(
     let normalize = |text: &str| text.replace("\r\n", "\n");
     let end = tokio::time::Instant::now() + Duration::from_secs(10);
     loop {
-        let read = read_unit_file_from(device, app, request).await;
+        let read = read_unit_file_from(device, app, body.kind).await;
         let last = tokio::time::Instant::now() + Duration::from_millis(500) > end;
         match read {
             Ok(Some(text)) if normalize(&text) == normalize(&body.document) => return Ok(()),
@@ -2429,9 +2448,14 @@ async fn restore_preset_files(
         }
     }
     let mut names = Vec::new();
+    let others = device.session.adapter().wire.restore_extensions;
     for file in &body.files {
-        let valid_name = file.name.len() > extension.len()
-            && file.name.to_ascii_lowercase().ends_with(extension)
+        let lower = file.name.to_ascii_lowercase();
+        let other = others
+            .iter()
+            .any(|e| lower.len() > e.len() && lower.ends_with(e));
+        let valid_name = (other
+            || (file.name.len() > extension.len() && lower.ends_with(extension)))
             && !file
                 .name
                 .contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|'])
@@ -2442,6 +2466,16 @@ async fn restore_preset_files(
                 file.name,
                 model.label()
             )));
+        }
+        if other {
+            // Setup, automation and network files: the client checks no more.
+            if !file.document.starts_with("OptimodVersion=<") {
+                return Err(OperationError::safe(format!(
+                    "{} is not an Optimod file",
+                    file.name
+                )));
+            }
+            continue;
         }
         let document = file_document(file.document.as_bytes(), model)
             .map_err(|e| OperationError::safe(format!("{}: {e}", file.name)))?;

@@ -1,5 +1,7 @@
-//! The 5700i automation file (`Automation.orb57autom`) as the original PC
-//! Remote 3.0.1.20 writes it: one block per event (captured 28 October 2026).
+//! The automation file (`Automation.orb57autom`, `Automation.orb55autom`) as
+//! the original PC Remote writes it: one block per event (5700i 3.0.1.20 and
+//! 5500i 3.1.0.2, captured 28 October 2026).
+use orban_protocol::adapter::DeviceModel;
 use serde::{Deserialize, Serialize};
 
 /// The client's non-preset actions, in its own order.
@@ -23,6 +25,38 @@ pub const FUNCTIONS: [&str; 18] = [
     "Stereo Enc Delay In",
     "Stereo Enc Delay Out",
 ];
+/// The functions the 5500i client 3.1.0.2 offers after the presets.
+pub const FUNCTIONS_5500I: [&str; 18] = [
+    "ST ENC DELAY: IN",
+    "ST ENC DELAY: OUT",
+    "AO SOURCE: FM",
+    "AO SOURCE: FM+DEL",
+    "AO SOURCE: MON",
+    "DO SOURCE: FM",
+    "DO SOURCE: FM+DEL",
+    "DO SOURCE: MON",
+    "Bypass",
+    "Exit Test",
+    "Stereo",
+    "Mono-R",
+    "Mono-L",
+    "Mono-Sum",
+    "SSB",
+    "Mod. Reduction 1",
+    "Mod. Reduction 2",
+    "Exit Mod. Reduction",
+];
+
+/// The model's functions, its document version and its file extension.
+pub fn flavour(model: DeviceModel) -> (&'static [&'static str], &'static str, &'static str) {
+    match model {
+        DeviceModel::Optimod5500i => (&FUNCTIONS_5500I, "5500.50", "orb55autom"),
+        _ => (&FUNCTIONS, "5700.51", "orb57autom"),
+    }
+}
+
+const NO_FUNCTION: &str = "no function";
+
 const MONTHS: [&str; 12] = [
     "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
 ];
@@ -93,13 +127,18 @@ pub fn parse(text: &str) -> Result<Vec<Event>, String> {
                 year: number(field(block, "AUTO SET YEAR")?, "year")?,
                 weekdays,
                 daily: field(block, "SET BY DAY/WEEK")? == "DAY",
-                action: field(block, "AUTOMATION EVENT")?.to_owned(),
+                // The client's "no function" is an event without an action.
+                action: Some(field(block, "AUTOMATION EVENT")?)
+                    .filter(|a| !a.eq_ignore_ascii_case(NO_FUNCTION))
+                    .unwrap_or_default()
+                    .to_owned(),
             })
         })
         .collect()
 }
 
-pub fn render(events: &[Event]) -> Result<String, String> {
+pub fn render(events: &[Event], model: DeviceModel) -> Result<String, String> {
+    let (_, version, extension) = flavour(model);
     if events.len() > 100 {
         return Err("At most 100 automation events".into());
     }
@@ -111,14 +150,11 @@ pub fn render(events: &[Event]) -> Result<String, String> {
         if !(1..=31).contains(&e.day) || !(2000..=2099).contains(&e.year) {
             return Err("Invalid date in an automation event".into());
         }
-        if e.action.is_empty()
-            || e.action.len() > 40
-            || e.action.contains(['<', '>', ';', '\n', '\r'])
-        {
+        if e.action.len() > 40 || e.action.contains(['<', '>', ';', '\n', '\r']) {
             return Err("Invalid action in an automation event".into());
         }
         out.push_str(&format!(
-            "OptimodVersion=<5700.51>\nPreset Name=<auto_event_{index:02}> size=17\nFactory Preset Name=<Automation Preset>\nPreset Type= <AUTOMATION PRESET>\nPreset File Name= <auto_event_{index:02}.orb57autom>\n"
+            "OptimodVersion=<{version}>\nPreset Name=<auto_event_{index:02}> size=17\nFactory Preset Name=<Automation Preset>\nPreset Type= <AUTOMATION PRESET>\nPreset File Name= <auto_event_{index:02}.{extension}>\n"
         ));
         out.push_str(&format!(
             "C:<AUTO SET MINUTE>String:<{:02}:>;D:{};\n",
@@ -156,7 +192,11 @@ pub fn render(events: &[Event]) -> Result<String, String> {
         ));
         out.push_str(&format!(
             "C:<AUTOMATION EVENT>UserString:<{}>;D:0;\n",
-            e.action
+            if e.action.is_empty() {
+                NO_FUNCTION
+            } else {
+                &e.action
+            }
         ));
         out.push_str("End Preset<end>\n");
     }
@@ -179,7 +219,26 @@ mod tests {
             (events[1].day, events[1].month, events[1].year),
             (28, 10, 2026)
         );
-        assert_eq!(super::render(&events).unwrap(), CAPTURED);
-        assert_eq!(super::render(&[]).unwrap(), "");
+        assert_eq!(
+            super::render(&events, super::DeviceModel::Optimod5700i).unwrap(),
+            CAPTURED
+        );
+        assert_eq!(
+            super::render(&[], super::DeviceModel::Optimod5700i).unwrap(),
+            ""
+        );
+    }
+
+    /// The 5500i client's file for its default new event (Backup to PC,
+    /// 28 October 2026).
+    #[test]
+    fn renders_the_5500i_clients_new_event() {
+        const CAPTURED_5500I: &str = "OptimodVersion=<5500.50>\nPreset Name=<auto_event_00> size=17\nFactory Preset Name=<Automation Preset>\nPreset Type= <AUTOMATION PRESET>\nPreset File Name= <auto_event_00.orb55autom>\nC:<AUTO SET MINUTE>String:<00:>;D:0;\nC:<AUTO SET HOUR>String:<00:>;D:0;\nC:<AUTO SET SECOND>String:<00>;D:0;\nC:<AUTO SET DAY>String:<01>;D:0;\nC:<AUTO SET MONTH>String:<JAN>;D:0;\nC:<AUTO SET YEAR>Int:2005;D:2005;\nC:<SUNDAY>String:<S>;D:1;\nC:<MONDAY>String:<M>;D:1;\nC:<TUESDAY>String:<T>;D:1;\nC:<WEDNESDAY>String:<W>;D:1;\nC:<THURSDAY>String:<T>;D:1;\nC:<FRIDAY>String:<F>;D:1;\nC:<SATURDAY>String:<S>;D:1;\nC:<SET BY DAY/WEEK>UserString:<DAY>;D:0;\nC:<AUTOMATION EVENT>UserString:<no function>;D:0;\nEnd Preset<end>\n";
+        let events = super::parse(CAPTURED_5500I).unwrap();
+        assert_eq!(events.len(), 1);
+        assert_eq!(
+            super::render(&events, super::DeviceModel::Optimod5500i).unwrap(),
+            CAPTURED_5500I
+        );
     }
 }

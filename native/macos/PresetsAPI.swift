@@ -72,6 +72,7 @@ struct PresetFileFormat: Equatable, Sendable {
     static func forAdapter(_ adapterID: String?) -> PresetFileFormat {
         let id = adapterID ?? ""
         if id.hasPrefix("pc-remote-5500-") { return PresetFileFormat(model: "OPTIMOD 5500", fileExtension: "orb55user") }
+        if id.hasPrefix("pc-remote-5500i-") { return PresetFileFormat(model: "OPTIMOD 5500i", fileExtension: "orb55user") }
         if id.hasPrefix("pc-remote-8700hd-") { return PresetFileFormat(model: "OPTIMOD-FM 8700HD", fileExtension: "orb86user") }
         if id.hasPrefix("pc-remote-5700i-") { return PresetFileFormat(model: "OPTIMOD 5700i", fileExtension: "orb57user") }
         return PresetFileFormat(model: "OPTIMOD", fileExtension: "orb")
@@ -80,11 +81,18 @@ struct PresetFileFormat: Equatable, Sendable {
     /// Longest name the model's own PC Remote accepts for a new preset.
     var maxNameLength: Int { fileExtension == "orb55user" ? 18 : 20 }
 
-    /// Models whose own PC Remote saves the on-air user preset under its own name (5700i Save).
-    static func replacesOnAir(_ adapterID: String?) -> Bool { adapterID?.hasPrefix("pc-remote-5700i-") == true }
+    /// Models whose own PC Remote saves the on-air user preset under its own name (5700i, 5500i Save).
+    static func replacesOnAir(_ adapterID: String?) -> Bool { backsUpFiles(adapterID) }
 
     /// Models whose original PC Remote backs up the unit's own files (setup and user presets).
-    static func backsUpFiles(_ adapterID: String?) -> Bool { adapterID?.hasPrefix("pc-remote-5700i-") == true }
+    static func backsUpFiles(_ adapterID: String?) -> Bool {
+        adapterID?.hasPrefix("pc-remote-5700i-") == true || adapterID?.hasPrefix("pc-remote-5500i-") == true
+    }
+
+    /// Files the 5500i client's Restore sends back as files, next to the user presets.
+    static func restoresAsFiles(_ adapterID: String?) -> [String] {
+        adapterID?.hasPrefix("pc-remote-5500i-") == true ? [".orb55setup", ".orbsetup", ".orb55autom", ".orb55net"] : []
+    }
 }
 
 /// A file of the original PC Remote's backup folder.
@@ -104,7 +112,9 @@ enum PresetBackup {
         var presets: [PresetBackupFile] = []
         for file in files {
             let lower = file.name.lowercased()
-            if lower == "setup.orb57setup" && PresetFileFormat.backsUpFiles(adapterID) {
+            if PresetFileFormat.restoresAsFiles(adapterID).contains(where: { lower.hasSuffix($0) }) {
+                presets.append(file)
+            } else if lower == "setup.orb57setup" && PresetFileFormat.backsUpFiles(adapterID) {
                 if setup != nil { throw SystemSettingsAPIError.service("Choose one setup file.") }
                 setup = file
             } else if lower.hasSuffix(fileExtension) {

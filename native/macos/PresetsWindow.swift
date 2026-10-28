@@ -927,6 +927,10 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
                     var lines: [String] = []
                     if !sorted.presets.isEmpty {
                         lines.append("User preset files: \(sorted.presets.map(\.name).joined(separator: ", ")). A preset with the same name is replaced; the on-air sound does not change.")
+                        let others = PresetFileFormat.restoresAsFiles(adapterID)
+                        if sorted.presets.contains(where: { file in others.contains { file.name.lowercased().hasSuffix($0) } }) {
+                            lines.append("Setup, automation and network files replace the processor's own, as the original client's Restore does. A network file can change its IP address.")
+                        }
                     }
                     if sorted.setup != nil {
                         lines.append(changes.isEmpty ? "The setup file matches the processor's system settings; nothing to restore there."

@@ -1,6 +1,8 @@
-//! The 5700i passcode file (`Password.orb57pas`) as the original PC Remote
-//! 3.0.1.20 writes it: one line per passcode with its access level
-//! (captured 28 October 2026). Passcodes never go to logs.
+//! The passcode file (`Password.orb57pas`, `Password.orb55pas`) as the
+//! original PC Remote writes it: one line per passcode with its access level
+//! (5700i 3.0.1.20 and 5500i 3.1.0.2, 28 October 2026). Passcodes never go
+//! to logs.
+use orban_protocol::adapter::DeviceModel;
 use serde::{Deserialize, Serialize};
 
 /// The client's access levels; the index is the level number.
@@ -12,6 +14,24 @@ pub const LEVELS: [&str; 6] = [
     "Presets and Automation",
     "Presets",
 ];
+
+/// The 5500i client's level names, which are also what its file holds.
+pub const LEVELS_5500I: [&str; 6] = [
+    "all access",
+    "all access except security",
+    "all screens except modify and security",
+    "recall, modify & automation",
+    "recall presets program automation",
+    "recall presets",
+];
+
+/// The model's level names, its document version and its file extension.
+pub fn flavour(model: DeviceModel) -> (&'static [&'static str; 6], &'static str, &'static str) {
+    match model {
+        DeviceModel::Optimod5500i => (&LEVELS_5500I, "5500.50", "orb55pas"),
+        _ => (&LEVELS, "5700.51", "orb57pas"),
+    }
+}
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Passcode {
@@ -35,19 +55,20 @@ pub fn parse(text: &str) -> Result<Vec<Passcode>, String> {
         .collect()
 }
 
-pub fn render(passcodes: &[Passcode]) -> Result<String, String> {
+pub fn render(passcodes: &[Passcode], model: DeviceModel) -> Result<String, String> {
+    let (levels, version, extension) = flavour(model);
     if passcodes.is_empty() || passcodes.len() > 20 {
         return Err("Program between 1 and 20 passcodes".into());
     }
-    if !passcodes.iter().any(|p| p.level == LEVELS[0]) {
+    if !passcodes.iter().any(|p| p.level == levels[0]) {
         return Err("At least one passcode needs access to all screens".into());
     }
     let mut out = format!(
-        "OptimodVersion=<5700.51>\nPreset Name=<Password Preset> size={}\nFactory Preset Name=<Password Preset>\nPreset Type= <PASSWORD PRESET>\nPreset File Name= <Password.orb57pas>\n",
+        "OptimodVersion=<{version}>\nPreset Name=<Password Preset> size={}\nFactory Preset Name=<Password Preset>\nPreset Type= <PASSWORD PRESET>\nPreset File Name= <Password.{extension}>\n",
         passcodes.len()
     );
     for (i, p) in passcodes.iter().enumerate() {
-        let level = LEVELS
+        let level = levels
             .iter()
             .position(|l| *l == p.level)
             .ok_or("Unknown access level")?;
@@ -78,11 +99,25 @@ mod tests {
     fn the_captured_file_parses_and_renders_byte_for_byte() {
         let codes = super::parse(CAPTURED).unwrap();
         assert_eq!(codes.len(), 2);
-        assert_eq!(super::render(&codes).unwrap(), CAPTURED);
+        assert_eq!(
+            super::render(&codes, super::DeviceModel::Optimod5700i).unwrap(),
+            CAPTURED
+        );
         assert!(
-            super::render(&codes[1..]).is_err(),
+            super::render(&codes[1..], super::DeviceModel::Optimod5700i).is_err(),
             "a full-access passcode must stay"
         );
-        assert!(super::render(&[]).is_err());
+        assert!(super::render(&[], super::DeviceModel::Optimod5700i).is_err());
+    }
+
+    /// The 5500i's own file, as its firmware keeps it.
+    #[test]
+    fn the_5500i_file_parses_and_renders_byte_for_byte() {
+        const FILE: &str = "OptimodVersion=<5500.50>\nPreset Name=<Password Preset> size=1\nFactory Preset Name=<Password Preset>\nPreset Type= <PASSWORD PRESET>\nPreset File Name= <Password.orb55pas>\nC:<1234>String:<all access>;D:0;\nEnd Preset<end>\n";
+        let codes = super::parse(FILE).unwrap();
+        assert_eq!(
+            super::render(&codes, super::DeviceModel::Optimod5500i).unwrap(),
+            FILE
+        );
     }
 }
