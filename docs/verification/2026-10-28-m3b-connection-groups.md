@@ -19,3 +19,7 @@ Groups are one level deep; the client's tree can nest groups inside groups.
 ## Checks
 
 `cargo test` (new: group create/rename/delete/reopen), ConnectionsAPITests, ConnectionsWindowTests: PASS.
+
+## Reconnect after an unexpected loss, on firmware
+
+The scratch 5700i (original firmware) was quit and relaunched at 19:56:52 while the app was connected. The app saw the loss at 19:57:13 (`Broken pipe`), showed reconnect attempt 1, waited the 120 s of its schedule and was connected again at 19:59:14 with the same on-air preset and live meters; no user action, no extra login attempts.
