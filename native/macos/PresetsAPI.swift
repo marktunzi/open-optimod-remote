@@ -5,9 +5,14 @@ struct PresetBrowserContext: Sendable {
 
     var currentName: String { snapshot.processing?.name ?? "" }
     var fileFormat: PresetFileFormat { PresetFileFormat.forAdapter(snapshot.adapterID) }
-    var ready: Bool { snapshot.connected && snapshot.writeEnabled }
-    var canStore: Bool { ready && snapshot.capabilities?.presetStore == true }
-    var canDelete: Bool { ready && snapshot.capabilities?.presetDelete == true }
+    /// Recall, at every access level that has Presets.
+    var ready: Bool { snapshot.allows(\.recall) }
+    /// Applying a preset file changes the processing (Modify).
+    var canModify: Bool { snapshot.allows(\.modify) }
+    /// Restore from backup (the client's Restore from PC).
+    var canRestore: Bool { snapshot.allows(\.memory) }
+    var canStore: Bool { snapshot.allows(\.presets) && snapshot.capabilities?.presetStore == true }
+    var canDelete: Bool { snapshot.allows(\.presets) && snapshot.capabilities?.presetDelete == true }
     /// Saving, renaming and deleting presets on the processor itself.
     var managesOnDevice: Bool {
         snapshot.capabilities?.presetStore == true || snapshot.capabilities?.presetDelete == true

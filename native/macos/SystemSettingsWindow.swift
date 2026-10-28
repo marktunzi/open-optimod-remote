@@ -110,7 +110,7 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
             case let .success(context):
                 self.lastRevision = context.snapshot.revision
                 self.context = context
-                self.setBusy(false, status: context.snapshot.connected ? (context.snapshot.writeEnabled ? "Connected · Changes enabled" : "Connected · Read only") : "Not connected")
+                self.setBusy(false, status: context.snapshot.connected ? (context.snapshot.allows(\.setup) ? "Connected · Changes enabled" : "Connected · Read only") : "Not connected")
                 self.setDetail(context.snapshot.connected ? context.snapshot.firmware : (context.snapshot.error ?? "Connect in Connections."))
                 self.renderTabs(selectedTitle: self.selectedTabTitle)
             case let .failure(error):
@@ -578,7 +578,7 @@ private final class SettingsControlRow: NSView, NSTextFieldDelegate {
     private var policyExplanation: String? {
         if case let .unavailable(reason) = item.writePolicy { return reason }
         if context?.snapshot.connected == false { return "Connect in the main window to load and edit this value." }
-        if context?.snapshot.writeEnabled == false { return "The active connection is read only." }
+        if context?.snapshot.allows(\.setup) == false { return "The active connection is read only." }
         if field == nil { return "This setting is not present in the connected unit's System document." }
         if item.writePolicy == .profile && definition == nil { return "This control is unavailable for the connected firmware profile." }
         return nil

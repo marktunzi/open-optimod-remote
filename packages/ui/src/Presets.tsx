@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { api } from './api';
-import type { Action, Snapshot } from './model';
+import { allows, type Action, type Snapshot } from './model';
 import { backsUpFiles, maxPresetNameLength, parseBackup, presetFileExtension, presetManagement, presetNameProblem, sortBackupFiles, zipFiles, type Backup, type BackupFile } from './preset-state';
 
 type PendingChange =
@@ -38,7 +38,7 @@ export function Presets({ snapshot, busy, action }: { snapshot: Snapshot; busy: 
   const available = snapshot.presets.filter(p => p.kind !== 'Unsaved');
   const visible = available.filter(p => (category === 'All' || p.kind === category) && p.name.toLowerCase().includes(query.toLowerCase()));
   const current = snapshot.processing?.name || '';
-  const ready = snapshot.connected && snapshot.write_enabled && !busy;
+  const ready = allows(snapshot, 'recall') && !busy;
   const canRecall = ready && available.some(p => p.name === selected);
   const manage = presetManagement(snapshot, selected, busy);
   const onDevice = snapshot.capabilities?.preset_store || snapshot.capabilities?.preset_delete;

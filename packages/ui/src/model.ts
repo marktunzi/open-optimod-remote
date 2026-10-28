@@ -14,7 +14,15 @@ export type Capabilities = {
   /** Delete a user preset on the processor. */
   preset_delete?: boolean;
 };
+/** What the session may change at its access level (the client's Security levels). */
+export type Access = { level: number; recall: boolean; modify: boolean; presets: boolean; setup: boolean;
+  automation: boolean; security: boolean; memory: boolean };
+/** One right of the session; a service without `access` grants all with `write_enabled`. */
+export function allows(snapshot: { connected: boolean; write_enabled: boolean; access?: Access | null }, right: keyof Omit<Access, 'level'>): boolean {
+  return snapshot.connected && (snapshot.access ? snapshot.access[right] : snapshot.write_enabled);
+}
 export type Snapshot = {
+  access?: Access | null;
   connected: boolean; host: string; firmware: string;
   processing: Doc | null; system: Doc | null; error: string | null;
   revision: number; device_id?: string | null; session_id?: string | null; presets: Preset[]; write_enabled: boolean;

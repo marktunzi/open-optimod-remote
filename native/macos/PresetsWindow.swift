@@ -338,12 +338,12 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
         addItems(to: menu, selection: selectedPreset?.name)
         menu.addItem(.separator())
         let format = context?.fileFormat ?? .forAdapter(nil)
-        add(menu, "Apply Preset File…", #selector(applyPresetFile), enabled: idle && context?.ready == true)
+        add(menu, "Apply Preset File…", #selector(applyPresetFile), enabled: idle && context?.canModify == true)
         add(menu, "Save Current Preset as \(format.fileExtension) File…", #selector(savePresetFile), enabled: idle && context?.snapshot.connected == true)
         menu.addItem(.separator())
-        add(menu, "Back Up…", #selector(saveBackup), enabled: idle && context?.snapshot.connected == true)
+        add(menu, "Back Up…", #selector(saveBackup), enabled: idle && context?.canRestore == true)
         let files = PresetFileFormat.backsUpFiles(context?.snapshot.adapterID)
-        add(menu, files ? "Restore from Backup…" : "Restore System Settings…", #selector(restoreBackup), enabled: idle && context?.ready == true)
+        add(menu, files ? "Restore from Backup…" : "Restore System Settings…", #selector(restoreBackup), enabled: idle && context?.canRestore == true)
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.height + 4), in: sender)
     }
 
@@ -705,7 +705,7 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
     }
 
     @objc private func applyPresetFile() {
-        guard idle, let context, context.ready, let session = context.snapshot.sessionID else { return }
+        guard idle, let context, context.canModify, let session = context.snapshot.sessionID else { return }
         let format = context.fileFormat
         chooseFiles(title: "Choose an \(format.model) Preset File", multiple: false, folders: false,
                     types: [UTType(filenameExtension: format.fileExtension) ?? .data, UTType(filenameExtension: "orb") ?? .data, .plainText]) { [weak self] urls in
@@ -731,7 +731,7 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
     /// The original PC Remote's plain-text backup (setup file and every user
     /// preset file) where the model has one, else this app's JSON backup.
     @objc private func saveBackup() {
-        guard idle, let context, context.snapshot.connected else { return }
+        guard idle, let context, context.canRestore else { return }
         let date = ISO8601DateFormatter.string(from: Date(), timeZone: TimeZone(identifier: "UTC")!, formatOptions: [.withFullDate])
         if PresetFileFormat.backsUpFiles(context.snapshot.adapterID) {
             setBusy(true, message: "Reading the setup file and every user preset file…")
@@ -772,7 +772,7 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
     }
 
     @objc private func restoreBackup() {
-        guard idle, let context, context.ready else { return }
+        guard idle, let context, context.canRestore else { return }
         let adapterID = context.snapshot.adapterID
         if PresetFileFormat.backsUpFiles(adapterID) {
             let types = [UTType(filenameExtension: context.fileFormat.fileExtension) ?? .data, UTType(filenameExtension: "orb57setup") ?? .data]

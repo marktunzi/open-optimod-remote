@@ -122,14 +122,33 @@ struct DeviceSnapshotPayload: Codable, Sendable {
     let deviceID: String?
     let revision: Int?
     var capabilities: DeviceCapabilitiesPayload?
+    /// What the session may change at its access level; absent from older
+    /// services, where `writeEnabled` stands for every right.
+    var access: DeviceAccessPayload?
+
+    /// One right of the session's access level (the client's Security levels).
+    func allows(_ right: KeyPath<DeviceAccessPayload, Bool>) -> Bool {
+        connected && (access.map { $0[keyPath: right] } ?? writeEnabled)
+    }
 
     enum CodingKeys: String, CodingKey {
-        case connected, firmware, host, system, processing, error, presets, revision, capabilities
+        case connected, firmware, host, system, processing, error, presets, revision, capabilities, access
         case deviceID = "device_id"
         case writeEnabled = "write_enabled"
         case sessionID = "session_id"
         case adapterID = "adapter_id"
     }
+}
+
+struct DeviceAccessPayload: Codable, Sendable, Equatable {
+    let level: Int
+    let recall: Bool
+    let modify: Bool
+    let presets: Bool
+    let setup: Bool
+    let automation: Bool
+    let security: Bool
+    let memory: Bool
 }
 
 struct IntegerRangePayload: Codable, Sendable {
@@ -258,7 +277,7 @@ struct SystemSettingsContext: Sendable {
     var pages: [SystemLayoutPage] = []
 
     var editable: Bool {
-        snapshot.connected && snapshot.writeEnabled && snapshot.sessionID != nil
+        snapshot.allows(\.setup) && snapshot.sessionID != nil
     }
 }
 
@@ -335,8 +354,7 @@ final class SystemSettingsAPI {
         requestedText: String?,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
-        guard context.snapshot.connected,
-              context.snapshot.writeEnabled,
+        guard context.snapshot.allows(\.setup),
               let sessionID = context.snapshot.sessionID,
               let expected = context.snapshot.system?.fields[fieldName]
         else {

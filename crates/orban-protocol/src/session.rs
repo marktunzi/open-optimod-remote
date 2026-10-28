@@ -23,6 +23,12 @@ pub struct Info {
     pub capabilities: Capabilities,
     pub evidence: Evidence,
 }
+impl Info {
+    /// What this session may change at its access level.
+    pub fn access(&self) -> crate::access::Access {
+        crate::access::access(self.model, self.access_level)
+    }
+}
 pub struct Session {
     pub info: Info,
     adapter: &'static AdapterDescriptor,
@@ -169,8 +175,13 @@ impl Session {
                 self.adapter.model.label()
             ));
         }
-        if self.info.access_level != 0 {
-            return Err("Write permissions for this access level have not been verified".into());
+        let access = self.info.access();
+        let allowed = match scope {
+            crate::control::Scope::Processing => access.modify,
+            crate::control::Scope::System => access.setup,
+        };
+        if !allowed {
+            return Err("This access level does not allow this change".into());
         }
         let bytes = crate::control::encode_change(scope, name, field)?;
         timeout_at(

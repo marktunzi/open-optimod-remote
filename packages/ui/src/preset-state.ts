@@ -38,7 +38,8 @@ export type PresetManagement = { save: boolean; rename: boolean; delete: boolean
  * a user preset that is not on air.
  */
 export function presetManagement(snapshot: Snapshot, selected: string, busy: boolean): PresetManagement {
-  const ready = snapshot.connected && snapshot.write_enabled && !busy;
+  // The Save/Delete right of the access level; older services: write_enabled.
+  const ready = snapshot.connected && (snapshot.access ? snapshot.access.presets : snapshot.write_enabled) && !busy;
   const store = ready && snapshot.capabilities?.preset_store === true;
   const remove = ready && snapshot.capabilities?.preset_delete === true;
   const onAir = snapshot.processing?.name || '';

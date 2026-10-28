@@ -103,6 +103,9 @@ struct Snapshot {
     error: Option<String>,
     revision: u64,
     write_enabled: bool,
+    /// What the session may change at its access level (the client's
+    /// Security levels); `write_enabled` is its Modify right.
+    access: Option<orban_protocol::access::Access>,
     device_id: Option<String>,
     session_id: Option<String>,
     presets: Vec<orban_protocol::presets::Preset>,
@@ -1691,8 +1694,9 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
     }
     let mut state = app.state.write().await;
     state.connected = true;
-    state.write_enabled =
-        device.session.info.access_level == 0 && device.session.info.capabilities.parameter_writes;
+    let access = device.session.info.access();
+    state.write_enabled = access.modify && device.session.info.capabilities.parameter_writes;
+    state.access = Some(access);
     state.firmware = device.session.info.firmware.clone();
     state.model = device.session.info.model;
     state.skin_id = Some(device.session.info.skin);
@@ -1765,7 +1769,7 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
             "Confirm the on-air preset change first",
         ));
     }
-    if device.session.info.access_level != 0 {
+    if !device.session.info.access().recall {
         return Err(OperationError::safe(
             "Preset recall is not enabled for this access level",
         ));
@@ -2063,7 +2067,7 @@ fn renamed_preset_file(text: &str, name: &str, extension: &str) -> Result<String
 /// The files the original PC Remote's Backup saves: the setup file (240)
 /// and every file the unit sends for its user presets (243), decrypted.
 async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>, String> {
-    if device.session.info.access_level != 0 {
+    if !device.session.info.access().memory {
         return Err("Backup is not available for this access level".into());
     }
     let wire = device.session.adapter().wire;
@@ -2109,7 +2113,8 @@ async fn read_unit_file_from(
         ));
     }
     // The passcodes are for a full-access session only, as their write is.
-    if request == 241 && device.session.info.access_level != 0 {
+    let access = device.session.info.access();
+    if (request == 241 && !access.security) || (request == 242 && !access.automation) {
         return Err("Security is not available for this access level".into());
     }
     let reply = match request {
@@ -2143,7 +2148,12 @@ async fn write_unit_file(
             device.session.info.model.label()
         )));
     }
-    if device.session.info.access_level != 0 {
+    let access = device.session.info.access();
+    if !(if body.kind == 230 {
+        access.security
+    } else {
+        access.automation
+    }) {
         return Err(OperationError::safe(
             "Changes are not enabled for this access level",
         ));
@@ -2260,7 +2270,7 @@ async fn restore_preset_files(
     if !body.confirmed {
         return Err(OperationError::safe("Confirm the restore first"));
     }
-    if device.session.info.access_level != 0 {
+    if !device.session.info.access().memory {
         return Err(OperationError::safe(
             "Preset changes are not enabled for this access level",
         ));
@@ -2362,7 +2372,7 @@ async fn manage_preset(
     if !body.confirmed {
         return Err(OperationError::safe("Confirm the preset change first"));
     }
-    if device.session.info.access_level != 0 {
+    if !device.session.info.access().presets {
         return Err(OperationError::safe(
             "Preset changes are not enabled for this access level",
         ));
@@ -2533,7 +2543,7 @@ async fn apply_preset(
             "Confirm the preset file before applying it",
         ));
     }
-    if device.session.info.access_level != 0 {
+    if !device.session.info.access().modify {
         return Err(OperationError::safe(
             "Preset changes are not enabled for this access level",
         ));
@@ -2714,7 +2724,7 @@ async fn restore_setup(
     if !body.confirmed {
         return Err(OperationError::safe("Confirm the restore first"));
     }
-    if device.session.info.access_level != 0 {
+    if !device.session.info.access().memory {
         return Err(OperationError::safe(
             "Setting changes are not enabled for this access level",
         ));

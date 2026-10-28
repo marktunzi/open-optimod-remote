@@ -1,3 +1,4 @@
+pub mod access;
 pub mod adapter;
 pub mod archive;
 pub mod auth;

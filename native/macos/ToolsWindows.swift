@@ -155,7 +155,11 @@ class ToolWindowController: NSWindowController, NSWindowDelegate {
     }
 
     var connected: Bool { state["connected"] as? Bool == true }
-    var writable: Bool { connected && state["write_enabled"] as? Bool == true }
+    /// The access-level right this window's changes need (`access` of the state).
+    var accessRight: String { "" }
+    var writable: Bool {
+        connected && ((state["access"] as? [String: Any])?[accessRight] as? Bool ?? (state["write_enabled"] as? Bool == true))
+    }
     var guards: [String: Any] { ["confirmed": true, "expected_host": state["host"] ?? "", "expected_session": state["session_id"] ?? ""] }
     func systemField(_ name: String) -> [String: Any]? {
         ((state["system"] as? [String: Any])?["fields"] as? [String: Any])?[name] as? [String: Any]
@@ -225,6 +229,7 @@ class ToolWindowController: NSWindowController, NSWindowDelegate {
 // MARK: - Security
 
 final class SecurityWindowController: ToolWindowController, NSTableViewDataSource, NSTableViewDelegate {
+    override var accessRight: String { "security" }
     private var passcodes: [(code: String, level: String)] = []
     private var levels: [String] = []
     private var loaded: [(code: String, level: String)] = []
@@ -407,6 +412,7 @@ final class SecurityWindowController: ToolWindowController, NSTableViewDataSourc
 // MARK: - Automation
 
 final class AutomationWindowController: ToolWindowController, NSTableViewDataSource, NSTableViewDelegate {
+    override var accessRight: String { "automation" }
     private struct Event {
         var date: Date
         var weekdays: [Bool]

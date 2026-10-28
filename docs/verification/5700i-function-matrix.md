@@ -14,7 +14,7 @@ Original client: `5700iPC.exe` (SHA-256 `63def9bb…`), menus from its own resou
 | Rename / Delete / Properties of an entry | Connections window | UNTESTED | |
 | Groups (New/Rename/Delete Group) | — | UNTESTED | |
 | Reconnect after loss | automatic, 120 s backoff | UNTESTED on firmware (fake unit only) | |
-| Access levels other than 0 | writes refused | UNTESTED | |
+| Access levels 1–5 | each window enables what the client's level allows (Recall at every level) | PASS (levels 2 and 5 on firmware; table from the client) | [M3A](2026-10-28-m3a-access-levels.md) |
 
 ## Meters
 

@@ -134,6 +134,10 @@ pub async fn connect(body: Connect, app: &App) -> Result<Unit, String> {
     state.connected = true;
     state.write_enabled =
         unit.session.login.access_level == 0 && adapter.capabilities.parameter_writes;
+    state.access = Some(orban_protocol::access::access(
+        adapter.model,
+        unit.session.login.access_level,
+    ));
     state.firmware = banner;
     state.model = adapter.model;
     state.skin_id = Some(adapter.skin);

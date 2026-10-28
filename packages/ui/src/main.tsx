@@ -7,7 +7,7 @@ import { Devices } from "./Devices";
 import layouts from "./layouts.json";
 import "./style.css";
 import "./main-interface.css";
-import { type Field, type Snapshot, type Definition, display } from './model';
+import { allows, type Field, type Snapshot, type Definition, display } from './model';
 import { reconnectMessage } from './reconnect-status';
 import { SettingEditor } from './SettingEditor';
 import { Presets } from './Presets';
@@ -569,7 +569,7 @@ function App() {
         </>
       ) : area === "Setup" ? (
         <Setup records={snapshot.system?.fields} definitions={definitions} connected={snapshot.connected}
-          writeEnabled={snapshot.write_enabled} busy={busy} identity={snapshot.device_id || snapshot.host}
+          writeEnabled={allows(snapshot, 'setup')} busy={busy} identity={snapshot.device_id || snapshot.host}
           sessionId={snapshot.session_id} action={action} openOutputs={()=>setArea('Outputs')} />
       ) : (
         <section className="settings">
