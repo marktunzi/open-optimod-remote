@@ -68,12 +68,14 @@ done
   native/macos/LauncherCore.swift \
   native/macos/SystemSettingsSpec.swift \
   native/macos/SystemSettingsAPI.swift \
+  native/macos/ProfileSystemSettings.swift \
   native/macos/SystemSettingsWindow.swift \
   native/macos/ConnectionsAPI.swift \
   native/macos/NetworkDiscovery.swift \
   native/macos/ConnectionsWindow.swift \
   native/macos/PresetsAPI.swift \
   native/macos/PresetsWindow.swift \
+  native/macos/DeviceWindows.swift \
   native/macos/OpenOptimodApp.swift \
   -o "$stage_app/Contents/MacOS/Open Optimod Remote"
 

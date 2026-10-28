@@ -2,15 +2,15 @@ import AppKit
 import Foundation
 import WebKit
 
-final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
-    private var window: NSWindow!
-    private var webView: WKWebView!
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, DeviceWindowBridgeDelegate {
+    /// Meters, Processing Settings, System Settings and Presets: one native
+    /// window each, all on the one processor session the service owns.
+    private let windows = DeviceWindowManager()
     private var backend: Process?
     private var startedBackend = false
     private var loadedInterface = false
     private var terminationRequested = false
     private var terminationReplySent = false
-    private var settingsWindowController: SystemSettingsWindowController?
     private var connectionsWindowController: ConnectionsWindowController?
     private var presetsWindowController: PresetsWindowController?
     private var errorLogWindowController: ErrorLogWindowController?
@@ -25,19 +25,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        windows.appDelegate = self
         configureApplicationMenu()
-        configureWindow()
+        NSApp.activate(ignoringOtherApps: true)
         showStatus(title: "Starting Open Optimod Remote", detail: "Preparing the local control service…")
         startOrReuseBackend()
     }
 
+    /// Closing every window keeps the processor connected; the app quits only
+    /// with Quit, which ends the session cleanly.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        false
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag && loadedInterface { windows.show(.meters) }
+        return true
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard !terminationRequested else { return .terminateLater }
         terminationRequested = true
+        windows.prepareForTermination()
 
         var request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/disconnect")!)
         request.httpMethod = "POST"
@@ -102,42 +111,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         )
         applicationItem.submenu = applicationMenu
         mainMenu.addItem(applicationItem)
+
+        let windowItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "Window")
+        for (kind, key) in [(DeviceWindowKind.meters, "1"), (.processing, "2")] {
+            let item = windowMenu.addItem(withTitle: kind.title, action: #selector(showDeviceWindow(_:)), keyEquivalent: key)
+            item.representedObject = kind.rawValue
+            item.target = self
+        }
+        windowMenu.addItem(.separator())
+        windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowMenu.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
+        windowMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        windowMenu.addItem(.separator())
+        windowMenu.addItem(withTitle: "Bring All to Front", action: #selector(NSApplication.arrangeInFront(_:)), keyEquivalent: "")
+        windowItem.submenu = windowMenu
+        mainMenu.addItem(windowItem)
         NSApp.mainMenu = mainMenu
-    }
-
-    private func configureWindow() {
-        let configuration = WKWebViewConfiguration()
-        // The interface is shipped inside the application bundle and receives a
-        // content hash on every build.  An ephemeral store prevents WebKit from
-        // retaining an older shell or stylesheet after an in-place app update;
-        // connection data itself remains persisted by the backend.
-        configuration.websiteDataStore = .nonPersistent()
-        configuration.userContentController.add(self, name: "openSystemSettings")
-        configuration.userContentController.add(self, name: "openConnections")
-        configuration.userContentController.add(self, name: "openPresets")
-        configuration.userContentController.add(self, name: "recordError")
-        webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.navigationDelegate = self
-        webView.underPageBackgroundColor = NSColor(
-            calibratedRed: 0.18,
-            green: 0.18,
-            blue: 0.19,
-            alpha: 1
-        )
-
-        window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1440, height: 900),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "Open Optimod Remote"
-        window.minSize = NSSize(width: 1180, height: 720)
-        window.contentView = webView
-        window.setFrameAutosaveName("OpenOptimodRemoteMainWindow")
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.windowsMenu = windowMenu
     }
 
     private func showStatus(title: String, detail: String) {
@@ -153,7 +144,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         @media (prefers-reduced-motion: reduce) { .meter::after { animation: none; transform: none; } }
         </style></head><body><main><h1>\(title)</h1><p>\(detail)</p><div class="meter"></div></main></body></html>
         """
-        webView.loadHTMLString(html, baseURL: nil)
+        windows.showStartup(html: html)
     }
 
     private func startOrReuseBackend() {
@@ -227,8 +218,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private func loadInterface() {
         guard !loadedInterface else { return }
         loadedInterface = true
-        let url = URL(string: BackendHealth.origin)!
-        webView.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData))
+        windows.interfaceDidLoad()
+        startWindowControl()
         if !presentedInitialConnections {
             presentedInitialConnections = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
@@ -265,50 +256,76 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         NSApp.reply(toApplicationShouldTerminate: true)
     }
 
-    /// Command-, asks the interface first: it knows the connected model and opens
-    /// the native 5700i window or the generic Setup workspace. Without a loaded
-    /// interface the native window opens.
-    @objc private func showSystemSettings(_ sender: Any?) {
-        let script = "window.openOptimodSystemSettings ? (window.openOptimodSystemSettings(), true) : false"
-        webView.evaluateJavaScript(script) { [weak self] result, error in
-            if error != nil || (result as? Bool) != true { self?.showNativeSystemSettings() }
+    private var windowControlOffset: UInt64 = 0
+    private var windowControlTimer: Timer?
+
+    /// Test hook: OPEN_OPTIMOD_WINDOW_CONTROL names a file of window actions.
+    private func startWindowControl() {
+        guard windowControlTimer == nil,
+              let path = ProcessInfo.processInfo.environment["OPEN_OPTIMOD_WINDOW_CONTROL"]
+        else { return }
+        FileManager.default.createFile(atPath: path, contents: nil)
+        windowControlTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            guard let self, let handle = FileHandle(forReadingAtPath: path) else { return }
+            defer { try? handle.close() }
+            try? handle.seek(toOffset: self.windowControlOffset)
+            let data = handle.readDataToEndOfFile()
+            guard let text = String(data: data, encoding: .utf8), let end = text.lastIndex(of: "\n") else { return }
+            let complete = text[...end]
+            self.windowControlOffset += UInt64(complete.utf8.count)
+            for line in complete.split(separator: "\n") {
+                self.windows.perform(control: line.trimmingCharacters(in: .whitespaces))
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                let state = try? JSONSerialization.data(withJSONObject: self.windows.windowList, options: [.prettyPrinted, .sortedKeys])
+                FileManager.default.createFile(atPath: path + ".state", contents: state)
+            }
         }
     }
 
-    private func showNativeSystemSettings() {
-        if settingsWindowController == nil {
-            settingsWindowController = SystemSettingsWindowController()
+    /// Command-, opens the System Settings of the connected processor's model.
+    @objc private func showSystemSettings(_ sender: Any?) {
+        guard loadedInterface else { return }
+        windows.showSystemSettings()
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(showSystemSettings(_:)) {
+            return loadedInterface && DeviceSessionStore.shared.device != nil
         }
-        settingsWindowController?.show()
+        return true
+    }
+
+    @objc private func showDeviceWindow(_ sender: NSMenuItem) {
+        guard loadedInterface,
+              let raw = sender.representedObject as? String,
+              let kind = DeviceWindowKind(rawValue: raw)
+        else { return }
+        windows.show(kind)
     }
 
     @objc private func showConnections(_ sender: Any?) {
         if connectionsWindowController == nil {
             let controller = ConnectionsWindowController()
             controller.onConnected = { [weak self] in
-                self?.window.makeKeyAndOrderFront(nil)
+                self?.windows.deviceConnected()
             }
             connectionsWindowController = controller
         }
         connectionsWindowController?.show()
     }
 
-    /// Shift-Command-P opens the interface's Presets workspace, which has every
-    /// preset function for the connected model. Without a loaded interface the
+    /// Shift-Command-P opens the Presets window, which has every preset
+    /// function for the connected model. Before the interface has loaded the
     /// native preset window opens.
     @objc private func showPresets(_ sender: Any?) {
-        let script = "window.openOptimodPresets ? (window.openOptimodPresets(), true) : false"
-        webView.evaluateJavaScript(script) { [weak self] result, error in
-            if error != nil || (result as? Bool) != true { self?.showNativePresets() }
-        }
-        window.makeKeyAndOrderFront(nil)
+        if loadedInterface { windows.show(.presets) } else { showNativePresets() }
     }
 
     private func showNativePresets() {
         if presetsWindowController == nil {
             let controller = PresetsWindowController()
             controller.onChanged = { [weak self] in
-                self?.webView.reload()
                 self?.connectionsWindowController?.refreshStatusNow()
             }
             presetsWindowController = controller
@@ -321,13 +338,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         errorLogWindowController?.show()
     }
 
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        switch message.name {
-        case "openSystemSettings": showNativeSystemSettings()
+    func deviceWindow(_ webView: WKWebView?, didRequest name: String, body: Any) {
+        switch name {
         case "openConnections": showConnections(nil)
-        case "openPresets": showNativePresets()
         case "recordError":
-            guard let body = message.body as? [String: Any], let text = body["message"] as? String else { break }
+            guard let body = body as? [String: Any], let text = body["message"] as? String else { break }
             ErrorLogStore.shared.record(source: body["source"] as? String ?? "Interface", message: text)
         default: break
         }
@@ -345,25 +360,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         if recordedPID == String(processIdentifier) {
             try? FileManager.default.removeItem(at: pidFile)
         }
-    }
-
-    func webView(
-        _ webView: WKWebView,
-        decidePolicyFor navigationAction: WKNavigationAction,
-        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-    ) {
-        guard let url = navigationAction.request.url else {
-            decisionHandler(.cancel)
-            return
-        }
-        if url.scheme == "about"
-            || (url.scheme == "http" && url.host == "127.0.0.1" && url.port == BackendHealth.port)
-        {
-            decisionHandler(.allow)
-            return
-        }
-        NSWorkspace.shared.open(url)
-        decisionHandler(.cancel)
     }
 }
 

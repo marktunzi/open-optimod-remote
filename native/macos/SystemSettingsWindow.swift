@@ -18,7 +18,7 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
             backing: .buffered,
             defer: false
         )
-        window.title = "Optimod 5700i Settings"
+        window.title = "System Settings"
         window.minSize = NSSize(width: 980, height: 650)
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
@@ -71,7 +71,7 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
             case let .success(context):
                 self.context = context
                 self.setBusy(false, status: context.snapshot.connected ? (context.snapshot.writeEnabled ? "Connected · Changes enabled" : "Connected · Read only") : "Not connected")
-                self.setDetail(context.snapshot.connected ? context.snapshot.firmware : (context.snapshot.error ?? "Connect in the main 5700i window."))
+                self.setDetail(context.snapshot.connected ? "\(context.snapshot.firmware) · \(context.snapshot.host)" : (context.snapshot.error ?? "Connect in Connections."))
                 self.renderTabs(selectedTitle: self.selectedTabTitle)
             case let .failure(error):
                 self.setBusy(false, status: "Settings unavailable")
@@ -117,7 +117,7 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
             replacement.view.bottomAnchor.constraint(equalTo: rootViewController.view.bottomAnchor),
         ])
 
-        for tab in SystemSettingsSpecification.tabs {
+        for tab in Self.tabs(for: context) {
             let controller = SystemSettingsTabController(
                 tab: tab,
                 context: context,
@@ -145,6 +145,15 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
         previous.view.removeFromSuperview()
         previous.removeFromParent()
         tabController = replacement
+    }
+
+    /// The 5700i has its hand-made worksheet; every other model gets the
+    /// System fields of its own profile.
+    static func tabs(for context: SystemSettingsContext?) -> [SettingsTab] {
+        guard let adapter = context?.snapshot.adapterID, !adapter.hasPrefix("pc-remote-5700i-") else {
+            return SystemSettingsSpecification.tabs
+        }
+        return ProfileSystemSettings.tabs(context: context)
     }
 
     private func commit(item: SettingsItem, index: Int, requestedText: String?) {

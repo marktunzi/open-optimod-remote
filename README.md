@@ -131,6 +131,8 @@ swiftc -swift-version 5 -framework Network native/macos/NetworkDiscovery.swift n
 swiftc -swift-version 5 -framework AppKit native/macos/ErrorLog.swift native/macos/ErrorLogTests.swift -o /tmp/optimod-error-log-tests
 /tmp/optimod-error-log-tests
 swiftc -swift-version 5 -framework AppKit -framework UniformTypeIdentifiers native/macos/ErrorLog.swift native/macos/LauncherCore.swift native/macos/SystemSettingsAPI.swift native/macos/PresetsAPI.swift native/macos/PresetsWindow.swift native/macos/PresetsWindowTests.swift -o /tmp/optimod-presets-window-tests
+swiftc -swift-version 5 -framework AppKit -framework WebKit -framework Network -framework UniformTypeIdentifiers native/macos/ErrorLog.swift native/macos/LauncherCore.swift native/macos/SystemSettingsSpec.swift native/macos/SystemSettingsAPI.swift native/macos/ProfileSystemSettings.swift native/macos/SystemSettingsWindow.swift native/macos/ConnectionsAPI.swift native/macos/DeviceWindows.swift native/macos/DeviceWindowsTests.swift -o /tmp/optimod-device-windows-tests
+/tmp/optimod-device-windows-tests
 /tmp/optimod-presets-window-tests
 sh -n scripts/build-macos.sh scripts/install-macos.sh scripts/release-macos.sh scripts/stop-macos.sh
 ```
