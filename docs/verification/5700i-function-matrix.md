@@ -1,5 +1,7 @@
 # OPTIMOD 5700i 3.0.1.20 — function matrix against the original PC Remote
 
+> **Evidence status:** living matrix, last updated 28 October 2026 at the commit that changed it; each row links the dated evidence it rests on.
+
 Original client: `5700iPC.exe` (SHA-256 `63def9bb…`), menus from its own resources (menu 128, 208–210), Setup tabs read from the running client. Firmware: virtual 5700i with the original 3.0.1.20 image (scratch .177) unless noted. Status: PASS / FAIL / UNTESTED / BLOCKED / N/A as defined in issue #17 §3. Updated with every feature group.
 
 ## Session and connection (Connect menu, connection list)

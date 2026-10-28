@@ -1,5 +1,7 @@
 # M1A — 5700i Active Input follows source and fallback changes
 
+> **Evidence status:** run on 28 October 2026 in the real macOS app (test build on port 15701, isolated data) against the scratch virtual 5700i 3.0.1.20 (192.168.1.177). Two input writes on that unit, set back and checked with `AS`; no physical processor was touched.
+
 28 October 2026 · branch `fix/5700i-recall-session` · virtual 5700i (scratch, 192.168.1.177), original firmware 3.0.1.20 · original 5700i PC Remote under CrossOver.
 
 ## Problem
