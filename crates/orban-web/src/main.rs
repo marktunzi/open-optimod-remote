@@ -68,6 +68,9 @@ const ARCHIVE_RETRY: Duration = Duration::from_secs(2);
 /// firmware 1.0.2.161, 21 October 2026); a readback waits this long for it.
 const FILE_READBACK_LIMIT: Duration = Duration::from_secs(15);
 const FILE_READBACK_INTERVAL: Duration = Duration::from_secs(1);
+/// How often the active input is read again while a fallback lets the
+/// firmware change it on its own.
+const INPUT_STATUS_PERIOD: Duration = Duration::from_secs(10);
 /// PC Remote login including the TCP connection, and each wait for a reply
 /// on the session (such as a response boundary).
 const SESSION_DEADLINE: Duration = Duration::from_secs(4);
@@ -341,6 +344,16 @@ struct Device {
     processing_baseline: Option<Document>,
     /// The exact-banner profile writes are validated against. `None` = read-only.
     profile: Option<Arc<Profile>>,
+    /// When the active input (`ACTUAL A OR D`) is read again; see `input_status`.
+    input_status: Option<InputStatus>,
+}
+
+/// The next read of the active input, and whether it follows a change of the
+/// input choice (then the read after it waits for the fallback's silence delay).
+#[derive(Clone, Copy)]
+struct InputStatus {
+    at: tokio::time::Instant,
+    after_change: bool,
 }
 fn reference_profile() -> Arc<Profile> {
     Arc::new(Profile::embedded().expect("Valid bundled profile"))
@@ -806,6 +819,7 @@ async fn synchronize(app: &App, device: &mut Device) -> Result<(), String> {
     let capabilities = device.session.info.capabilities;
     if capabilities.parameter_reads {
         let system = live_snapshot(device, app, Scope::System).await?;
+        device.input_status = next_input_status(device, &system, false);
         let mut state = app.state.write().await;
         state.system = Some(system);
         state.revision += 1;
@@ -1440,6 +1454,7 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
         code,
         processing_baseline: None,
         profile,
+        input_status: None,
     };
     // The PC Remote login is the connection. Reading the current settings
     // over the status port is a separate step: when it fails, the session
@@ -2267,6 +2282,15 @@ async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), Oper
             snapshot
         }
     };
+    if body.scope == Scope::System
+        && decides_active_input(&body.name)
+        && reads_live_input(device, &after)
+    {
+        device.input_status = Some(InputStatus {
+            at: tokio::time::Instant::now(),
+            after_change: true,
+        });
+    }
     let mut state = app.state.write().await;
     match body.scope {
         Scope::System => state.system = Some(after),
@@ -2287,6 +2311,95 @@ async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), Oper
     state.revision += 1;
     state.error = None;
     Ok(())
+}
+
+/// System fields that decide which input the processor uses. The firmware
+/// reports its choice only in `ACTUAL A OR D` of a live AS document: it
+/// pushes nothing over the PC Remote session when the input changes, and its
+/// setup file (opcode 240) keeps the value of its last save (virtual 5700i,
+/// original firmware 3.0.1.20, 28 October 2026).
+fn decides_active_input(name: &str) -> bool {
+    matches!(
+        name,
+        "INPUT A OR D"
+            | "ANALOG FALLBACK"
+            | "DIGITAL FALLBACK"
+            | "DI ANALOG FALLBACK"
+            | "SILENCE THR"
+            | "SILENCE DELAY"
+    )
+}
+
+/// The active input can be read live: the model reports it and its system
+/// document comes from the status port, not from a saved file.
+fn reads_live_input(device: &Device, system: &Document) -> bool {
+    !device.session.adapter().wire.file_sync && system.fields.contains_key("ACTUAL A OR D")
+}
+
+/// When to read the active input again. Without a fallback the processor
+/// uses the chosen input, so nothing changes on its own. With one, it
+/// switches once the input in use has been silent for `SILENCE DELAY`
+/// seconds: right after a change wait for that delay, otherwise read it
+/// every `INPUT_STATUS_PERIOD`.
+fn next_input_status(
+    device: &Device,
+    system: &Document,
+    after_change: bool,
+) -> Option<InputStatus> {
+    if !reads_live_input(device, system) {
+        return None;
+    }
+    let enabled = |name: &str| {
+        system
+            .fields
+            .get(name)
+            .is_some_and(|field| field.value == Value::Choice("Yes".into()))
+    };
+    if !["ANALOG FALLBACK", "DIGITAL FALLBACK", "DI ANALOG FALLBACK"]
+        .into_iter()
+        .any(enabled)
+    {
+        return None;
+    }
+    let wait = match system.fields.get("SILENCE DELAY").map(|field| &field.value) {
+        Some(Value::Int(seconds)) if after_change && *seconds > 0 => {
+            Duration::from_secs(*seconds as u64 + 1).min(INPUT_STATUS_PERIOD)
+        }
+        _ => INPUT_STATUS_PERIOD,
+    };
+    Some(InputStatus {
+        at: tokio::time::Instant::now() + wait,
+        after_change: false,
+    })
+}
+
+/// Reads the system document again for the active input and shows it when
+/// anything differs. Only a live AS read is used (see `decides_active_input`).
+async fn read_input_status(app: &App, device: &mut Device) {
+    let Some(due) = device.input_status.take() else {
+        return;
+    };
+    match live_snapshot(device, app, Scope::System).await {
+        Ok(system) => {
+            device.input_status = next_input_status(device, &system, due.after_change);
+            let mut state = app.state.write().await;
+            let changed = state
+                .system
+                .as_ref()
+                .is_none_or(|shown| shown.name != system.name || shown.fields != system.fields);
+            if changed {
+                state.system = Some(system);
+                state.revision += 1;
+            }
+        }
+        Err(_) => {
+            // The next attempt waits a full period; the shown value stays.
+            device.input_status = Some(InputStatus {
+                at: tokio::time::Instant::now() + INPUT_STATUS_PERIOD,
+                after_change: false,
+            });
+        }
+    }
 }
 
 fn hd_control_tracks_fm(name: &str) -> bool {
@@ -2553,6 +2666,8 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
              on_air_pushed(&app,d).await;
           } else if d.archive_retry.is_some_and(|(at,_)| at<=tokio::time::Instant::now()) {
              read_pushed_on_air(&app,d).await;
+          } else if d.input_status.is_some_and(|due| due.at<=tokio::time::Instant::now()) {
+             read_input_status(&app,d).await;
           }
          }
          _=tokio::time::sleep_until(pending.as_ref().map_or_else(tokio::time::Instant::now,|p| p.at)),if pending.is_some()=>{
@@ -2859,6 +2974,7 @@ mod tests {
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
             profile: Some(reference_profile()),
+            input_status: None,
         };
 
         with_meter_polling(&mut device, &app, async {
@@ -2973,6 +3089,7 @@ mod tests {
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(processing),
             profile: Some(reference_profile()),
+            input_status: None,
         };
 
         change(
@@ -3135,6 +3252,7 @@ mod tests {
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
             profile: Some(reference_profile()),
+            input_status: None,
         };
 
         recall(
@@ -4862,6 +4980,7 @@ mod tests {
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
             profile: Some(reference_profile()),
+            input_status: None,
         };
         assert_eq!(
             drain(&mut device, &app).await.unwrap_err(),
@@ -4898,6 +5017,7 @@ mod tests {
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
             profile: None,
+            input_status: None,
         };
         assert!(session_lost(&device, "Receive timed out").is_none());
         assert!(session_lost(&device, "Invalid meter count").is_none());
@@ -4999,6 +5119,7 @@ mod tests {
                 code: Zeroizing::new("1234".to_owned()),
                 processing_baseline: None,
                 profile: None,
+                input_status: None,
             };
             assert_eq!(
                 drain(&mut device, &app).await.unwrap_err(),
@@ -5061,6 +5182,7 @@ mod tests {
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
             profile: None,
+            input_status: None,
         };
         let started = std::time::Instant::now();
         assert_eq!(
@@ -5207,6 +5329,7 @@ mod tests {
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
             profile: Some(reference_profile()),
+            input_status: None,
         };
 
         recall(
@@ -5638,6 +5761,7 @@ mod tests {
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(before),
             profile: Some(profile),
+            input_status: None,
         };
         let result = change(
             &mut device,
@@ -5928,6 +6052,7 @@ mod tests {
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: Some(current),
             profile: Some(reference_profile()),
+            input_status: None,
         };
         let result = manage_preset(
             &mut device,
@@ -6312,6 +6437,7 @@ mod tests {
             code: Zeroizing::new("1234".to_owned()),
             processing_baseline: None,
             profile: Some(reference_profile()),
+            input_status: None,
         };
         (app, device, writes)
     }
@@ -6336,6 +6462,87 @@ mod tests {
             text.push_str(&format!("C:<{field}>{value}\r\n"));
         }
         text + "End Preset<end>\r\n"
+    }
+
+    fn input_system(input: &str, actual: &str, fallback: &str) -> String {
+        let choice = |value: &str| {
+            let index = match value {
+                "Digital" | "Yes" => 1,
+                _ => 0,
+            };
+            format!("String:<{value}>;D:{index};")
+        };
+        document_text(
+            "SYSTEM PRESET",
+            &[
+                ("INPUT A OR D", &choice(input)),
+                ("ACTUAL A OR D", &choice(actual)),
+                ("ANALOG FALLBACK", &choice(fallback)),
+                ("DIGITAL FALLBACK", &choice("No")),
+                ("SILENCE DELAY", "Int:3;D:1;"),
+            ],
+        )
+    }
+
+    /// The 5700i pushes nothing when its input changes and its setup file
+    /// keeps a stale `ACTUAL A OR D`: after an input change the app reads the
+    /// live AS document once more, and while a fallback is on it keeps
+    /// reading it, first after the silence delay.
+    #[tokio::test]
+    async fn the_active_input_is_read_again_after_an_input_change() {
+        for (fallback, actual, follow_up) in [("No", "Digital", None), ("Yes", "Analog", Some(4))] {
+            let before = input_system("Analog", "Analog", fallback);
+            let after = input_system("Digital", actual, fallback);
+            let (app, mut device, writes) = scripted_5700i(vec![after]).await;
+            app.state.write().await.system = Some(
+                Document::parse_for_model(before.as_bytes(), DeviceModel::Optimod5700i).unwrap(),
+            );
+            let expected =
+                app.state.read().await.system.as_ref().unwrap().fields["INPUT A OR D"].clone();
+            change(
+                &mut device,
+                &app,
+                Change {
+                    scope: Scope::System,
+                    name: "INPUT A OR D".into(),
+                    index: 1,
+                    expected,
+                    requested: None,
+                    expected_host: "127.0.0.1".into(),
+                    expected_session: "test-session".into(),
+                    expected_preset: None,
+                },
+            )
+            .await
+            .unwrap();
+            assert_eq!(
+                *writes.lock().unwrap(),
+                ["INPUT A OR D;1;String:<Digital>;2;"]
+            );
+            let due = device
+                .input_status
+                .expect("a read of the active input is due");
+            assert!(due.after_change && due.at <= tokio::time::Instant::now());
+            let revision = app.state.read().await.revision;
+            read_input_status(&app, &mut device).await;
+            let state = app.state.read().await;
+            let system = state.system.as_ref().unwrap();
+            assert_eq!(
+                system.fields["ACTUAL A OR D"].value,
+                Value::Choice(actual.into())
+            );
+            // Only a value that differs from the shown one is published.
+            let published = if actual == "Analog" {
+                revision
+            } else {
+                revision + 1
+            };
+            assert_eq!(state.revision, published);
+            let next = device
+                .input_status
+                .map(|due| (due.at - tokio::time::Instant::now()).as_secs_f32().round() as u64);
+            assert_eq!(next, follow_up, "fallback {fallback}");
+        }
     }
 
     #[tokio::test]
