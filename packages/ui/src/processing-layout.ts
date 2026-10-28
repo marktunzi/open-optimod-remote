@@ -43,11 +43,32 @@ export function binaryOnIndex(options: string[]): number | null {
   return affirmative >= 0 ? affirmative : 1;
 }
 
+const ACRONYMS = new Set(['LF', 'HF', 'MB', 'EQ', 'AGC', 'HD', 'FM', 'MX', 'GR', 'MPX', '2B', 'B4/5']);
+
 function titleCase(value: string): string {
   return value
     .trim()
-    .toLocaleLowerCase()
-    .replace(/\b\w/g, character => character.toLocaleUpperCase());
+    .split(/\s+/)
+    .map(word => ACRONYMS.has(word.toUpperCase()) ? word.toUpperCase()
+      : word.toLocaleLowerCase().replace(/^\w/, character => character.toLocaleUpperCase()))
+    .join(' ');
+}
+
+/**
+ * The order a page's controls have on the original client's dialog: column
+ * by column, top to bottom. Extracted pages list them in the order the
+ * client binds them, which jumps around the dialog. A control starts a new
+ * column when it sits more than 40 dialog units right of the column's first.
+ */
+export function readingOrder(controls: LayoutControl[]): LayoutControl[] {
+  const byX = [...controls].sort((a, b) => a.x - b.x || a.y - b.y);
+  const columns: LayoutControl[][] = [];
+  for (const control of byX) {
+    const column = columns.at(-1);
+    if (column && control.x - column[0].x <= 40) column.push(control);
+    else columns.push([control]);
+  }
+  return columns.flatMap(column => column.sort((a, b) => a.y - b.y));
 }
 
 function bandMixControls(controls: LayoutControl[]): LayoutControl[] {
@@ -63,7 +84,9 @@ function bandMixControls(controls: LayoutControl[]): LayoutControl[] {
   return result;
 }
 
-export function groupProcessingPage(page: LayoutPage): ProcessingGroup[] {
+export function groupProcessingPage(source: LayoutPage): ProcessingGroup[] {
+  // The 5700i's built-in pages (no reference dialog) keep the Figma order.
+  const page = source.reference_dialog ? { ...source, controls: readingOrder(source.controls) } : source;
   if (page.title === 'Band Mix') {
     return [{ title: 'Band Mix', controls: bandMixControls(page.controls), className: 'band-mix-group', order: 0 }];
   }

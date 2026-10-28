@@ -984,6 +984,8 @@ body {background:#1f1f1e;color:var(--app-text);}
   overflow:hidden;
   text-overflow:ellipsis;
 }
+/* Long choices ("18 dB/Octave") fit the box in a tighter type instead of an ellipsis. */
+.control-value.long-value {font-size:10.5px;letter-spacing:-.2px;padding:4px 2px;text-overflow:clip;}
 .control.modified .control-value,
 .toggle-control.modified output {color:var(--app-cyan);}
 .control-value,

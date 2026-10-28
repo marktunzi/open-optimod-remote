@@ -85,6 +85,7 @@ function Control({
   const range = useRef<HTMLInputElement>(null);
   const current = draft ?? field?.index ?? 0;
   const available = !disabled && !!definition && !!field;
+  const valueText = display(draft !== null ? definition?.values[draft] : field?.value, definition?.unit);
   const commit = (index: number) => {
     setDraft(null);
     if (available && !pending && index !== field!.index) change(index);
@@ -185,7 +186,8 @@ function Control({
           }}
         />
         <input
-          className="control-value"
+          className={`control-value${valueText.length > 9 ? ' long-value' : ''}`}
+          title={valueText}
           aria-label={`${label} value`}
           aria-valuemin={0}
           aria-valuemax={Math.max(0, (definition?.values.length || 1) - 1)}
@@ -193,7 +195,7 @@ function Control({
           role="spinbutton"
           readOnly
           disabled={!available}
-          value={display(draft !== null ? definition?.values[draft] : field?.value, definition?.unit)}
+          value={valueText}
           onKeyDown={(event) => {
             const next = nextControlIndex(current, Math.max(0, definition!.values.length - 1), event.key);
             if (next === null) return;
@@ -450,7 +452,6 @@ function App() {
 
       {snapshot.connected && snapshot.sync_error && <div className="development" role="status">{snapshot.sync_error} <button disabled={busy} onClick={() => void action('refresh', {})}>Refresh</button></div>}
       {snapshot.connected && !snapshot.write_enabled && <div className="development">Read-only access: this connection does not allow changes.</div>}
-      {snapshot.connected && snapshot.write_enabled && snapshot.evidence === 'static' && <div className="development static-note">Statically derived profile, not yet verified on this processor. Every change is confirmed by reading the processor back.</div>}
       {area === "Presets" ? <Presets key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} busy={busy} action={action} /> : area === "Outputs" ? <Outputs key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} definitions={definitions} busy={busy} action={action} /> : area === "Processing" ? (
         <>
           <nav

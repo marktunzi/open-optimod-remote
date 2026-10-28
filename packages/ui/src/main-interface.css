@@ -784,17 +784,6 @@ main[data-window="processing"] .workspace {
   display: flex;
   flex-direction: column;
 }
-
-main[data-window="processing"][data-skin="figma"] .static-note {
-  order: 99;
-  margin: 0;
-  padding: 6px 16px 10px;
-  border: 0;
-  background: transparent;
-  color: var(--fx-muted);
-  font-size: 10px;
-}
-
 /* The FM/HD choice stays in view while the tabs scroll under it. */
 main[data-skin="figma"] .tabs > .processing-path-selector {
   position: sticky;

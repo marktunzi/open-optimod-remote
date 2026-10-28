@@ -19,7 +19,7 @@ test('Less More is the first shared page and binds the verified field', () => {
 test('controls are assigned to named reference groups by their center point', () => {
   const page = layouts.find(candidate => candidate.path === 'FM' && candidate.title === 'Multiband')!;
   const groups = groupProcessingPage(page);
-  assert.deepEqual(groups.map(group => group.title), ['Multiband', 'Multiband Coupling', 'Multiband Max Delta Gr']);
+  assert.deepEqual(groups.map(group => group.title), ['Multiband', 'Multiband Coupling', 'Multiband Max Delta GR']);
   assert.deepEqual(groups.map(group => group.controls.length), [7, 5, 5]);
 });
 
@@ -49,4 +49,14 @@ test('binary processing choices identify the affirmative toggle position', () =>
   assert.equal(binaryOnIndex(['Out', 'In']), 1);
   assert.equal(binaryOnIndex(['Slow', 'Fast']), 1);
   assert.equal(binaryOnIndex(['One', 'Two', 'Three']), null);
+});
+
+test('extracted pages read the original dialog column by column; group titles keep their acronyms', async () => {
+  const { readingOrder } = await import('../src/processing-layout.ts');
+  const control = (name: string, x: number, y: number) => ({ kind: 'slider', name, label: name, x, y, w: 105, id: 0, options: [] });
+  const order = readingOrder([control('C', 182, 16), control('B', 13, 76), control('D', 182, 46), control('A', 13, 46)]).map(c => c.name);
+  assert.deepEqual(order, ['A', 'B', 'C', 'D']);
+  const page = { title: 'Equalizer', path: 'FM', width: 300, height: 200, reference_dialog: 393, groups: [{ x: 0, y: 0, w: 150, h: 200, text: ' LF SHELF EQUALIZER' }],
+    controls: [control('BASS GAIN', 13, 46)] };
+  assert.equal(groupProcessingPage(page)[0].title, 'LF Shelf Equalizer');
 });

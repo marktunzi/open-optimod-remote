@@ -130,7 +130,6 @@ export function Presets({ snapshot, busy, action }: { snapshot: Snapshot; busy: 
           <button disabled={!manage.rename || !!nameProblem || !!pending} title="Only the selected user preset, on air without changes" onClick={() => setPending({ kind: 'rename', name: selected, new_name: newName, expected_name: current })}>Rename selected…</button>
           <button disabled={!manage.delete || !!pending} title="Only a user preset that is not on air" onClick={() => setPending({ kind: 'delete', name: selected, expected_name: current })}>Delete selected…</button>
         </div>
-        <p className="muted">Statically derived from the 5500 firmware and not yet verified on hardware. After every change the app reads the preset list back and reports any difference.</p>
       </> : <p className="muted">{snapshot.connected ? 'Saving, renaming and deleting presets on this processor is not available: its firmware documents no command for it. Save the on-air preset as a file instead.' : 'Connect to manage presets.'}</p>}
 
       <h3>Files and backup</h3>
