@@ -50,7 +50,7 @@ enum ProfileSystemSettings {
         }
         var rest: [String: [String: [SettingsItem]]] = [:]
         for name in fields.keys where !placed.contains(name) {
-            guard let item = item(for: name, label: nil, field: fields[name], definition: context.definitions[name]) else { continue }
+            guard let item = readOnly(item(for: name, label: nil, field: fields[name], definition: context.definitions[name]), context) else { continue }
             let group = group(of: name)
             rest[group, default: [:]][section(of: name, in: group), default: []].append(item)
         }
@@ -85,8 +85,8 @@ enum ProfileSystemSettings {
         var sections: [(title: String, items: [SettingsItem])] = boxes.map { (titleCase($0.text), []) }
         var loose: [SettingsItem] = []
         for control in ordered {
-            guard let item = item(for: control.name, label: control.label, field: fields[control.name],
-                                  definition: context.definitions[control.name]) else { continue }
+            guard let item = readOnly(item(for: control.name, label: control.label, field: fields[control.name],
+                                           definition: context.definitions[control.name]), context) else { continue }
             if let box = boxes.firstIndex(where: { contains($0, control) }) {
                 sections[box].items.append(item)
             } else {
@@ -95,6 +95,14 @@ enum ProfileSystemSettings {
         }
         let named = sections.filter { !$0.items.isEmpty }.map { SettingsSection(title: $0.title, items: $0.items) }
         return (loose.isEmpty ? [] : [SettingsSection(title: page.title, items: loose)]) + named
+    }
+
+    /// Fields of the unit's network file are shown, not written: the original
+    /// client changes that file as a whole.
+    private static func readOnly(_ item: SettingsItem?, _ context: SystemSettingsContext) -> SettingsItem? {
+        guard let item, let name = item.deviceField, context.snapshot.readOnlyFields?.contains(name) == true else { return item }
+        return SettingsItem(item.label, field: name, control: item.control,
+                            writePolicy: .unavailable("Kept in the processor's network file; change it on the front panel."), note: item.note)
     }
 
     static func readingOrder(_ controls: [SystemLayoutControl]) -> [SystemLayoutControl] {
@@ -117,10 +125,11 @@ enum ProfileSystemSettings {
     private static let clientTabAliases: [String: [String]] = [
         "Network & Time": ["Network"],
         "Remote Control": ["Remote Interface", "Remote Interface / Silence"],
-        "HD & Diversity": ["HD Digital Radio"],
+        "HD & Diversity": ["HD Digital Radio", "Diversity Delay"],
     ]
 
-    private static let acronyms: Set<String> = ["AES", "AES67", "HD", "FM", "RDS", "MPX", "SCA", "IP", "AF", "PS", "RT", "LF", "HF", "ITU"]
+    private static let acronyms: Set<String> = ["AES", "AES67", "HD", "FM", "RDS", "MPX", "SCA", "IP", "AF", "PS", "RT", "LF", "HF", "ITU",
+                                                "AI", "DI", "AO", "DO", "GPI", "SNMP"]
 
     static func titleCase(_ text: String) -> String {
         text.trimmingCharacters(in: .whitespaces).split(separator: " ").map { word in
@@ -149,6 +158,12 @@ enum ProfileSystemSettings {
         if name.hasPrefix("ACTUAL ") {
             return SettingsItem(title, field: name, control: .text(maxLength: nil, validation: .plain),
                                 writePolicy: .unavailable("Status reported by the processor."))
+        }
+        // A delay counted in samples (Diversity Delay Trim): the field holds
+        // seconds as text, its index the samples; the profile gives the rate.
+        if let delay = definition?.sampleDelay {
+            return SettingsItem(title, field: name, control: .delayTrim(stepMicroseconds: 1_000_000 / Double(delay.rate)),
+                                note: "Displayed in milliseconds; each step is one sample at \(delay.rate / 1000) kHz.")
         }
         guard let definition, !definition.values.isEmpty else {
             guard field?.value.type == "Text" else { return nil }

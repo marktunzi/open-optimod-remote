@@ -126,6 +126,9 @@ struct Snapshot {
     /// The status text the unit sends after the PC Remote login (opcode
     /// 205): what the original client shows as its Diagnostics.
     diagnostics: Option<String>,
+    /// System fields shown but never written: those of the unit's network
+    /// file, which the original client changes as a file.
+    read_only_fields: BTreeSet<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -1433,11 +1436,27 @@ fn preset_file_name(plain: &[u8]) -> Option<String> {
 /// Settings, presets and on-air processing of a file-sync model, read over
 /// the PC Remote session without the status (terminal) port.
 async fn synchronize_files(app: &App, device: &mut Device) -> Result<(), String> {
-    let system = if device.session.info.capabilities.parameter_reads {
+    let mut system = if device.session.info.capabilities.parameter_reads {
         Some(read_file_document(app, device, Scope::System).await?)
     } else {
         None
     };
+    // The client's Network page shows the unit's network file.
+    if let (Some(system), Some((request, reply))) = (
+        system.as_mut(),
+        device.session.adapter().wire.network_request,
+    ) {
+        let mut read_only = BTreeSet::new();
+        for (_, data) in read_files(app, device, request, reply).await? {
+            let plain = Zeroizing::new(device.session.decrypt_file(&data)?);
+            let network = file_document(&plain, device.session.info.model)?;
+            for (name, field) in network.fields {
+                read_only.insert(name.clone());
+                system.fields.entry(name).or_insert(field);
+            }
+        }
+        app.state.write().await.read_only_fields = read_only;
+    }
     // The status text of the client's Diagnostics answers 204 with the
     // access code, which the original client sends at every sync.
     if device.session.adapter().wire.tool_files.is_some()
@@ -3166,6 +3185,11 @@ async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), Oper
             Scope::Processing => state.processing.as_ref(),
         }
         .ok_or_else(|| OperationError::safe("The current settings are not available"))?;
+        if body.scope == Scope::System && state.read_only_fields.contains(&body.name) {
+            return Err(OperationError::safe(
+                "This network setting is kept in the processor's network file and is not changed from here",
+            ));
+        }
         if body.scope == Scope::Processing
             && body.expected_preset.as_deref() != Some(document.name.as_str())
         {
@@ -3787,6 +3811,7 @@ async fn end_session(app: &App, device: &mut Option<Device>, error: String) {
     state.connected = false;
     state.session_id = None;
     state.diagnostics = None;
+    state.read_only_fields.clear();
     state.error = Some(error);
     app.meters.send_replace(json!({"live":false}));
 }

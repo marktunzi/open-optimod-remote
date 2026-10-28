@@ -106,6 +106,11 @@ CONFIGS = {
         meter=dict(subclass=0x5274B7, init=0x43ACD0, chan=0x43CB80, curve=0x43B370,
                    dialogs=[247, 373, 399], primary=247, max_values=86),
         overrides={},
+        # The Setup tabs as the running client 3.1.0.2 shows them, in its
+        # order and with its captions (dialog 219 is titled "Dialog"); its
+        # Kantar and Nielsen dialogs are not among them.
+        system_pages=[212, 218, 214, 215, 371, 213, 216, 219, 404, 405],
+        system_titles={219: "Diversity Delay"},
     ),
     "492867138ebe47559890dc7e45237993cad45cd0dce4f5130b4757c7814369cf": dict(
         # 6300 4.1.1.19: addresses matched from the 5500i and 8700HD builds (identical results).
@@ -227,8 +232,20 @@ class Image:
                 break
         return out
 
-    def linear(self):
-        return list(md.disasm(self.text, self.text_start))
+    def linear(self, complete: bool = False):
+        """The code section in order. Capstone stops at the first byte it
+        cannot decode (data inside the section); `complete` steps over it and
+        goes on, which the 5500i's Setup pages need (0x43f6f0 and on)."""
+        if not complete:
+            return list(md.disasm(self.text, self.text_start))
+        out, offset = [], 0
+        while offset < len(self.text):
+            end = offset + 1
+            for ins in md.disasm(self.text[offset:], self.text_start + offset):
+                out.append(ins)
+                end = ins.address + ins.size - self.text_start
+            offset = end
+        return out
 
     def function_start(self, va: int) -> int:
         offset = va - self.base
@@ -645,8 +662,8 @@ def dialogs(image: Image):
     return out
 
 
-def binder_calls(image: Image, binders: dict):
-    instructions = image.linear()
+def binder_calls(image: Image, binders: dict, complete: bool = False):
+    instructions = image.linear(complete)
     calls = collections.defaultdict(list)
     for k, ins in enumerate(instructions):
         if ins.mnemonic != "call" or not ins.op_str.startswith("0x"):
@@ -757,7 +774,7 @@ def build_layouts(image: Image, config: dict, profile_fields, raw, reference=())
     raw_values = {f["name"]: [str(v["value"]) for v in f.get("values", [])] for f in profile_fields
                   if f["scope"] == "Processing" and all(v.get("type") == "Choice" for v in f.get("values", []))}
     pages = []
-    for function, binds in binder_calls(image, config["binders"]).items():
+    for function, binds in binder_calls(image, config["binders"], complete=True).items():
         controls_used = {c for _, _, args in binds for c in args[1:] if c}
         best = None
         for dialog_id, dialog in resources.items():
@@ -829,7 +846,7 @@ def build_system_layouts(image: Image, config: dict, profile_fields, raw):
     by_id = {r["id"]: r["name"] for r in raw}
     skip = set(config["processing_dialogs"]) | set(config["meter"].get("dialogs", []))
     pages = {}
-    for function, binds in binder_calls(image, config["binders"]).items():
+    for function, binds in binder_calls(image, config["binders"], complete=True).items():
         controls_used = {c for _, _, args in binds for c in args[1:] if c}
         best = None
         for dialog_id, dialog in resources.items():
@@ -848,6 +865,11 @@ def build_system_layouts(image: Image, config: dict, profile_fields, raw):
                                                   for g in dialog["items"] if g["cls"] == "Button" and g["style"] & 0xF == 7]))
         known = {c["name"] for c in page["controls"]}
         page["controls"] += [c for c in controls if c["name"] not in known]
+    if "system_pages" in config:
+        order = config["system_pages"]
+        for dialog_id, page in pages.items():
+            page["title"] = config.get("system_titles", {}).get(dialog_id, page["title"])
+        return [pages[d] for d in order if d in pages]
     kept = []
     for page in pages.values():
         here = {c["name"] for c in page["controls"]}

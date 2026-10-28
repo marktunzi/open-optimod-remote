@@ -125,6 +125,8 @@ struct DeviceSnapshotPayload: Codable, Sendable {
     /// What the session may change at its access level; absent from older
     /// services, where `writeEnabled` stands for every right.
     var access: DeviceAccessPayload?
+    /// System fields shown but never written (the 5500i's network file).
+    var readOnlyFields: [String]?
 
     /// One right of the session's access level (the client's Security levels).
     func allows(_ right: KeyPath<DeviceAccessPayload, Bool>) -> Bool {
@@ -137,6 +139,7 @@ struct DeviceSnapshotPayload: Codable, Sendable {
         case writeEnabled = "write_enabled"
         case sessionID = "session_id"
         case adapterID = "adapter_id"
+        case readOnlyFields = "read_only_fields"
     }
 }
 

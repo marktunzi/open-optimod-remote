@@ -244,6 +244,9 @@ pub struct Wire {
     /// The extension of the setup presets behind the client's Open Setup and
     /// Save Setup As; `None` where the client has neither.
     pub setup_presets: Option<&'static str>,
+    /// The request for the unit's network file and its answer, shown with
+    /// the system settings (read-only).
+    pub network_request: Option<(u16, u16)>,
 }
 
 /// Requests for the files behind the client's Automation and Security
@@ -279,6 +282,7 @@ pub const WIRE_PC_REMOTE: Wire = Wire {
     backup_kept: &[],
     restore_extensions: &[],
     setup_presets: None,
+    network_request: None,
 };
 
 /// 5700i 3.0.1.20 (reference unit and virtual 5700i).
@@ -329,6 +333,7 @@ pub const WIRE_8700HD: Wire = Wire {
     backup_kept: &[],
     restore_extensions: &[],
     setup_presets: None,
+    network_request: None,
 };
 
 /// 5500 1.2.8.24: the 8700HD generation. `5500PC.exe` 1.2.8.24 sends the same
@@ -379,6 +384,7 @@ pub const WIRE_5500I: Wire = Wire {
     // Open Setup uploads the chosen setup preset as E9h, Save Setup As the
     // unit's setup renamed; each is followed by FBh.
     setup_presets: Some(".orb55setup"),
+    network_request: Some((241, 234)),
 };
 
 /// Preset names of the factory `.orb55f50` files of PC Remote 3.1.0.2.
@@ -434,6 +440,7 @@ pub const WIRE_6300: Wire = Wire {
     backup_kept: &[],
     restore_extensions: &[],
     setup_presets: None,
+    network_request: None,
 };
 
 /// Preset names of the factory `.orb63f` files of PC Remote 4.1.1.19.
@@ -534,6 +541,7 @@ pub const WIRE_2300: Wire = Wire {
     backup_kept: &[],
     restore_extensions: &[],
     setup_presets: None,
+    network_request: None,
 };
 
 /// Preset names of the factory `.orb23f75` files of PC Remote 2.0.3.85.
@@ -564,6 +572,7 @@ pub const WIRE_8700I: Wire = Wire {
     backup_kept: &[],
     restore_extensions: &[],
     setup_presets: None,
+    network_request: None,
     ..WIRE_5500I
 };
 
