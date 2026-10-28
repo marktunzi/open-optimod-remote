@@ -1,7 +1,8 @@
 //! The passcode file (`Password.orb57pas`, `Password.orb55pas`) as the
 //! original PC Remote writes it: one line per passcode with its access level
-//! (5700i 3.0.1.20 and 5500i 3.1.0.2, 28 October 2026). Passcodes never go
-//! to logs.
+//! (5700i 3.0.1.20 and 5500i 3.1.0.2, 28 October 2026; `5500PC.exe` 1.2.8.24
+//! has the 5500i's level names and writes the same 5500.50 file). Passcodes
+//! never go to logs.
 use orban_protocol::adapter::DeviceModel;
 use serde::{Deserialize, Serialize};
 
@@ -28,7 +29,9 @@ pub const LEVELS_5500I: [&str; 6] = [
 /// The model's level names, its document version and its file extension.
 pub fn flavour(model: DeviceModel) -> (&'static [&'static str; 6], &'static str, &'static str) {
     match model {
-        DeviceModel::Optimod5500i => (&LEVELS_5500I, "5500.50", "orb55pas"),
+        DeviceModel::Optimod5500i | DeviceModel::Optimod5500 => {
+            (&LEVELS_5500I, "5500.50", "orb55pas")
+        }
         _ => (&LEVELS, "5700.51", "orb57pas"),
     }
 }

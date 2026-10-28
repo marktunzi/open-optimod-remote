@@ -1,6 +1,7 @@
 //! The automation file (`Automation.orb57autom`, `Automation.orb55autom`) as
 //! the original PC Remote writes it: one block per event (5700i 3.0.1.20 and
-//! 5500i 3.1.0.2, captured 28 October 2026).
+//! 5500i 3.1.0.2, captured 28 October 2026; `5500PC.exe` 1.2.8.24 offers the
+//! 5500i's functions in the same order and writes the same 5500.50 file).
 use orban_protocol::adapter::DeviceModel;
 use serde::{Deserialize, Serialize};
 
@@ -50,7 +51,9 @@ pub const FUNCTIONS_5500I: [&str; 18] = [
 /// The model's functions, its document version and its file extension.
 pub fn flavour(model: DeviceModel) -> (&'static [&'static str], &'static str, &'static str) {
     match model {
-        DeviceModel::Optimod5500i => (&FUNCTIONS_5500I, "5500.50", "orb55autom"),
+        DeviceModel::Optimod5500i | DeviceModel::Optimod5500 => {
+            (&FUNCTIONS_5500I, "5500.50", "orb55autom")
+        }
         _ => (&FUNCTIONS, "5700.51", "orb57autom"),
     }
 }

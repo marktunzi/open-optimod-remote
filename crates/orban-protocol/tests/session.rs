@@ -268,3 +268,38 @@ async fn a_5500_logs_in_with_or_without_a_session_line_and_asks_f9h() {
         worker.await.unwrap();
     }
 }
+
+/// The 5500 firmware's request switch is the 5500i's with every opcode one
+/// lower and no network file; nothing of the 5500i's wire may leak into it.
+#[test]
+fn the_5500_wire_is_the_5500i_wire_one_opcode_lower() {
+    use orban_protocol::adapter::{WIRE_5500, WIRE_5500I};
+    let (old, new) = (WIRE_5500, WIRE_5500I);
+    let (a, b) = (old.tool_files.unwrap(), new.tool_files.unwrap());
+    assert_eq!(old.boundary, (249, 250));
+    assert_eq!(old.on_air_request, 238);
+    assert_eq!(old.setup_request, Some((239, 232)));
+    assert_eq!(old.user_presets_request, Some((242, 231)));
+    assert_eq!(old.preset_file_delete, Some(236));
+    assert_eq!(
+        (a.automation_request, a.automation_file, a.passcodes_request),
+        (241, 234, 243)
+    );
+    assert_eq!(
+        (
+            b.automation_request - 1,
+            b.automation_file - 1,
+            b.passcodes_request - 1
+        ),
+        (a.automation_request, a.automation_file, a.passcodes_request)
+    );
+    assert_eq!(
+        new.preset_file_delete.map(|d| d - 1),
+        old.preset_file_delete
+    );
+    assert_eq!(old.backup_requests, [(239, 232), (241, 234)]);
+    assert_eq!(old.restore_files, [("Automation.orb55autom", 234)]);
+    assert_eq!(old.network_request, None);
+    assert_eq!(old.setup_presets, None);
+    assert_eq!(old.file_end, Some(250));
+}

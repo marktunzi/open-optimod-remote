@@ -247,6 +247,9 @@ pub struct Wire {
     /// The request for the unit's network file and its answer, shown with
     /// the system settings (read-only).
     pub network_request: Option<(u16, u16)>,
+    /// Files the client's Restore sends with an opcode of their own instead
+    /// of 231, by file name.
+    pub restore_files: &'static [(&'static str, u16)],
 }
 
 /// Requests for the files behind the client's Automation and Security
@@ -261,6 +264,8 @@ pub struct ToolFiles {
     pub passcodes_request: u16,
     /// The name the client gives the automation file it uploads.
     pub automation_name: &'static str,
+    /// The automation file's opcode, in both directions.
+    pub automation_file: u16,
 }
 
 /// The PC Remote generation of the 5700i, where nothing else was captured.
@@ -283,6 +288,7 @@ pub const WIRE_PC_REMOTE: Wire = Wire {
     restore_extensions: &[],
     setup_presets: None,
     network_request: None,
+    restore_files: &[],
 };
 
 /// 5700i 3.0.1.20 (reference unit and virtual 5700i).
@@ -303,6 +309,7 @@ pub const WIRE_5700I: Wire = Wire {
         automation_request: 242,
         passcodes_request: 241,
         automation_name: "Automation.orb57autom",
+        automation_file: 235,
     }),
     ..WIRE_PC_REMOTE
 };
@@ -334,18 +341,49 @@ pub const WIRE_8700HD: Wire = Wire {
     restore_extensions: &[],
     setup_presets: None,
     network_request: None,
+    restore_files: &[],
 };
 
 /// 5500 1.2.8.24: the 8700HD generation. `5500PC.exe` 1.2.8.24 sends the same
 /// opcode sequences as `8700PC.exe` 1.0.2.161 (sync: EFh, F3h, F0h, F1h, EEh,
 /// F9h; presets: DFh, E2h, F2h, F9h) and names the 5500i's files:
 /// `OnAir.orb55onair`, `Setup.orb55setup`, `.orb55user`. Its installer holds
-/// the same 27 factory presets as the 5500i's. Derived statically (issue #1:
-/// the 5700i boundary FAh/FBh never got an answer from a 5500).
+/// the same 27 factory presets as the 5500i's (issue #1: the 5700i boundary
+/// FAh/FBh never got an answer from a 5500).
+///
+/// The firmware 1.2.8.24 (`_optimod.exe` of the installer's update) answers
+/// its PC Remote requests in one switch (0x344013), which is the 5500i
+/// firmware's switch (0x34a42c) with every opcode one lower and without the
+/// network file: EEh is answered by `OnAir.orb55onair` (E5h), EFh by
+/// `Setup.orb55setup` (E8h), F1h by `Automation.orb55autom` (EAh), F2h by the
+/// preset files (E7h), F3h by `Password.orb55pas` (E6h) and F9h by FAh; ECh
+/// deletes a file. Every 5500i opcode in that switch is one captured from the
+/// 5500i firmware. The client's Automation, Security, Delete, Backup and
+/// Restore code is the 5500i client's with the same shift (Delete ECh at
+/// 0x465f00, Backup EFh F2h F1h at 0x458f70, automation upload EAh at
+/// 0x4096af, Restore 0x443130). Derived statically: no 5500 was available.
 pub const WIRE_5500: Wire = Wire {
     user_extension: ".orb55user",
     factory_presets: &FACTORY_5500I,
     login_seed: LoginSeed::IfSent,
+    preset_file_delete: Some(236),
+    tool_files: Some(ToolFiles {
+        prelude: None,
+        automation_request: 241,
+        passcodes_request: 243,
+        automation_name: "Automation.orb55autom",
+        automation_file: 234,
+    }),
+    // Backup to PC keeps setup, automation, user presets and setup presets.
+    backup_requests: &[(239, 232), (241, 234)],
+    backup_kept: &[".orb55user", ".orb55setup"],
+    // The setup file and setup presets share `.orb55setup`; both go back as
+    // 231, the automation file as EAh.
+    restore_extensions: &[".orb55setup", ".orb55autom"],
+    restore_files: &[("Automation.orb55autom", 234)],
+    // The client has no Open Setup or Save Setup As.
+    setup_presets: None,
+    network_request: None,
     ..WIRE_8700HD
 };
 
@@ -375,6 +413,7 @@ pub const WIRE_5500I: Wire = Wire {
         automation_request: 242,
         passcodes_request: 244,
         automation_name: "Automation.orb55autom",
+        automation_file: 235,
     }),
     // Backup to PC keeps setup, network, automation, user presets and setup
     // presets; Restore sends any of them back as 231 (captures, 28 October).
@@ -385,6 +424,9 @@ pub const WIRE_5500I: Wire = Wire {
     // unit's setup renamed; each is followed by FBh.
     setup_presets: Some(".orb55setup"),
     network_request: Some((241, 234)),
+    // The client's Restore sends these with their own opcodes, everything
+    // else as 231 (0x44b978).
+    restore_files: &[("Automation.orb55autom", 235), ("Network.orb55net", 234)],
 };
 
 /// Preset names of the factory `.orb55f50` files of PC Remote 3.1.0.2.
@@ -441,6 +483,7 @@ pub const WIRE_6300: Wire = Wire {
     restore_extensions: &[],
     setup_presets: None,
     network_request: None,
+    restore_files: &[],
 };
 
 /// Preset names of the factory `.orb63f` files of PC Remote 4.1.1.19.
@@ -542,6 +585,7 @@ pub const WIRE_2300: Wire = Wire {
     restore_extensions: &[],
     setup_presets: None,
     network_request: None,
+    restore_files: &[],
 };
 
 /// Preset names of the factory `.orb23f75` files of PC Remote 2.0.3.85.
@@ -573,6 +617,7 @@ pub const WIRE_8700I: Wire = Wire {
     restore_extensions: &[],
     setup_presets: None,
     network_request: None,
+    restore_files: &[],
     ..WIRE_5500I
 };
 
@@ -766,8 +811,8 @@ const STATIC_FULL: Capabilities = Capabilities {
     preset_delete: false,
 };
 
-/// The 5500 firmware documents `SP 'preset name'` and `DP 'preset name'` in its
-/// terminal help, next to the `RP` command the app already uses for recall.
+/// Save, Save As, Rename and Delete as the 5500's and 5500i's own clients do
+/// them, with file messages (`Wire::preset_file_delete`).
 const STATIC_FULL_WITH_PRESET_FILES: Capabilities = Capabilities {
     preset_store: true,
     preset_delete: true,

@@ -186,7 +186,7 @@ enum Command {
     PresetFile(PresetFile, Reply),
     RestoreSetup(RestoreSetup, Reply),
     BackupFiles(oneshot::Sender<Result<Vec<BackupFile>, String>>),
-    /// The unit's file for `request` (242 automation, 241 passcodes), decrypted.
+    /// The unit's automation (235) or passcode (230) file, decrypted.
     ReadUnitFile(u16, oneshot::Sender<Result<Option<String>, String>>),
     WriteUnitFile(UnitFileWrite, Reply),
     RestorePresetFiles(RestorePresetFiles, Reply),
@@ -2293,7 +2293,9 @@ async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>,
             let plain = device.session.decrypt_file(&data)?;
             let document = String::from_utf8(plain).map_err(|_| "Unsupported document encoding")?;
             // Automation and network files are no processing documents.
-            if reply != 235 && reply != 234 {
+            let automation = wire.tool_files.map(|t| t.automation_file);
+            let network = wire.network_request.map(|(_, answer)| answer);
+            if Some(reply) != automation && Some(reply) != network {
                 file_document(document.as_bytes(), device.session.info.model)?;
             }
             // The unit sends its working copies twice.
@@ -2309,11 +2311,9 @@ async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>,
     Ok(files)
 }
 
-/// The original PC Remote's Restore of user preset files: each file as
-/// opcode 231 with its modification time (a Windows FILETIME, low and high
-/// word), its name and the archive sealed with the access code, then 222.
-/// The answer to `request`: 242 is answered by 235 (automation), 241 by 230
-/// (passcodes). A unit without automation events sends nothing.
+/// The unit's automation file (`kind` 235) or passcode file (230), with the
+/// model's own request and answer opcodes (the 5500 answers EAh for its
+/// automation). A unit without automation events sends nothing.
 async fn read_unit_file_from(
     device: &mut Device,
     app: &App,
@@ -2330,15 +2330,15 @@ async fn read_unit_file_from(
     if (reply == 230 && !access.security) || (reply == 235 && !access.automation) {
         return Err("Security is not available for this access level".into());
     }
-    let request = match reply {
-        235 => tools.automation_request,
-        230 => tools.passcodes_request,
+    let (request, answer) = match reply {
+        235 => (tools.automation_request, tools.automation_file),
+        230 => (tools.passcodes_request, 230),
         _ => return Err("Unsupported file request".into()),
     };
     if let Some(prelude) = tools.prelude {
         device.session.send(prelude, b"").await?;
     }
-    let files = read_files(app, device, request, reply).await?;
+    let files = read_files(app, device, request, answer).await?;
     let Some((_, data)) = files.into_iter().next() else {
         return Ok(None);
     };
@@ -2397,9 +2397,15 @@ async fn write_unit_file(
     let name = (body.kind == 235).then_some(tools.automation_name);
     if body.document.is_empty() {
         let name = name.ok_or_else(|| OperationError::safe("Nothing to save"))?;
+        let delete = device
+            .session
+            .adapter()
+            .wire
+            .preset_file_delete
+            .ok_or_else(|| OperationError::safe("Nothing to save"))?;
         device
             .session
-            .send(237, format!("{name}\n").as_bytes())
+            .send(delete, format!("{name}\n").as_bytes())
             .await
             .map_err(OperationError::uncertain)?;
         let end = tokio::time::Instant::now() + Duration::from_secs(10);
@@ -2436,9 +2442,14 @@ async fn write_unit_file(
     };
     let mut message = header.into_bytes();
     message.extend(sealed);
+    let opcode = if body.kind == 235 {
+        tools.automation_file
+    } else {
+        body.kind
+    };
     device
         .session
-        .send(body.kind, &message)
+        .send(opcode, &message)
         .await
         .map_err(OperationError::uncertain)?;
     // Unlike a 229 or 231 upload, these get no boundary answer of their own.
@@ -2619,6 +2630,10 @@ async fn setup_preset(
     }
 }
 
+/// The original PC Remote's Restore of user preset files: each file as
+/// opcode 231 (or the model's own opcode for its automation and network
+/// files) with its modification time (a Windows FILETIME, low and high
+/// word), its name and the archive sealed with the access code, then 222.
 async fn restore_preset_files(
     device: &mut Device,
     app: &App,
@@ -2704,13 +2719,26 @@ async fn restore_preset_files(
         )
         .into_bytes();
         message.extend(sealed);
+        // The client sends some files with an opcode of their own (the
+        // automation file as EBh on the 5500i, EAh on the 5500).
+        let opcode = device
+            .session
+            .adapter()
+            .wire
+            .restore_files
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(&file.name))
+            .map_or(231, |(_, opcode)| *opcode);
         device
             .session
-            .send(231, &message)
+            .send(opcode, &message)
             .await
             .map_err(OperationError::uncertain)?;
-        // The unit answers each upload with a boundary answer (FBh).
-        device.boundaries.sent();
+        // The unit answers each preset-file upload with a boundary answer
+        // (FBh); automation and passcode uploads get none.
+        if opcode == 231 {
+            device.boundaries.sent();
+        }
         let _ = device.session.send(222, b"").await;
     }
     let listed = refresh_presets(app, device).await;
@@ -5351,7 +5379,8 @@ mod tests {
         model: DeviceModel::Optimod5500,
         login: b"connect ok\n0\n5500 V 1.2.8.24\n",
         terminal: b"Orban Optimod 5500 V 1.2.8.24\n\r",
-        version: "8300.10",
+        // What the firmware 1.2.8.24 writes; its installer's factory files are 8300.10.
+        version: "5500.50",
         user: ".ORB55USER",
         on_air: "OnAir.orb55onair",
         setup: "Setup.orb55setup",
@@ -5481,6 +5510,8 @@ mod tests {
                         let mut buffer = [0_u8; 16384];
                         // On-air reads still answered from the file saved before a change.
                         let mut lag = 0_usize;
+                        // Until it is deleted, the unit holds an automation file.
+                        let mut automation = true;
                         loop {
                             let count = tokio::select! {
                                 read = reader.read(&mut buffer) => match read {
@@ -5644,6 +5675,51 @@ mod tests {
                                         continue;
                                     }
                                     218 => return,
+                                    // A preset file upload gets a boundary answer of its own,
+                                    // as the 5500i firmware gives it.
+                                    231 if m.wire.file_end.is_some() => {
+                                        orban_protocol::message::encode(m.wire.boundary.1, b"")
+                                            .unwrap()
+                                    }
+                                    // The automation and passcode files, by the model's opcodes.
+                                    k if Some(k) == m.wire.preset_file_delete
+                                        && data.starts_with(b"Automation.") =>
+                                    {
+                                        automation = false;
+                                        continue;
+                                    }
+                                    k if m
+                                        .wire
+                                        .tool_files
+                                        .is_some_and(|t| k == t.automation_request) =>
+                                    {
+                                        if !automation {
+                                            continue;
+                                        }
+                                        let tools = m.wire.tool_files.unwrap();
+                                        file_for_model(
+                                            m,
+                                            tools.automation_file,
+                                            tools.automation_name,
+                                            &format!(
+                                                "OptimodVersion=<{}>\nPreset Name=<auto_event_00> size=0\nEnd Preset<end>\n",
+                                                m.version
+                                            ),
+                                        )
+                                    }
+                                    k if m
+                                        .wire
+                                        .tool_files
+                                        .is_some_and(|t| k == t.passcodes_request) =>
+                                    {
+                                        let passcodes = [crate::security::Passcode {
+                                            code: FILE_UNIT_CODE.into(),
+                                            level: crate::security::flavour(m.model).0[0].into(),
+                                        }];
+                                        let text =
+                                            crate::security::render(&passcodes, m.model).unwrap();
+                                        file_for_model(m, 230, "Password.orb55pas", &text)
+                                    }
                                     _ => continue,
                                 };
                                 if writer.write_all(&reply).await.is_err() {
@@ -5769,6 +5845,129 @@ mod tests {
     #[tokio::test]
     async fn the_5500_syncs_writes_and_recalls_with_the_8700hd_opcodes() {
         file_sync_round_trip(M5500, 27).await;
+    }
+
+    /// The 5500's tool files, Delete, Backup and Restore use its firmware's
+    /// opcodes (one below the 5500i's): never a 5500i request.
+    #[tokio::test]
+    async fn the_5500_tools_backup_and_restore_use_its_own_opcodes() {
+        let unit = FakeFileUnit::start(M5500).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let read = |request| {
+            let app = app.clone();
+            async move {
+                let (reply, answer) = oneshot::channel();
+                app.commands
+                    .send(Command::ReadUnitFile(request, reply))
+                    .await
+                    .unwrap();
+                answer.await.unwrap()
+            }
+        };
+        let passcodes = read(230).await.unwrap().unwrap();
+        assert!(passcodes.contains("C:<ADMIN>String:<all access>"));
+        assert!(read(235).await.is_ok());
+        // Diagnostics at sync, passcodes F3h, automation F1h.
+        assert!(!unit.received(204).is_empty());
+        assert!(!unit.received(243).is_empty() && !unit.received(241).is_empty());
+        let session = app.state.read().await.session_id.clone().unwrap();
+        // No events left: the automation file is deleted with ECh.
+        command(&app, |r| {
+            Command::WriteUnitFile(
+                UnitFileWrite {
+                    kind: 235,
+                    document: Zeroizing::new(String::new()),
+                    expected_host: "127.0.0.1".into(),
+                    expected_session: session.clone(),
+                },
+                r,
+            )
+        })
+        .await
+        .ok();
+        assert_eq!(unit.received(236), [b"Automation.orb55autom\n".to_vec()]);
+        // Delete Preset is ECh with the preset's file name, as the client sends it.
+        let _ = command(&app, |r| {
+            Command::PresetFile(
+                PresetFile {
+                    action: PresetFileAction::Delete {
+                        name: "Late Night".into(),
+                    },
+                    expected_name: "Test01".into(),
+                    confirmed: true,
+                    expected_host: "127.0.0.1".into(),
+                    expected_session: session.clone(),
+                },
+                r,
+            )
+        })
+        .await;
+        assert!(
+            unit.received(236)
+                .contains(&b"Late Night.orb55user\n".to_vec())
+        );
+        // Backup asks for setup (EFh), automation (F1h) and preset files
+        // (F2h); the fake's preset answer holds a 6300 file, which stops it.
+        let before = (
+            unit.received(239).len(),
+            unit.received(241).len(),
+            unit.received(242).len(),
+        );
+        let (reply, answer) = oneshot::channel();
+        app.commands
+            .send(Command::BackupFiles(reply))
+            .await
+            .unwrap();
+        let _ = answer.await.unwrap();
+        assert_eq!(
+            (
+                unit.received(239).len(),
+                unit.received(241).len(),
+                unit.received(242).len()
+            ),
+            (before.0 + 1, before.1 + 1, before.2 + 1)
+        );
+        // Its Restore sends the automation file as EAh, presets as 231.
+        let automation =
+            "OptimodVersion=<5500.50>\nPreset Name=<auto_event_00> size=0\nEnd Preset<end>\n";
+        command(&app, |r| {
+            Command::RestorePresetFiles(
+                RestorePresetFiles {
+                    files: vec![
+                        BackupFile {
+                            name: "Automation.orb55autom".into(),
+                            document: automation.into(),
+                            modified: Some(0),
+                        },
+                        BackupFile {
+                            name: "LATE NIGHT.orb55user".into(),
+                            document: doc_with("5500.50", "Late Night", 14),
+                            modified: Some(0),
+                        },
+                    ],
+                    confirmed: true,
+                    expected_host: "127.0.0.1".into(),
+                    expected_session: session.clone(),
+                },
+                r,
+            )
+        })
+        .await
+        .unwrap();
+        assert_eq!(unit.received(231).len(), 1);
+        assert!(
+            unit.received(234)
+                .iter()
+                .any(|d| d.starts_with(b"Automation.orb55autom\n"))
+        );
+        // None of the 5500i's requests: F0h setup, F4h passcodes, F2h automation, EDh delete, FAh.
+        for kind in [244, 237, 251] {
+            assert!(unit.received(kind).is_empty(), "{kind}");
+        }
+        assert!(unit.received(240).is_empty());
     }
 
     #[tokio::test]
@@ -6973,7 +7172,6 @@ mod tests {
     struct PresetFileOutcome {
         result: Result<(), String>,
         commands: Vec<String>,
-        users: Vec<String>,
     }
 
     /// A 5500-style terminal that keeps a user preset list, answers SP and DP
@@ -7182,76 +7380,11 @@ mod tests {
         )
         .await
         .map_err(|e| e.message);
-        let listed = app
-            .state
-            .read()
-            .await
-            .presets
-            .iter()
-            .filter(|p| p.kind == orban_protocol::presets::PresetKind::User)
-            .map(|p| p.name.clone())
-            .collect();
         let commands = commands.lock().unwrap().clone();
-        PresetFileOutcome {
-            result,
-            commands,
-            users: listed,
-        }
+        PresetFileOutcome { result, commands }
     }
 
     const P5500: (&str, &str) = ("5500 V 1.2.8.24", "Orban Optimod 5500");
-
-    #[tokio::test]
-    async fn a_5500_saves_and_deletes_user_presets_confirmed_by_the_list() {
-        let saved = simulated_preset_file(PresetFileCase {
-            banner: P5500.0,
-            terminal_banner: P5500.1,
-            on_air: "modif FACTORY ONE",
-            users: &["MORNING"],
-            ignore: false,
-            action: PresetFileAction::Save {
-                name: "EVENING".into(),
-            },
-        })
-        .await;
-        assert!(saved.result.is_ok(), "{:?}", saved.result);
-        assert_eq!(saved.commands, ["SP EVENING[1234]"]);
-        assert_eq!(saved.users, ["MORNING", "EVENING"]);
-
-        let deleted = simulated_preset_file(PresetFileCase {
-            banner: P5500.0,
-            terminal_banner: P5500.1,
-            on_air: "FACTORY ONE",
-            users: &["MORNING", "EVENING"],
-            ignore: false,
-            action: PresetFileAction::Delete {
-                name: "MORNING".into(),
-            },
-        })
-        .await;
-        assert!(deleted.result.is_ok(), "{:?}", deleted.result);
-        assert_eq!(deleted.commands, ["DP MORNING[1234]"]);
-        assert_eq!(deleted.users, ["EVENING"]);
-    }
-
-    #[tokio::test]
-    async fn a_5500_renames_the_on_air_user_preset_by_saving_then_deleting() {
-        let renamed = simulated_preset_file(PresetFileCase {
-            banner: P5500.0,
-            terminal_banner: P5500.1,
-            on_air: "MORNING",
-            users: &["MORNING"],
-            ignore: false,
-            action: PresetFileAction::Rename {
-                name: "MORNING".into(),
-                new_name: "BREAKFAST".into(),
-            },
-        })
-        .await;
-        assert!(renamed.result.is_ok(), "{:?}", renamed.result);
-        assert_eq!(renamed.commands, ["SP BREAKFAST[1234]", "DP MORNING[1234]"]);
-        assert_eq!(renamed.users, ["BREAKFAST"]);
-    }
 
     #[tokio::test]
     async fn preset_changes_are_refused_before_any_command_when_unsafe() {
@@ -7331,25 +7464,6 @@ mod tests {
                 outcome.commands
             );
         }
-    }
-
-    #[tokio::test]
-    async fn an_ignored_delete_is_reported_from_the_list_and_never_retried() {
-        let outcome = simulated_preset_file(PresetFileCase {
-            banner: P5500.0,
-            terminal_banner: P5500.1,
-            on_air: "FACTORY ONE",
-            users: &["MORNING"],
-            ignore: true,
-            action: PresetFileAction::Delete {
-                name: "MORNING".into(),
-            },
-        })
-        .await;
-        let error = outcome.result.unwrap_err();
-        assert!(error.contains("did not delete"), "{error}");
-        assert_eq!(outcome.commands, ["DP MORNING[1234]"]);
-        assert_eq!(outcome.users, ["MORNING"]);
     }
 
     #[tokio::test]

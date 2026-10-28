@@ -4,7 +4,8 @@
 //! As/Delete 0x437ef0/0x437a00/0x438af0, Setup 0x438cb0, Automation
 //! 0x43abd0, Security 0x43aca0, Backup/Restore 0x43ad70/0x43add0); the level
 //! names are those of its Security dialog. `5500iPC.exe` 3.1.0.2 has the same
-//! bounds except Delete Preset, which needs level 1 or lower (0x42f560).
+//! bounds except Delete Preset, which needs level 1 or lower (0x42f560);
+//! `5500PC.exe` 1.2.8.24 has the 5500i's bounds (Delete 0x42d070).
 //! Other models keep full access at level 0 and read-only access otherwise
 //! until their clients are compared.
 use crate::adapter::DeviceModel;
@@ -30,7 +31,10 @@ pub struct Access {
 }
 
 pub fn access(model: DeviceModel, level: u8) -> Access {
-    if matches!(model, DeviceModel::Optimod5700i | DeviceModel::Optimod5500i) {
+    if matches!(
+        model,
+        DeviceModel::Optimod5700i | DeviceModel::Optimod5500i | DeviceModel::Optimod5500
+    ) {
         // 0 All screens, 1 … except Security, 2 … except Modify and Security,
         // 3 Presets, Modify, Save, Memory and Automation, 4 Presets and
         // Automation, 5 Presets. Level 3's "Memory" is not Backup/Restore:
@@ -40,7 +44,7 @@ pub fn access(model: DeviceModel, level: u8) -> Access {
             recall: level <= 5,
             modify: matches!(level, 0 | 1 | 3),
             presets: matches!(level, 0 | 1 | 3),
-            delete: if model == DeviceModel::Optimod5500i {
+            delete: if model != DeviceModel::Optimod5700i {
                 level <= 1
             } else {
                 matches!(level, 0 | 1 | 3)
@@ -95,10 +99,13 @@ mod tests {
     }
 
     #[test]
-    fn the_5500i_client_deletes_only_at_level_1_or_lower() {
-        let a = |level| access(DeviceModel::Optimod5500i, level);
-        assert!(a(1).delete && a(3).presets && !a(3).delete);
-        assert!(a(2).setup && !a(2).modify && a(4).automation && !a(5).automation);
+    fn the_5500_and_5500i_clients_delete_only_at_level_1_or_lower() {
+        for model in [DeviceModel::Optimod5500i, DeviceModel::Optimod5500] {
+            let a = |level| access(model, level);
+            assert!(a(1).delete && a(3).presets && !a(3).delete);
+            assert!(a(2).setup && !a(2).modify && a(4).automation && !a(5).automation);
+            assert!(a(1).memory && !a(2).memory && a(0).security && !a(1).security);
+        }
         assert!(access(DeviceModel::Optimod5700i, 3).delete);
     }
 }
