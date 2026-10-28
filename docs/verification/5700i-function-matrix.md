@@ -61,9 +61,9 @@ Original client: `5700iPC.exe` (SHA-256 `63def9bb…`), menus from its own resou
 
 | Windows function | Mac app | Status |
 |---|---|---|
-| Automation | — | UNTESTED (not implemented) |
-| Security | — | UNTESTED (not implemented) |
-| 5700i Diagnostics | — | UNTESTED (not implemented) |
+| Automation | — | NOT IMPLEMENTED (format captured in [M1E](2026-10-28-m1e-diagnostics.md)) |
+| Security | — | NOT IMPLEMENTED (format captured in [M1E](2026-10-28-m1e-diagnostics.md)) |
+| 5700i Diagnostics | Open Optimod Remote › Diagnostics… | PASS ([M1E](2026-10-28-m1e-diagnostics.md)) |
 | Operating Manual, About | — | UNTESTED |
 
 **Model status: NOT COMPLETE.**

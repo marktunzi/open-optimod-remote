@@ -103,6 +103,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         )
         errorsItem.keyEquivalentModifierMask = [.command, .shift]
         errorsItem.target = self
+        let diagnosticsItem = applicationMenu.addItem(
+            withTitle: "Diagnostics…",
+            action: #selector(showDiagnostics(_:)),
+            keyEquivalent: ""
+        )
+        diagnosticsItem.target = self
         applicationMenu.addItem(.separator())
         applicationMenu.addItem(
             withTitle: "Quit \(name)",
@@ -274,13 +280,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
             let complete = text[...end]
             self.windowControlOffset += UInt64(complete.utf8.count)
             for line in complete.split(separator: "\n") {
-                self.windows.perform(control: line.trimmingCharacters(in: .whitespaces))
+                let control = line.trimmingCharacters(in: .whitespaces)
+                if control == "diagnostics" { self.showDiagnostics(nil); continue }
+                self.windows.perform(control: control)
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 let state = try? JSONSerialization.data(withJSONObject: self.windows.windowList, options: [.prettyPrinted, .sortedKeys])
                 FileManager.default.createFile(atPath: path + ".state", contents: state)
             }
         }
+    }
+
+    private var diagnosticsWindowController: DiagnosticsWindowController?
+
+    @objc private func showDiagnostics(_ sender: Any?) {
+        if diagnosticsWindowController == nil { diagnosticsWindowController = DiagnosticsWindowController() }
+        diagnosticsWindowController?.show()
     }
 
     /// Command-, opens the System Settings of the connected processor's model.

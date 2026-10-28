@@ -65,6 +65,7 @@ done
   -framework Network \
   -framework UniformTypeIdentifiers \
   native/macos/ErrorLog.swift \
+  native/macos/DiagnosticsWindow.swift \
   native/macos/LauncherCore.swift \
   native/macos/SystemSettingsSpec.swift \
   native/macos/SystemSettingsAPI.swift \

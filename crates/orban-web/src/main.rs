@@ -118,6 +118,9 @@ struct Snapshot {
     sync_error: Option<String>,
     /// Set while the app waits to reconnect after an unexpected session loss.
     reconnect: Option<ReconnectStatus>,
+    /// The status text the unit sends after the PC Remote login (opcode
+    /// 205): what the original client shows as its Diagnostics.
+    diagnostics: Option<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -1475,6 +1478,10 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
                 });
             }
             Message::Meters { .. } => {}
+            Message::Other { kind: 205, data } => {
+                let text = String::from_utf8_lossy(&data).replace('\r', "");
+                app.state.write().await.diagnostics = Some(text);
+            }
             Message::Other { kind, .. } if kind == answer && device.boundaries.answered() => {
                 return Ok(());
             }
@@ -1603,6 +1610,14 @@ async fn refresh_presets(app: &App, device: &mut Device) -> Result<(), String> {
     )
     .await?;
     let presets = with_user_preset_files(app, device, presets).await?;
+    // The status text the original client shows as Diagnostics answers its
+    // login message (204 with the access code); the app's login is the
+    // terminal-style one, so it asks once here.
+    if device.session.adapter().wire.preset_file_delete.is_some() {
+        let code = device.code.clone();
+        device.session.send(204, code.as_bytes()).await?;
+        drain(device, app).await?;
+    }
     let mut state = app.state.write().await;
     let previous_name = state
         .processing
@@ -3106,6 +3121,7 @@ async fn end_session(app: &App, device: &mut Option<Device>, error: String) {
     let mut state = app.state.write().await;
     state.connected = false;
     state.session_id = None;
+    state.diagnostics = None;
     state.error = Some(error);
     app.meters.send_replace(json!({"live":false}));
 }
