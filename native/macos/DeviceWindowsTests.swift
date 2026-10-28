@@ -70,6 +70,10 @@ struct DeviceWindowsTests {
         """.utf8)
         let lost = try JSONDecoder().decode(DeviceSessionPayload.self, from: sessions)
         precondition(lost.key == "d2" && !lost.connected && lost.reconnect?.attempts == 6)
+        // Tabs share the bar between 112 and 300 pt; below that the strip scrolls.
+        precondition(DeviceTabBar.tabWidth(count: 2, width: 1133) == 300)
+        precondition(DeviceTabBar.tabWidth(count: 5, width: 760) > 112 && DeviceTabBar.tabWidth(count: 5, width: 760) < 300)
+        precondition(DeviceTabBar.tabWidth(count: 12, width: 760) == 112)
         // With no processor open, no tab and nothing selected.
         precondition(DeviceSessionStore.shared.tabs.isEmpty && DeviceSessionStore.shared.device == nil)
         precondition(DeviceWindowKind.processing.defaultSize == NSSize(width: 1133, height: 500))

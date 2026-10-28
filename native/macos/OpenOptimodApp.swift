@@ -398,7 +398,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
                     DeviceSessionStore.shared.close(id)
                     DeviceSessionStore.shared.refresh()
                 } else {
-                    ErrorLogStore.shared.record(source: "Disconnect", message: message ?? "The processor could not be disconnected.")
+                    let text = message ?? "The processor could not be disconnected."
+                    ErrorLogStore.shared.record(source: "Disconnect", message: text)
+                    let alert = NSAlert()
+                    alert.alertStyle = .warning
+                    alert.messageText = "Could not disconnect"
+                    alert.informativeText = text
+                    if let window = NSApp.keyWindow { alert.beginSheetModal(for: window) } else { alert.runModal() }
                 }
                 self.connectionsWindowController?.refreshStatusNow()
             }

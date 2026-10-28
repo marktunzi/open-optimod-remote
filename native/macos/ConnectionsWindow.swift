@@ -243,6 +243,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         scroll.documentView = tableView
         scroll.hasVerticalScroller = true
         scroll.drawsBackground = false
+        scroll.automaticallyAdjustsContentInsets = false
         scroll.translatesAutoresizingMaskIntoConstraints = false
 
         connectButton.title = "Connect"
@@ -264,10 +265,11 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         NSLayoutConstraint.activate([
             scroll.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
             scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -16),
-            scroll.topAnchor.constraint(equalTo: content.topAnchor, constant: 14),
+            // Below the toolbar: scrolled rows never run under the title.
+            scroll.topAnchor.constraint(equalTo: content.safeAreaLayoutGuide.topAnchor, constant: 6),
             scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -16),
             progress.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
-            progress.topAnchor.constraint(equalTo: content.topAnchor, constant: 16),
+            progress.topAnchor.constraint(equalTo: content.safeAreaLayoutGuide.topAnchor, constant: 8),
         ])
         return content
     }

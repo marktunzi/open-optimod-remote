@@ -12,18 +12,36 @@ final class DeviceTabBar: NSView {
     /// Also the title bar above the tabs.
     static let background = NSColor(srgbRed: 0x2c / 255, green: 0x2c / 255, blue: 0x2c / 255, alpha: 1)
 
-    private let stack = NSStackView()
+    private let scroll = NSScrollView()
+    private let strip = NSView()
+    private var tabViews: [DeviceTabView] = []
     private let addButton = NSButton()
     private var shown: ([DeviceTab], String?) = ([], nil)
+
+    /// Tabs share the width, between these sizes; below the minimum the strip
+    /// scrolls sideways and the + button stays in view.
+    static let tabWidths: ClosedRange<CGFloat> = 112...300
+    static let leading: CGFloat = 8
+    static let addWidth: CGFloat = 36
+
+    /// The width of each of `count` tabs in a bar `width` wide.
+    static func tabWidth(count: Int, width: CGFloat) -> CGFloat {
+        guard count > 0 else { return tabWidths.upperBound }
+        let available = width - leading - addWidth - 2 * CGFloat(count - 1)
+        return min(max(available / CGFloat(count), tabWidths.lowerBound), tabWidths.upperBound)
+    }
 
     override init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true
         layer?.backgroundColor = Self.background.cgColor
-        stack.orientation = .horizontal
-        stack.spacing = 2
-        stack.alignment = .bottom
-        stack.translatesAutoresizingMaskIntoConstraints = false
+        scroll.drawsBackground = false
+        scroll.hasHorizontalScroller = false
+        scroll.hasVerticalScroller = false
+        scroll.horizontalScrollElasticity = .allowed
+        scroll.verticalScrollElasticity = .none
+        scroll.documentView = strip
+        scroll.translatesAutoresizingMaskIntoConstraints = false
         addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: "Connect another processor")
         addButton.isBordered = false
         addButton.contentTintColor = NSColor(white: 0.75, alpha: 1)
@@ -31,22 +49,25 @@ final class DeviceTabBar: NSView {
         addButton.action = #selector(add)
         addButton.toolTip = "Connect another processor"
         addButton.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(stack)
+        addSubview(scroll)
         addSubview(addButton)
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: Self.height),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor),
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 4),
-            addButton.leadingAnchor.constraint(equalTo: stack.trailingAnchor, constant: 6),
-            addButton.centerYAnchor.constraint(equalTo: stack.centerYAnchor),
+            scroll.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.leading),
+            scroll.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            scroll.bottomAnchor.constraint(equalTo: bottomAnchor),
+            scrollWidth,
+            addButton.leadingAnchor.constraint(equalTo: scroll.trailingAnchor, constant: 6),
+            addButton.centerYAnchor.constraint(equalTo: scroll.centerYAnchor),
             addButton.widthAnchor.constraint(equalToConstant: 24),
             addButton.heightAnchor.constraint(equalToConstant: 24),
-            addButton.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -8),
+            addButton.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -6),
         ])
         setAccessibilityRole(.tabGroup)
         setAccessibilityLabel("Processors")
     }
+
+    private lazy var scrollWidth = scroll.widthAnchor.constraint(equalToConstant: 0)
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { nil }
@@ -54,13 +75,30 @@ final class DeviceTabBar: NSView {
     func update(tabs: [DeviceTab], selected: String?) {
         guard shown.0 != tabs || shown.1 != selected else { return }
         shown = (tabs, selected)
-        stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        for tab in tabs {
+        tabViews.forEach { $0.removeFromSuperview() }
+        tabViews = tabs.map { tab in
             let view = DeviceTabView(tab: tab, selected: tab.id == selected)
             view.onSelect = { [weak self] in self?.onSelect?(tab.id) }
             view.onClose = { [weak self] in self?.onClose?(tab.id) }
-            stack.addArrangedSubview(view)
+            strip.addSubview(view)
+            return view
         }
+        needsLayout = true
+    }
+
+    override func layout() {
+        super.layout()
+        let width = Self.tabWidth(count: tabViews.count, width: bounds.width)
+        let content = CGFloat(tabViews.count) * width + 2 * CGFloat(max(tabViews.count - 1, 0))
+        let room = max(bounds.width - Self.leading - Self.addWidth, 0)
+        scrollWidth.constant = min(content, room)
+        let height = Self.height - 4
+        strip.frame = NSRect(x: 0, y: 0, width: content, height: height)
+        for (index, view) in tabViews.enumerated() {
+            view.frame = NSRect(x: CGFloat(index) * (width + 2), y: 0, width: width, height: 30)
+        }
+        // The selected tab stays in view when the strip scrolls.
+        if let selected = tabViews.first(where: \.isSelected) { strip.scrollToVisible(selected.frame) }
     }
 
     @objc private func add() { onAdd?() }
@@ -87,7 +125,7 @@ final class DeviceTabView: NSView {
         wantsLayer = true
         layer?.cornerRadius = 6
         layer?.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
-        translatesAutoresizingMaskIntoConstraints = false
+        focusRingType = .exterior
 
         let dot = NSView()
         dot.wantsLayer = true
@@ -121,9 +159,6 @@ final class DeviceTabView: NSView {
         detail.setContentCompressionResistancePriority(.defaultLow - 1, for: .horizontal)
         for view in [dot, labels, close] { addSubview(view) }
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: 30),
-            widthAnchor.constraint(lessThanOrEqualToConstant: 280),
-            widthAnchor.constraint(greaterThanOrEqualToConstant: 120),
             dot.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
             dot.centerYAnchor.constraint(equalTo: centerYAnchor),
             dot.widthAnchor.constraint(equalToConstant: 7),
@@ -146,6 +181,23 @@ final class DeviceTabView: NSView {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { nil }
+
+    var isSelected: Bool { selected }
+
+    // Full keyboard access: Tab reaches each tab, Space or Return chooses it,
+    // Delete closes it.
+    override var acceptsFirstResponder: Bool { true }
+    override var canBecomeKeyView: Bool { true }
+    override var focusRingMaskBounds: NSRect { bounds }
+    override func drawFocusRingMask() { NSBezierPath(roundedRect: bounds, xRadius: 6, yRadius: 6).fill() }
+
+    override func keyDown(with event: NSEvent) {
+        switch event.keyCode {
+        case 36, 49, 76: onSelect?()
+        case 51, 117: onClose?()
+        default: super.keyDown(with: event)
+        }
+    }
 
     static func color(_ status: DeviceTab.Status) -> NSColor {
         switch status {
