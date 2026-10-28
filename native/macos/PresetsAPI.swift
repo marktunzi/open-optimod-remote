@@ -144,7 +144,12 @@ enum PresetBackup {
     }
 
     /// An uncompressed ZIP of `files` in a folder named `folder`, as Finder opens it.
-    static func zip(folder: String, files: [(name: String, data: Data)]) -> Data {
+    /// Entries carry `date` (local time), so a restore from the unzipped
+    /// folder sends the unit the backup's time, not 1980.
+    static func zip(folder: String, files: [(name: String, data: Data)], date: Date = Date()) -> Data {
+        let c = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+        let dosTime = (c.hour ?? 0) << 11 | (c.minute ?? 0) << 5 | (c.second ?? 0) / 2
+        let dosDate = max(0, (c.year ?? 1980) - 1980) << 9 | (c.month ?? 1) << 5 | (c.day ?? 1)
         var local = Data()
         var central = Data()
         func u16(_ value: Int, _ data: inout Data) { var v = UInt16(truncatingIfNeeded: value).littleEndian; data.append(Data(bytes: &v, count: 2)) }
@@ -154,11 +159,11 @@ enum PresetBackup {
             let crc = crc32(file.data)
             let offset = UInt32(local.count)
             let size = UInt32(file.data.count)
-            u32(0x0403_4b50, &local); u16(20, &local); u16(0, &local); u16(0, &local); u16(0, &local); u16(0, &local)
+            u32(0x0403_4b50, &local); u16(20, &local); u16(0, &local); u16(0, &local); u16(dosTime, &local); u16(dosDate, &local)
             u32(crc, &local); u32(size, &local); u32(size, &local); u16(name.count, &local); u16(0, &local)
             local.append(name); local.append(file.data)
             u32(0x0201_4b50, &central); u16(20, &central); u16(20, &central); u16(0, &central); u16(0, &central)
-            u16(0, &central); u16(0, &central); u32(crc, &central); u32(size, &central); u32(size, &central)
+            u16(dosTime, &central); u16(dosDate, &central); u32(crc, &central); u32(size, &central); u32(size, &central)
             u16(name.count, &central); u16(0, &central); u16(0, &central); u16(0, &central); u16(0, &central)
             u32(0, &central); u32(offset, &central)
             central.append(name)

@@ -40,16 +40,29 @@ struct PresetsAPITests {
         ], adapterID: "pc-remote-5700i-3.0.1.20")
         precondition(sorted.setup?.name == "Setup.orb57setup" && sorted.presets.count == 1)
         precondition((try? PresetBackup.sort([PresetBackupFile(name: "x.txt", document: "")], adapterID: "pc-remote-5700i-3.0.1.20")) == nil)
+        // The 5500i client restores setup, automation and network files as files.
+        let sorted55 = try PresetBackup.sort([
+            PresetBackupFile(name: "Setup.orbsetup", document: "s"),
+            PresetBackupFile(name: "Automation.orb55autom", document: "a"),
+            PresetBackupFile(name: "OOR TEST.ORB55USER", document: "p"),
+        ], adapterID: "pc-remote-5500i-3.1.0.2")
+        precondition(sorted55.setup == nil && sorted55.presets.count == 3)
         precondition(PresetBackup.crc32(Data("123456789".utf8)) == 0xcbf4_3926)
         let zip = PresetBackup.zip(folder: "f", files: [("a.txt", Data("hi".utf8))])
         precondition(zip.prefix(4) == Data([0x50, 0x4b, 0x03, 0x04]) && zip.count == 30 + 7 + 2 + 46 + 7 + 22)
+        // DOS date of 28 October 2026: (46 << 9) | (10 << 5) | 28.
+        let dated = PresetBackup.zip(folder: "f", files: [("a", Data())],
+                                     date: Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 28))!)
+        precondition(dated[12] == UInt8((46 << 9 | 10 << 5 | 28) & 0xff) && dated[13] == UInt8((46 << 9 | 10 << 5 | 28) >> 8))
         precondition(PresetBackup.safeFilename("192.168.1.177") == "192.168.1.177")
 
         precondition(PresetFileFormat.forAdapter("pc-remote-5700i-3.0.1.20").fileExtension == "orb57user")
         precondition(PresetFileFormat.forAdapter("pc-remote-5500-1.2.8.24").fileExtension == "orb55user")
         precondition(PresetFileFormat.forAdapter("pc-remote-8700hd-1.0.2.161").fileExtension == "orb86user")
         precondition(PresetFileFormat.forAdapter("pc-remote-5700i-family").fileExtension == "orb57user")
-        precondition(PresetFileFormat.forAdapter("pc-remote-5500i-family").fileExtension == "orb")
+        precondition(PresetFileFormat.forAdapter("pc-remote-5500i-3.1.0.2").fileExtension == "orb55user")
+        precondition(PresetFileFormat.backsUpFiles("pc-remote-5500i-3.1.0.2") && PresetFileFormat.replacesOnAir("pc-remote-5500i-3.1.0.2"))
+        precondition(!PresetFileFormat.backsUpFiles("pc-remote-8700i-1.5.1.11"))
         precondition(PresetFileFormat.forAdapter(nil).model == "OPTIMOD")
 
         let request = PresetRecallRequest(

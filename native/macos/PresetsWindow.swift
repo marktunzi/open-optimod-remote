@@ -616,8 +616,10 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
     @objc private func recallSelected() {
         guard canRecall, let context, let preset = selectedPreset, let session = context.snapshot.sessionID else { return }
         let current = context.currentName
+        // Only processors with an HD path say so.
+        let hd = ["pc-remote-5700i-", "pc-remote-8700hd-", "pc-remote-8700i-"].contains { context.snapshot.adapterID?.hasPrefix($0) == true }
         confirm("Recall \(preset.name)?",
-                "This replaces \(current.isEmpty ? "the on-air preset" : current) and changes the on-air sound. FM and HD use the processing settings stored in this preset; output routing is not changed.",
+                "This replaces \(current.isEmpty ? "the on-air preset" : current) and changes the on-air sound. \(hd ? "FM and HD use the processing settings stored in this preset" : "The processing settings stored in this preset go on air"); output routing is not changed.",
                 button: "Recall") { [weak self] in
             guard let self else { return }
             let request = PresetRecallRequest(name: preset.name, expectedName: current, confirmed: true,
@@ -845,8 +847,7 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
         let folder = "\(PresetBackup.safeFilename(context.snapshot.host.isEmpty ? "Optimod" : context.snapshot.host)) backup \(date)"
         chooseSaveLocation(title: "Save Backup", name: "\(folder).zip", type: .zip) { [weak self] url in
             try PresetBackup.zip(folder: folder, files: files).write(to: url, options: .atomic)
-            let presets = files.count - 1
-            self?.announce("Backup saved: the setup file and \(presets) preset \(presets == 1 ? "file" : "files")")
+            self?.announce("Backup saved: \(files.map(\.name).joined(separator: ", "))")
         }
     }
 
@@ -854,7 +855,8 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
         guard idle, let context, context.canRestore else { return }
         let adapterID = context.snapshot.adapterID
         if PresetFileFormat.backsUpFiles(adapterID) {
-            let types = [UTType(filenameExtension: context.fileFormat.fileExtension) ?? .data, UTType(filenameExtension: "orb57setup") ?? .data]
+            let others = ["orb57setup"] + PresetFileFormat.restoresAsFiles(adapterID).map { String($0.dropFirst()) }
+            let types = ([context.fileFormat.fileExtension] + others).map { UTType(filenameExtension: $0) ?? .data }
             chooseFiles(title: "Choose the Backup Folder or Files", multiple: true, folders: true, types: types) { [weak self] urls in
                 guard let self else { return }
                 let raw = try Self.readBackupFiles(urls, adapterID: adapterID)
@@ -925,12 +927,14 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
                 }
                 self.plan(setup: sorted.setup?.document) { changes, skipped in
                     var lines: [String] = []
-                    if !sorted.presets.isEmpty {
-                        lines.append("User preset files: \(sorted.presets.map(\.name).joined(separator: ", ")). A preset with the same name is replaced; the on-air sound does not change.")
-                        let others = PresetFileFormat.restoresAsFiles(adapterID)
-                        if sorted.presets.contains(where: { file in others.contains { file.name.lowercased().hasSuffix($0) } }) {
-                            lines.append("Setup, automation and network files replace the processor's own, as the original client's Restore does. A network file can change its IP address.")
-                        }
+                    let others = PresetFileFormat.restoresAsFiles(adapterID)
+                    let isOther = { (file: PresetBackupFile) in others.contains { file.name.lowercased().hasSuffix($0) } }
+                    let userFiles = sorted.presets.filter { !isOther($0) }, otherFiles = sorted.presets.filter(isOther)
+                    if !userFiles.isEmpty {
+                        lines.append("User preset files: \(userFiles.map(\.name).joined(separator: ", ")). A preset with the same name is replaced; the on-air sound does not change.")
+                    }
+                    if !otherFiles.isEmpty {
+                        lines.append("\(otherFiles.map(\.name).joined(separator: ", ")): these replace the processor's own setup, automation or network file, as the original client's Restore does. A network file can change its IP address.")
                     }
                     if sorted.setup != nil {
                         lines.append(changes.isEmpty ? "The setup file matches the processor's system settings; nothing to restore there."
@@ -1006,7 +1010,7 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
     }
 
     private func restore(presets: [PresetBackupFile], setup: String?) {
-        setBusy(true, message: presets.isEmpty ? "Restoring system settings…" : "Restoring \(presets.count) preset \(presets.count == 1 ? "file" : "files")…")
+        setBusy(true, message: presets.isEmpty ? "Restoring system settings…" : "Restoring \(presets.count) \(presets.count == 1 ? "file" : "files")…")
         let done: (Result<Void, Error>) -> Void = { [weak self] result in
             let what = [presets.isEmpty ? nil : "\(presets.count) \(presets.count == 1 ? "preset" : "presets")", setup == nil ? nil : "the system settings"]
                 .compactMap { $0 }.joined(separator: " and ")
