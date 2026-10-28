@@ -16,7 +16,7 @@ import { Setup } from './Setup';
 import { InstrumentHeader } from './InstrumentHeader';
 import { FigmaMetersHeader } from './FigmaMetersHeader';
 import { DEFAULT_METER_VIEW, initialWorkspace, livePages, pageControls, structureOnAir, tabLabel, mergeSupplementPages, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
-import { binaryOnIndex, groupProcessingPage, type LayoutPage } from './processing-layout';
+import { binaryOnIndex, groupProcessingPage, readingOrder, type LayoutPage } from './processing-layout';
 import { modifiedFieldNames, optimisticLessMoreAvailability, optimisticModifiedFields } from './preset-state';
 import { nextControlIndex } from './control-keyboard';
 import { resolveProcessorSkin } from './skin-registry';
@@ -186,7 +186,7 @@ function Control({
           }}
         />
         <input
-          className={`control-value${valueText.length > 9 ? ' long-value' : ''}`}
+          className={`control-value${valueText.length > 8 ? ' long-value' : ''}`}
           title={valueText}
           aria-label={`${label} value`}
           aria-valuemin={0}
@@ -338,7 +338,10 @@ function App() {
     couplingValue,
   );
   const selectedPage = pages.find((p) => p.title === tab) || pages[0];
-  const page = selectedPage && { ...selectedPage, controls: pageControls(selectedPage.controls, liveFields,
+  // Extracted pages take the original dialog's order (the 5700i's built-in
+  // pages keep the Figma order); the page's switch then goes first.
+  const page = selectedPage && { ...selectedPage, controls: pageControls(
+    selectedPage.reference_dialog ? readingOrder(selectedPage.controls) : selectedPage.controls, liveFields,
     control => control.kind === 'radio' && binaryOnIndex(control.options) !== null) };
   const processingGroups = groupProcessingPage(page);
   const independentPaths = processingPathSelectorVisible(couplingValue);

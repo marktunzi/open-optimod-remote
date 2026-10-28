@@ -525,7 +525,7 @@ main[data-window="meters"][data-skin="figma"] {
   background: var(--fx-meters);
 }
 
-/* The meters take the window's remaining height and scale with it. */
+/* The meters keep their real size; a smaller window scrolls them. */
 main[data-window="meters"][data-skin="figma"] > .meterstrip {
   display: flex;
   flex: 1 1 auto;
@@ -537,7 +537,9 @@ main[data-window="meters"][data-skin="figma"] .meter-canvas-scroll {
   flex: 1 1 auto;
   min-height: 0;
   aspect-ratio: auto;
-  overflow: hidden;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
 }
 
 main[data-window="meters"][data-skin="figma"] > .development {
@@ -858,4 +860,38 @@ main[data-skin="figma"] .fx-action,
 main[data-skin="figma"] .fx-action.is-coupled {
   background: transparent;
   box-shadow: none;
+}
+
+/*
+ * Processing Settings keeps its tab bar in view: only the page scrolls when
+ * a model's page is taller than the window (the 8700HD Equalizer has six
+ * groups). Groups sit closer than in the browser so most pages fit the
+ * Figma height.
+ */
+main[data-window="processing"] {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+main[data-window="processing"] .app-body {
+  height: 100vh;
+  min-height: 0;
+}
+main[data-window="processing"] .workspace {
+  min-height: 0;
+}
+main[data-window="processing"] .processing {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+main[data-skin="figma"] .processing-groups:not(.single-group-page) {
+  gap: 14px 38px;
+}
+main[data-skin="figma"] .processing-groups:not(.single-group-page) .processing-group > h3 {
+  margin: 0 0 2px;
+}
+main[data-skin="figma"] .processing-groups:not(.single-group-page) .control-well {
+  padding: 10px 40px 4px;
+  gap: 12px 30px;
 }

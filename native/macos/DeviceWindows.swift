@@ -28,16 +28,6 @@ enum DeviceWindowKind: String, CaseIterable, Sendable {
         }
     }
 
-    /// The content size a window opens at on a screen this wide. The meters
-    /// scale evenly with the window, so Meters opens at the Figma proportions
-    /// across most of the screen (at least the 1133 × 370 reference); the
-    /// other windows open at their reference size.
-    func openingSize(screenWidth: CGFloat) -> NSSize {
-        guard self == .meters else { return defaultSize }
-        let width = min(1700, max(defaultSize.width, (screenWidth * 0.85).rounded()))
-        return NSSize(width: width, height: (width * defaultSize.height / defaultSize.width).rounded())
-    }
-
     var minimumSize: NSSize {
         switch self {
         // The meters scale with the window; below this the labels get too small to read.
@@ -228,7 +218,7 @@ protocol DeviceWindowBridgeDelegate: AnyObject {
 /// Receives the page messages of every window. WebKit keeps its message
 /// handlers alive, so this object holds the app only weakly.
 final class DeviceWindowBridge: NSObject, WKScriptMessageHandler {
-    static let messages = ["openSystemSettings", "openConnections", "openPresets", "openMeters", "openProcessing", "recordError"]
+    static let messages = ["openSystemSettings", "openConnections", "openPresets", "openMeters", "openProcessing", "recordError", "meterSize"]
     weak var delegate: DeviceWindowBridgeDelegate?
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -283,23 +273,44 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
         if !window.setFrameUsingName(name) {
             if !window.setFrameUsingName(Self.lastFrameName(kind)) { placeFirstTime(window) }
         }
-        growToOpeningSize(window)
+        // Naming the frame applies a saved one, so the size check comes after.
         window.setFrameAutosaveName(name)
+        enforceOpeningSize()
     }
 
-    /// A window never opens smaller than its opening size; a smaller saved
-    /// frame grows from its top-left corner and stays on its screen.
-    private func growToOpeningSize(_ window: NSWindow) {
+    /// The reference size, and for Meters the size its meters need.
+    private var meterContent: NSSize?
+    private func enforceOpeningSize() {
+        guard let window else { return }
+        grow(window, toContent: kind.defaultSize)
+        if let meterContent { grow(window, toContent: meterContent) }
+    }
+
+    /// A window never opens smaller than this content size (capped to its
+    /// screen); a smaller saved frame grows from its top-left corner.
+    func grow(_ window: NSWindow, toContent wanted: NSSize) {
         guard let visible = (window.screen ?? NSScreen.main ?? NSScreen.screens.first)?.visibleFrame else { return }
         let content = window.contentRect(forFrameRect: window.frame)
-        let wanted = kind.openingSize(screenWidth: visible.width)
-        guard content.width < wanted.width - 0.5 || content.height < wanted.height - 0.5 else { return }
-        var frame = window.frameRect(forContentRect: NSRect(origin: content.origin,
-            size: NSSize(width: max(content.width, wanted.width), height: max(content.height, wanted.height))))
+        let chrome = window.frame.height - content.height
+        let target = NSSize(width: min(max(content.width, wanted.width), visible.width),
+                            height: min(max(content.height, wanted.height), visible.height - chrome))
+        guard target.width > content.width + 0.5 || target.height > content.height + 0.5 else { return }
+        var frame = window.frameRect(forContentRect: NSRect(origin: content.origin, size: target))
         frame.origin.y = window.frame.maxY - frame.height
         frame.origin.x = min(max(frame.origin.x, visible.minX), max(visible.minX, visible.maxX - frame.width))
         frame.origin.y = min(max(frame.origin.y, visible.minY), max(visible.minY, visible.maxY - frame.height))
-        window.setFrame(frame, display: false)
+        window.setFrame(frame, display: true)
+    }
+
+    /// The Meters page reports the size its meters need at their real size;
+    /// the window opens that large once per page load. A smaller window later
+    /// shows scroll bars, the meters are never scaled.
+    private var fittedMeters = false
+    func fitMeters(width: CGFloat, height: CGFloat) {
+        guard kind == .meters, !fittedMeters, width > 0, height > 0 else { return }
+        fittedMeters = true
+        meterContent = NSSize(width: width, height: height)
+        enforceOpeningSize()
     }
 
     /// The first time, Meters sits at the top of the screen with Processing
@@ -311,9 +322,8 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
             window.center()
             return
         }
-        let meters = window.frameRect(forContentRect: NSRect(origin: .zero,
-            size: DeviceWindowKind.meters.openingSize(screenWidth: visible.width)))
-        var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: kind.openingSize(screenWidth: visible.width)))
+        let meters = window.frameRect(forContentRect: NSRect(origin: .zero, size: DeviceWindowKind.meters.defaultSize))
+        var frame = window.frame
         frame.origin.x = visible.midX - frame.width / 2
         let top = visible.maxY - 24 - (kind == .processing ? meters.height + 12 : 0)
         frame.origin.y = max(visible.minY, top - frame.height)
@@ -330,6 +340,7 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
 
     func loadPage() {
         loadedPage = true
+        fittedMeters = false
         var components = URLComponents(string: BackendHealth.origin)!
         components.path = "/"
         components.queryItems = [URLQueryItem(name: "window", value: kind.rawValue)]
@@ -348,6 +359,7 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
         guard self.deviceID == nil, let window else { return }
         self.deviceID = deviceID
         window.setFrameAutosaveName(Self.autosaveName(kind: kind, deviceID: deviceID))
+        enforceOpeningSize()
         if loadedPage { loadPage() }
     }
 
@@ -601,6 +613,11 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         case "openPresets": show(.presets)
         case "openMeters": show(.meters)
         case "openProcessing": show(.processing)
+        case "meterSize":
+            if let size = body as? [String: Any], let width = (size["width"] as? NSNumber)?.doubleValue,
+               let height = (size["height"] as? NSNumber)?.doubleValue {
+                controller(for: webView)?.fitMeters(width: width, height: height)
+            }
         default: appDelegate?.deviceWindow(webView, didRequest: name, body: body)
         }
     }

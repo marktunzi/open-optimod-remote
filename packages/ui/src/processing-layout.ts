@@ -84,9 +84,7 @@ function bandMixControls(controls: LayoutControl[]): LayoutControl[] {
   return result;
 }
 
-export function groupProcessingPage(source: LayoutPage): ProcessingGroup[] {
-  // The 5700i's built-in pages (no reference dialog) keep the Figma order.
-  const page = source.reference_dialog ? { ...source, controls: readingOrder(source.controls) } : source;
+export function groupProcessingPage(page: LayoutPage): ProcessingGroup[] {
   if (page.title === 'Band Mix') {
     return [{ title: 'Band Mix', controls: bandMixControls(page.controls), className: 'band-mix-group', order: 0 }];
   }

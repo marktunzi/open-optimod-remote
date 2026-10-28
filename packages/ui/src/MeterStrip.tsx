@@ -97,15 +97,12 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
     element.width=Math.round(width*ratio);element.height=Math.round(height*ratio);
    }
    context.setTransform(ratio,0,0,ratio,0,0);context.clearRect(0,0,width,height);
-   // The Figma window scales the meters evenly and spreads the groups over a
-   // wider window; the instrument stretches its fixed artwork.
+   // The Figma window draws the meters at their real size, never scaled: a
+   // narrower window scrolls, a wider one spreads the groups apart.
    let spread=0;
    if(theme==='figma'){
-    const scale=Math.min(width/minimumCanvasWidth,height/REFERENCE_HEIGHT);
-    spread=groups.length?Math.max(0,width/scale-minimumCanvasWidth)/groups.length:0;
-    const offsetY=Math.max(0,(height/scale-REFERENCE_HEIGHT)/2);
-    context.setTransform(ratio*scale,0,0,ratio*scale,0,ratio*scale*offsetY);
-    context.fillStyle=palette.panelTop;context.fillRect(0,-offsetY,width/scale,height/scale);
+    spread=groups.length?Math.max(0,width-minimumCanvasWidth)/groups.length:0;
+    context.fillStyle=palette.panelTop;context.fillRect(0,0,width,height);
    }else{
     context.setTransform(ratio*width/minimumCanvasWidth,0,0,ratio*height/REFERENCE_HEIGHT,0,0);
     const panelGradient=context.createLinearGradient(0,0,0,REFERENCE_HEIGHT);
@@ -201,9 +198,21 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
   animation=requestAnimationFrame(draw);
   return()=>cancelAnimationFrame(animation);
  },[connected,identity,view,onLiveChange,groups,minimumCanvasWidth,palette,theme]);
+ // The native Meters window opens wide enough for this model's meters.
+ useEffect(()=>{
+  if(theme!=='figma')return;
+  const handler=(window as unknown as {webkit?:{messageHandlers?:Record<string,{postMessage:(body:unknown)=>void}>}}).webkit?.messageHandlers?.meterSize;
+  const strip=canvas.current?.closest('.meterstrip');
+  if(!handler||!strip)return;
+  const style=getComputedStyle(strip);
+  const padX=parseFloat(style.paddingLeft)+parseFloat(style.paddingRight);
+  const padY=parseFloat(style.paddingTop)+parseFloat(style.paddingBottom);
+  const top=strip.getBoundingClientRect().top+window.scrollY;
+  handler.postMessage({width:Math.ceil(minimumCanvasWidth+padX),height:Math.ceil(top+REFERENCE_HEIGHT+padY)});
+ },[theme,minimumCanvasWidth]);
  return <section className="meterstrip" aria-label="Live meter groups">
   <div className="meter-canvas-scroll">
-   <canvas ref={canvas} style={theme==='figma'?{width:'100%',height:'100%'}:{width:`${minimumCanvasWidth/REFERENCE_WIDTH*100}%`,minWidth:`${minimumCanvasWidth}px`}} role="img" aria-label={groups.map(group=>group.name).join(', ')}/>
+   <canvas ref={canvas} style={theme==='figma'?{width:`max(100%, ${minimumCanvasWidth}px)`,height:`${REFERENCE_HEIGHT}px`,flex:'0 0 auto'}:{width:`${minimumCanvasWidth/REFERENCE_WIDTH*100}%`,minWidth:`${minimumCanvasWidth}px`}} role="img" aria-label={groups.map(group=>group.name).join(', ')}/>
   </div>
   <ul className="sr-only">{groups.map(group=><li key={group.name}>{group.name}: {group.channels.flatMap(channel=>channel.laneLabels || [channel.label]).join(', ')}</li>)}</ul>
  </section>;
