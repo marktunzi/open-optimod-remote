@@ -83,17 +83,20 @@ struct PresetFileFormat: Equatable, Sendable {
     /// Longest name the model's own PC Remote accepts for a new preset.
     var maxNameLength: Int { fileExtension == "orb55user" ? 18 : 20 }
 
-    /// Models whose own PC Remote saves the on-air user preset under its own name (5700i, 5500i Save).
+    /// Models whose own PC Remote saves the on-air user preset under its own name (5700i, 5500i, 5500 Save).
     static func replacesOnAir(_ adapterID: String?) -> Bool { backsUpFiles(adapterID) }
 
     /// Models whose original PC Remote backs up the unit's own files (setup and user presets).
     static func backsUpFiles(_ adapterID: String?) -> Bool {
-        adapterID?.hasPrefix("pc-remote-5700i-") == true || adapterID?.hasPrefix("pc-remote-5500i-") == true
+        ["pc-remote-5700i-", "pc-remote-5500i-", "pc-remote-5500-"].contains { adapterID?.hasPrefix($0) == true }
     }
 
-    /// Files the 5500i client's Restore sends back as files, next to the user presets.
+    /// Files the 5500i and 5500 clients' Restore sends back as files, next to the user presets.
     static func restoresAsFiles(_ adapterID: String?) -> [String] {
-        adapterID?.hasPrefix("pc-remote-5500i-") == true ? [".orb55setup", ".orbsetup", ".orb55autom", ".orb55net"] : []
+        if adapterID?.hasPrefix("pc-remote-5500i-") == true { return [".orb55setup", ".orbsetup", ".orb55autom", ".orb55net"] }
+        // The 5500 has no network file; its setup file is Setup.orb55setup.
+        if adapterID?.hasPrefix("pc-remote-5500-") == true { return [".orb55setup", ".orb55autom"] }
+        return []
     }
 }
 

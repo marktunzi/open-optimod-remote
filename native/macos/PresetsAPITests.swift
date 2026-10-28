@@ -47,6 +47,15 @@ struct PresetsAPITests {
             PresetBackupFile(name: "OOR TEST.ORB55USER", document: "p"),
         ], adapterID: "pc-remote-5500i-3.1.0.2")
         precondition(sorted55.setup == nil && sorted55.presets.count == 3)
+        // The 5500 client restores Setup.orb55setup and its automation file as files; it has no network file.
+        let sorted5500 = try PresetBackup.sort([
+            PresetBackupFile(name: "Setup.orb55setup", document: "s"),
+            PresetBackupFile(name: "Automation.orb55autom", document: "a"),
+            PresetBackupFile(name: "ROCK.orb55user", document: "p"),
+        ], adapterID: "pc-remote-5500-1.2.8.24")
+        precondition(sorted5500.setup == nil && sorted5500.presets.count == 3)
+        precondition((try? PresetBackup.sort([PresetBackupFile(name: "Network.orb55net", document: "n")], adapterID: "pc-remote-5500-1.2.8.24")) == nil)
+        precondition(PresetFileFormat.backsUpFiles("pc-remote-5500-1.2.8.24") && PresetFileFormat.replacesOnAir("pc-remote-5500-1.2.8.24"))
         precondition(PresetBackup.crc32(Data("123456789".utf8)) == 0xcbf4_3926)
         let zip = PresetBackup.zip(folder: "f", files: [("a.txt", Data("hi".utf8))])
         precondition(zip.prefix(4) == Data([0x50, 0x4b, 0x03, 0x04]) && zip.count == 30 + 7 + 2 + 46 + 7 + 22)
