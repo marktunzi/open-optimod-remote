@@ -431,7 +431,10 @@ async fn main() {
         .route("/api/backup/setup-plan", post(setup_plan_handler))
         .route("/api/backup/restore-setup", post(restore_setup_handler))
         .route("/api/backup/files", get(backup_files_handler))
-        .route("/api/backup/restore-presets", post(restore_preset_files_handler))
+        .route(
+            "/api/backup/restore-presets",
+            post(restore_preset_files_handler),
+        )
         .route("/api/devices", get(devices_list).post(devices_save))
         .route("/api/devices/delete", post(devices_delete))
         .route("/api/devices/code", post(devices_code))
@@ -1946,7 +1949,11 @@ async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>,
             file_document(document.as_bytes(), device.session.info.model)?;
             // The unit sends its working copies twice.
             if !files.iter().any(|f| f.name.eq_ignore_ascii_case(&name)) {
-                files.push(BackupFile { name, document, modified: None });
+                files.push(BackupFile {
+                    name,
+                    document,
+                    modified: None,
+                });
             }
         }
     }
@@ -1990,7 +1997,9 @@ async fn restore_preset_files(
     for file in &body.files {
         let valid_name = file.name.len() > extension.len()
             && file.name.to_ascii_lowercase().ends_with(extension)
-            && !file.name.contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|'])
+            && !file
+                .name
+                .contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|'])
             && file.name.is_ascii();
         if !valid_name {
             return Err(OperationError::safe(format!(
