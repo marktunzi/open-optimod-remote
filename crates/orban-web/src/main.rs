@@ -187,6 +187,8 @@ enum Command {
     ReadUnitFile(u16, oneshot::Sender<Result<Option<String>, String>>),
     WriteUnitFile(UnitFileWrite, Reply),
     RestorePresetFiles(RestorePresetFiles, Reply),
+    SetupPresets(oneshot::Sender<Result<Vec<String>, String>>),
+    SetupPreset(SetupPresetAction, Reply),
     CancelReconnect(Reply),
 }
 /// A file of the original PC Remote's backup: its name on the unit and its
@@ -204,6 +206,15 @@ struct BackupFile {
 struct UnitFileWrite {
     kind: u16,
     document: Zeroizing<String>,
+    expected_host: String,
+    expected_session: String,
+}
+/// The client's Open Setup (`open`) or Save Setup As (`save_as`).
+#[derive(Deserialize)]
+struct SetupPresetAction {
+    action: String,
+    name: String,
+    confirmed: bool,
     expected_host: String,
     expected_session: String,
 }
@@ -450,6 +461,10 @@ async fn main() {
         .route("/api/backup/setup-plan", post(setup_plan_handler))
         .route("/api/backup/restore-setup", post(restore_setup_handler))
         .route("/api/backup/files", get(backup_files_handler))
+        .route(
+            "/api/setup-presets",
+            get(setup_presets_handler).post(setup_preset_handler),
+        )
         .route("/api/backup/encrypt", post(backup_encrypt_handler))
         .route("/api/backup/decrypt", post(backup_decrypt_handler))
         .route(
@@ -883,6 +898,20 @@ async fn security_write_handler(
         )
     })
     .await
+}
+async fn setup_presets_handler(State(app): State<App>) -> ApiResult {
+    let (tx, rx) = oneshot::channel();
+    app.commands
+        .try_send(Command::SetupPresets(tx))
+        .map_err(|_| api_error("Another command is still in progress"))?;
+    let names = rx.await.map_err(api_error)?.map_err(api_error)?;
+    Ok(Json(json!({ "names": names })))
+}
+async fn setup_preset_handler(
+    State(app): State<App>,
+    Json(body): Json<SetupPresetAction>,
+) -> ApiResult {
+    dispatch(app, |r| Command::SetupPreset(body, r)).await
 }
 async fn restore_preset_files_handler(
     State(app): State<App>,
@@ -2417,6 +2446,156 @@ async fn write_unit_file(
     }
 }
 
+/// The unit's setup presets (the client's System Presets), by their
+/// document name, with the decrypted file.
+async fn setup_presets(
+    device: &mut Device,
+    app: &App,
+) -> Result<Vec<(String, Zeroizing<Vec<u8>>)>, String> {
+    let wire = device.session.adapter().wire;
+    let (Some(extension), Some((request, reply))) = (wire.setup_presets, wire.user_presets_request)
+    else {
+        return Err(format!(
+            "Setup presets are not available for {}",
+            device.session.info.model.label()
+        ));
+    };
+    let mut presets: Vec<(String, Zeroizing<Vec<u8>>)> = Vec::new();
+    for (name, data) in read_files(app, device, request, reply).await? {
+        if !name.to_ascii_lowercase().ends_with(extension) {
+            continue;
+        }
+        let plain = Zeroizing::new(device.session.decrypt_file(&data)?);
+        let document = file_document(&plain, device.session.info.model)?;
+        // The unit sends its working copy twice.
+        if !presets.iter().any(|(known, _)| *known == document.name) {
+            presets.push((document.name, plain));
+        }
+    }
+    Ok(presets)
+}
+
+/// Open Setup puts a setup preset in force; Save Setup As stores the unit's
+/// setup under a new name. As the original client: the document as an
+/// unnamed E9h upload, then FBh. Open is confirmed by the unit's setup file,
+/// Save As by its list of setup presets.
+async fn setup_preset(
+    device: &mut Device,
+    app: &App,
+    body: SetupPresetAction,
+) -> Result<(), OperationError> {
+    use orban_protocol::presets::{max_store_name_length, validate_store_name};
+    if !body.confirmed {
+        return Err(OperationError::safe("Confirm the change first"));
+    }
+    if !device.session.info.access().setup {
+        return Err(OperationError::safe(
+            "System Setup is not enabled for this access level",
+        ));
+    }
+    {
+        let state = app.state.read().await;
+        ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
+        if state.host != body.expected_host {
+            return Err(OperationError::safe(
+                "The active device changed. Review the connection first",
+            ));
+        }
+    }
+    let model = device.session.info.model;
+    let extension = device
+        .session
+        .adapter()
+        .wire
+        .setup_presets
+        .unwrap_or_default();
+    let presets = setup_presets(device, app)
+        .await
+        .map_err(OperationError::safe)?;
+    let document = match body.action.as_str() {
+        "open" => {
+            let (_, plain) = presets
+                .iter()
+                .find(|(name, _)| *name == body.name)
+                .ok_or_else(|| OperationError::safe("Choose a setup preset of this processor"))?;
+            String::from_utf8_lossy(plain).replace("\r\n", "\n")
+        }
+        "save_as" => {
+            validate_store_name(&body.name, max_store_name_length(model))
+                .map_err(OperationError::safe)?;
+            if presets
+                .iter()
+                .any(|(name, _)| name.eq_ignore_ascii_case(&body.name))
+            {
+                return Err(OperationError::safe(format!(
+                    "A setup preset named {} already exists. Choose another name",
+                    body.name
+                )));
+            }
+            let current = read_file_document(app, device, Scope::System)
+                .await
+                .map_err(OperationError::safe)?;
+            renamed_preset_file(&current.raw.replace("\r\n", "\n"), &body.name, extension)
+                .map_err(OperationError::safe)?
+        }
+        _ => return Err(OperationError::safe("Unknown setup preset action")),
+    };
+    let iv = *uuid::Uuid::new_v4().as_bytes();
+    let sealed = orban_protocol::archive::encrypt(document.as_bytes(), &device.code, iv)
+        .map_err(OperationError::safe)?;
+    let setup_reply = device
+        .session
+        .adapter()
+        .wire
+        .setup_request
+        .map_or(233, |(_, reply)| reply);
+    let mut message = format!("0\n0\n\n{}\n", sealed.len()).into_bytes();
+    message.extend(sealed);
+    device
+        .session
+        .send(setup_reply, &message)
+        .await
+        .map_err(OperationError::uncertain)?;
+    if let Some(end) = device.session.adapter().wire.file_end {
+        device
+            .session
+            .send(end, b"")
+            .await
+            .map_err(OperationError::uncertain)?;
+        device.boundaries.sent();
+    }
+    let confirmed = if body.action == "open" {
+        let wanted = file_document(document.as_bytes(), model).map_err(OperationError::safe)?;
+        let system = read_file_document(app, device, Scope::System)
+            .await
+            .map_err(|e| {
+                OperationError::uncertain(format!("The new setup could not be confirmed. {e}"))
+            })?;
+        // The active input is a status the unit reports, not a setting.
+        let differs = wanted
+            .fields
+            .iter()
+            .filter(|(name, _)| name.as_str() != "ACTUAL A OR D")
+            .any(|(name, field)| system.fields.get(name) != Some(field));
+        app.state.write().await.system = Some(system);
+        !differs
+    } else {
+        setup_presets(device, app)
+            .await
+            .map_err(OperationError::uncertain)?
+            .iter()
+            .any(|(name, _)| *name == body.name)
+    };
+    if confirmed {
+        app.state.write().await.revision += 1;
+        Ok(())
+    } else {
+        Err(OperationError::uncertain(
+            "The processor does not show the change. Open System Settings to see what it holds",
+        ))
+    }
+}
+
 async fn restore_preset_files(
     device: &mut Device,
     app: &App,
@@ -3446,6 +3625,17 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
            Command::WriteUnitFile(body,reply)=>{
             Activity::count(&app.activity.device_writes);
             let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{write_unit_file(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            tick.reset();
+            let _=reply.send(result.map_err(|e| e.message));
+           }
+           Command::SetupPresets(reply)=>{
+            let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{setup_presets(d,&app).await.map(|files| files.into_iter().map(|(name,_)| name).collect())}else{Err("Not connected".to_owned())};
+            tick.reset();
+            let _=reply.send(result);
+           }
+           Command::SetupPreset(body,reply)=>{
+            Activity::count(&app.activity.device_writes);
+            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{setup_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
             tick.reset();
             let _=reply.send(result.map_err(|e| e.message));
            }

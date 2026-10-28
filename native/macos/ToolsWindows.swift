@@ -665,3 +665,74 @@ final class AutomationWindowController: ToolWindowController, NSTableViewDataSou
         }
     }
 }
+
+/// The 5500i client's File › Open Setup and Save Setup As: its setup presets
+/// (`.orb55setup`) on the processor, as native panels.
+enum SetupPresetsPanel {
+    static func available(_ adapterID: String?) -> Bool { adapterID?.hasPrefix("pc-remote-5500i-") == true }
+
+    static func open() {
+        ToolsAPI.get("setup-presets") { result in
+            switch result {
+            case let .failure(error): report("Open Setup", error.message)
+            case let .success(data):
+                let names = data["names"] as? [String] ?? []
+                guard !names.isEmpty else { return report("Open Setup", "The processor has no setup presets.") }
+                let popup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 260, height: 26), pullsDown: false)
+                popup.addItems(withTitles: names)
+                let alert = NSAlert()
+                alert.messageText = "Open Setup"
+                alert.informativeText = "The processor's system settings are replaced by the chosen setup preset. Inputs, outputs and levels can change."
+                alert.accessoryView = popup
+                alert.addButton(withTitle: "Open Setup")
+                alert.addButton(withTitle: "Cancel")
+                guard alert.runModal() == .alertFirstButtonReturn, let name = popup.titleOfSelectedItem else { return }
+                perform("open", name)
+            }
+        }
+    }
+
+    static func saveAs() {
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        field.placeholderString = "Name"
+        let alert = NSAlert()
+        alert.messageText = "Save Setup As"
+        alert.informativeText = "The processor's current system settings are stored on it as a setup preset."
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+        alert.addButton(withTitle: "Save")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        perform("save_as", field.stringValue.trimmingCharacters(in: .whitespaces))
+    }
+
+    /// Also the test hook (`setup open|saveas NAME`), without the panels.
+    static func perform(_ action: String, _ name: String) {
+        guard let session = DeviceSessionStore.shared.session, let id = session.sessionID else {
+            return report(action == "open" ? "Open Setup" : "Save Setup As", "Not connected.")
+        }
+        let body: [String: Any] = ["action": action, "name": name, "confirmed": true,
+                                   "expected_host": session.host, "expected_session": id]
+        ToolsAPI.post("setup-presets", body) { result in
+            let title = action == "open" ? "Open Setup" : "Save Setup As"
+            switch result {
+            case .success: lastResult = action == "open" ? "Setup \(name) is in force" : "Saved setup \(name)"
+            case let .failure(error): report(title, error.message)
+            }
+        }
+    }
+
+    /// What the last action did, for the test hook's state.
+    nonisolated(unsafe) static var lastResult = ""
+
+    private static func report(_ title: String, _ message: String) {
+        lastResult = message
+        ErrorLogStore.shared.record(source: title, message: message)
+        guard ProcessInfo.processInfo.environment["OPEN_OPTIMOD_WINDOW_CONTROL"] == nil else { return }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = title
+        alert.informativeText = message
+        alert.runModal()
+    }
+}

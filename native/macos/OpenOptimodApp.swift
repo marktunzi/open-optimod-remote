@@ -97,6 +97,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         )
         presetsItem.keyEquivalentModifierMask = [.command, .shift]
         presetsItem.target = self
+        let openSetupItem = applicationMenu.addItem(withTitle: "Open Setup…", action: #selector(openSetup(_:)), keyEquivalent: "")
+        openSetupItem.target = self
+        let saveSetupItem = applicationMenu.addItem(withTitle: "Save Setup As…", action: #selector(saveSetupAs(_:)), keyEquivalent: "")
+        saveSetupItem.target = self
         let errorsItem = applicationMenu.addItem(
             withTitle: "Error Log…",
             action: #selector(showErrorLog(_:)),
@@ -301,6 +305,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
                 if control == "automation" { self.showAutomation(nil); continue }
                 if control == "security" { self.showSecurity(nil); continue }
                 if control == "manual" { self.showManual(nil); continue }
+                // Test hook: `setup open|saveas NAME` acts as Open Setup / Save Setup As do.
+                if control.hasPrefix("setup ") {
+                    let words = control.split(separator: " ", maxSplits: 2).map(String.init)
+                    if words.count == 3 { SetupPresetsPanel.perform(words[1] == "open" ? "open" : "save_as", words[2]) }
+                    continue
+                }
                 // Test hook: `connections all|group NAME` selects that sidebar row.
                 if control.hasPrefix("connections ") {
                     self.showConnections(nil)
@@ -341,7 +351,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         windows.showSystemSettings()
     }
 
+    @objc private func openSetup(_ sender: Any?) { SetupPresetsPanel.open() }
+    @objc private func saveSetupAs(_ sender: Any?) { SetupPresetsPanel.saveAs() }
+
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(openSetup(_:)) || menuItem.action == #selector(saveSetupAs(_:)) {
+            return loadedInterface && SetupPresetsPanel.available(DeviceSessionStore.shared.device?.adapterID)
+        }
         if menuItem.action == #selector(showSystemSettings(_:)) {
             return loadedInterface && DeviceSessionStore.shared.device != nil
         }

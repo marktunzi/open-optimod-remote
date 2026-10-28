@@ -241,6 +241,9 @@ pub struct Wire {
     pub backup_kept: &'static [&'static str],
     /// Further files its Restore sends back as preset files (231).
     pub restore_extensions: &'static [&'static str],
+    /// The extension of the setup presets behind the client's Open Setup and
+    /// Save Setup As; `None` where the client has neither.
+    pub setup_presets: Option<&'static str>,
 }
 
 /// Requests for the files behind the client's Automation and Security
@@ -275,6 +278,7 @@ pub const WIRE_PC_REMOTE: Wire = Wire {
     backup_requests: &[(240, 233)],
     backup_kept: &[],
     restore_extensions: &[],
+    setup_presets: None,
 };
 
 /// 5700i 3.0.1.20 (reference unit and virtual 5700i).
@@ -324,6 +328,7 @@ pub const WIRE_8700HD: Wire = Wire {
     backup_requests: &[(240, 233)],
     backup_kept: &[],
     restore_extensions: &[],
+    setup_presets: None,
 };
 
 /// 5500 1.2.8.24: the 8700HD generation. `5500PC.exe` 1.2.8.24 sends the same
@@ -371,6 +376,9 @@ pub const WIRE_5500I: Wire = Wire {
     backup_requests: &[(240, 233), (241, 234), (242, 235)],
     backup_kept: &[".orb55user", ".orb55setup"],
     restore_extensions: &[".orb55setup", ".orbsetup", ".orb55autom", ".orb55net"],
+    // Open Setup uploads the chosen setup preset as E9h, Save Setup As the
+    // unit's setup renamed; each is followed by FBh.
+    setup_presets: Some(".orb55setup"),
 };
 
 /// Preset names of the factory `.orb55f50` files of PC Remote 3.1.0.2.
@@ -425,6 +433,7 @@ pub const WIRE_6300: Wire = Wire {
     backup_requests: &[(240, 233)],
     backup_kept: &[],
     restore_extensions: &[],
+    setup_presets: None,
 };
 
 /// Preset names of the factory `.orb63f` files of PC Remote 4.1.1.19.
@@ -524,6 +533,7 @@ pub const WIRE_2300: Wire = Wire {
     backup_requests: &[(240, 233)],
     backup_kept: &[],
     restore_extensions: &[],
+    setup_presets: None,
 };
 
 /// Preset names of the factory `.orb23f75` files of PC Remote 2.0.3.85.
@@ -553,6 +563,7 @@ pub const WIRE_8700I: Wire = Wire {
     backup_requests: &[(240, 233)],
     backup_kept: &[],
     restore_extensions: &[],
+    setup_presets: None,
     ..WIRE_5500I
 };
 
