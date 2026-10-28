@@ -84,7 +84,9 @@ const EMBEDDED: [Embedded; 8] = [
         meters: Some(include_str!("../../../profiles/5500/1.2.8.24/meters.json")),
         supplement: None,
         supplement_layouts: None,
-        system_layouts: None,
+        system_layouts: Some(include_str!(
+            "../../../profiles/5500/1.2.8.24/system-layouts.json"
+        )),
     },
     Embedded {
         adapter_id: "pc-remote-5500i-3.1.0.2",

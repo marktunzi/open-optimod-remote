@@ -1,0 +1,863 @@
+[
+  {
+    "title": "Input",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 212,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INPUT A OR D",
+        "label": "Input Source",
+        "x": 11,
+        "y": 17,
+        "w": 61,
+        "id": 2230,
+        "reference_id": 269,
+        "options": [
+          "Analog",
+          "Digital",
+          "Digital + J.17"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF LEVEL",
+        "label": "AI REF Level",
+        "x": 126,
+        "y": 30,
+        "w": 18,
+        "id": 2222,
+        "reference_id": 279,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF PPM LEVEL",
+        "label": "AI REF PPM Level",
+        "x": 143,
+        "y": 16,
+        "w": 40,
+        "id": 2547,
+        "reference_id": 280,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI BALANCE",
+        "label": "AI Balance",
+        "x": 87,
+        "y": 173,
+        "w": 95,
+        "id": 2241,
+        "reference_id": 282,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF LEVEL",
+        "label": "DI REF Level",
+        "x": 234,
+        "y": 30,
+        "w": 18,
+        "id": 2224,
+        "reference_id": 277,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF PPM LEVEL",
+        "label": "DI REF PPM Level",
+        "x": 234,
+        "y": 30,
+        "w": 18,
+        "id": 2224,
+        "reference_id": 278,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI BALANCE",
+        "label": "DI Balance",
+        "x": 195,
+        "y": 173,
+        "w": 95,
+        "id": 2242,
+        "reference_id": 283,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DI ANALOG FALLBACK",
+        "label": "DI Analog Fallback",
+        "x": 11,
+        "y": 70,
+        "w": 28,
+        "id": 2262,
+        "reference_id": 274,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 70,
+        "h": 45,
+        "text": "Input Source"
+      },
+      {
+        "x": 84,
+        "y": 7,
+        "w": 101,
+        "h": 187,
+        "text": "Analog Input Ref. Level"
+      },
+      {
+        "x": 192,
+        "y": 7,
+        "w": 101,
+        "h": 187,
+        "text": "Digital Input Ref. Level"
+      },
+      {
+        "x": 7,
+        "y": 56,
+        "w": 70,
+        "h": 45,
+        "text": "DI Analog Fallback"
+      }
+    ]
+  },
+  {
+    "title": "Output",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 218,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "AO1 LEVEL",
+        "label": "AO1 Level",
+        "x": 71,
+        "y": 17,
+        "w": 18,
+        "id": 2259,
+        "reference_id": 473,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 LEVEL",
+        "label": "DO1 Level",
+        "x": 167,
+        "y": 17,
+        "w": 18,
+        "id": 2266,
+        "reference_id": 488,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AO PRE-OUT",
+        "label": "Pre-emphasis",
+        "x": 19,
+        "y": 130,
+        "w": 66,
+        "id": 2260,
+        "reference_id": 475,
+        "options": [
+          "Flat",
+          "Pre-emphasized"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 PRE EMPH",
+        "label": "DO1 PRE Emph",
+        "x": 114,
+        "y": 132,
+        "w": 68,
+        "id": 2274,
+        "reference_id": 491,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AO1 SOURCE",
+        "label": "AO1 Source",
+        "x": 18,
+        "y": 168,
+        "w": 68,
+        "id": 3374,
+        "reference_id": 474,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 SOURCE",
+        "label": "DO1 Source",
+        "x": 115,
+        "y": 168,
+        "w": 68,
+        "id": 2281,
+        "reference_id": 490,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DO1 SYNC",
+        "label": "Digital Output Sync",
+        "x": 208,
+        "y": 22,
+        "w": 59,
+        "id": 3446,
+        "reference_id": 496,
+        "options": [
+          "Pilot Sync",
+          "Digital Input"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO1 FORMAT",
+        "label": "Format",
+        "x": 207,
+        "y": 165,
+        "w": 48,
+        "id": 2270,
+        "reference_id": 493,
+        "options": [
+          "AES/EBU",
+          "SPDIF"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 SAMPLE RATE",
+        "label": "DO1 Sample Rate",
+        "x": 204,
+        "y": 108,
+        "w": 68,
+        "id": 2271,
+        "reference_id": 492,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 WORD_LENGTH",
+        "label": "DO1 Word_length",
+        "x": 204,
+        "y": 135,
+        "w": 68,
+        "id": 2272,
+        "reference_id": 494,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 90,
+        "h": 187,
+        "text": "Analog Output"
+      },
+      {
+        "x": 12,
+        "y": 120,
+        "w": 80,
+        "h": 32,
+        "text": "Pre-emphasis "
+      },
+      {
+        "x": 12,
+        "y": 155,
+        "w": 80,
+        "h": 32,
+        "text": "Out Source "
+      },
+      {
+        "x": 103,
+        "y": 7,
+        "w": 189,
+        "h": 187,
+        "text": "Digital Output"
+      },
+      {
+        "x": 109,
+        "y": 120,
+        "w": 80,
+        "h": 32,
+        "text": "Pre-emphasis "
+      },
+      {
+        "x": 199,
+        "y": 12,
+        "w": 87,
+        "h": 36,
+        "text": "Digital Output Sync"
+      },
+      {
+        "x": 200,
+        "y": 155,
+        "w": 87,
+        "h": 32,
+        "text": "Format "
+      },
+      {
+        "x": 109,
+        "y": 155,
+        "w": 80,
+        "h": 32,
+        "text": "Out Source"
+      },
+      {
+        "x": 199,
+        "y": 95,
+        "w": 87,
+        "h": 57,
+        "text": ""
+      },
+      {
+        "x": 199,
+        "y": 50,
+        "w": 87,
+        "h": 44,
+        "text": "Pilot Sync"
+      }
+    ]
+  },
+  {
+    "title": "Test",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 214,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "BYPASS GAIN",
+        "label": "Bypass Gain",
+        "x": 95,
+        "y": 51,
+        "w": 18,
+        "id": 2239,
+        "reference_id": 325,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "ALGORITHM",
+        "label": "Algorithm",
+        "x": 12,
+        "y": 7,
+        "w": 179,
+        "id": 2257,
+        "reference_id": 267,
+        "options": [
+          "Operate",
+          "Bypass",
+          "Tone"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "MOD LEVEL",
+        "label": "MOD Level",
+        "x": 167,
+        "y": 51,
+        "w": 18,
+        "id": 2240,
+        "reference_id": 328,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "MOD TYPE",
+        "label": "Tone Channels",
+        "x": 231,
+        "y": 61,
+        "w": 36,
+        "id": 2246,
+        "reference_id": 329,
+        "options": [
+          "L-only",
+          "R-only",
+          "L + R",
+          "L - R"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "XTALK TEST",
+        "label": "Xtalk Test",
+        "x": 226,
+        "y": 161,
+        "w": 61,
+        "id": 2241,
+        "reference_id": 335,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "FREQUENCY",
+        "label": "Frequency",
+        "x": 226,
+        "y": 28,
+        "w": 59,
+        "id": 2523,
+        "reference_id": 326,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 80,
+        "y": 7,
+        "w": 66,
+        "h": 137,
+        "text": ""
+      },
+      {
+        "x": 153,
+        "y": 7,
+        "w": 140,
+        "h": 137,
+        "text": ""
+      },
+      {
+        "x": 226,
+        "y": 51,
+        "w": 60,
+        "h": 61,
+        "text": "Tone Channels"
+      },
+      {
+        "x": 80,
+        "y": 151,
+        "w": 213,
+        "h": 40,
+        "text": "Stereo Encoder Crosstalk Test "
+      }
+    ]
+  },
+  {
+    "title": "Utility",
+    "width": 305,
+    "height": 201,
+    "reference_dialog": 215,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "MOD REDUCE 1",
+        "label": "MOD Reduce 1",
+        "x": 182,
+        "y": 81,
+        "w": 13,
+        "id": 2554,
+        "reference_id": 301,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MOD REDUCE 2",
+        "label": "MOD Reduce 2",
+        "x": 228,
+        "y": 81,
+        "w": 13,
+        "id": 2555,
+        "reference_id": 302,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "PRE-E",
+        "label": "Processing Pre-Emphasis",
+        "x": 41,
+        "y": 181,
+        "w": 95,
+        "id": 2525,
+        "reference_id": 324,
+        "options": [
+          "50 \u00b5S",
+          "75 \u00b5S"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "ITU412 THR",
+        "label": "ITU412 THR",
+        "x": 282,
+        "y": 81,
+        "w": 13,
+        "id": 2244,
+        "reference_id": 310,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "PRE-E",
+        "label": "Processing Pre-Emphasis",
+        "x": 41,
+        "y": 181,
+        "w": 95,
+        "id": 2525,
+        "reference_id": 324,
+        "options": [
+          "50 \u00b5S",
+          "75 \u00b5S"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 139,
+        "h": 57,
+        "text": "Real-Time Clock "
+      },
+      {
+        "x": 151,
+        "y": 7,
+        "w": 148,
+        "h": 57,
+        "text": "Station ID "
+      },
+      {
+        "x": 7,
+        "y": 70,
+        "w": 139,
+        "h": 99,
+        "text": "Processing "
+      },
+      {
+        "x": 8,
+        "y": 171,
+        "w": 139,
+        "h": 22,
+        "text": "Processing Pre-Emphasis"
+      },
+      {
+        "x": 151,
+        "y": 70,
+        "w": 96,
+        "h": 123,
+        "text": "Modulation Reduction "
+      },
+      {
+        "x": 250,
+        "y": 70,
+        "w": 49,
+        "h": 123,
+        "text": "MPX Power"
+      }
+    ]
+  },
+  {
+    "title": "Network",
+    "width": 300,
+    "height": 268,
+    "reference_dialog": 371,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INTERFACE TYPE",
+        "label": "Network Settings",
+        "x": 8,
+        "y": 39,
+        "w": 78,
+        "id": 2540,
+        "reference_id": 358,
+        "options": [
+          "Direct (Null Modem)",
+          "Modem"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "START SNMP",
+        "label": "SNMP Settings",
+        "x": 161,
+        "y": 38,
+        "w": 107,
+        "id": 2549,
+        "reference_id": 384,
+        "options": [
+          "Disable SNMP on boot-up",
+          "Enable SNMP"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 3,
+        "y": 7,
+        "w": 140,
+        "h": 187,
+        "text": "Network Settings "
+      },
+      {
+        "x": 148,
+        "y": 7,
+        "w": 144,
+        "h": 258,
+        "text": "SNMP Settings "
+      },
+      {
+        "x": 155,
+        "y": 61,
+        "w": 133,
+        "h": 55,
+        "text": "Primary Manager"
+      },
+      {
+        "x": 155,
+        "y": 117,
+        "w": 133,
+        "h": 55,
+        "text": "Secondary Manager"
+      },
+      {
+        "x": 155,
+        "y": 175,
+        "w": 133,
+        "h": 86,
+        "text": "Community Strings"
+      }
+    ]
+  },
+  {
+    "title": "Stereo Encoder",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 213,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "COMP1 OUT",
+        "label": "Comp1 OUT",
+        "x": 22,
+        "y": 40,
+        "w": 18,
+        "id": 2231,
+        "reference_id": 296,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP2 OUT",
+        "label": "Comp2 OUT",
+        "x": 95,
+        "y": 40,
+        "w": 18,
+        "id": 2243,
+        "reference_id": 297,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PILOT LEVEL",
+        "label": "Pilot Level",
+        "x": 244,
+        "y": 40,
+        "w": 18,
+        "id": 2245,
+        "reference_id": 308,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MODULATION",
+        "label": "Modulation",
+        "x": 156,
+        "y": 92,
+        "w": 64,
+        "id": 2522,
+        "reference_id": 333,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PILOT REF",
+        "label": "Pilot REF",
+        "x": 157,
+        "y": 119,
+        "w": 48,
+        "id": 3349,
+        "reference_id": 309,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DIVERSITY DELAY",
+        "label": "Diversity Delay",
+        "x": 157,
+        "y": 178,
+        "w": 65,
+        "id": 3321,
+        "reference_id": 259,
+        "options": [
+          "In",
+          "Out"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 64,
+        "h": 187,
+        "text": "Composite Out 1"
+      },
+      {
+        "x": 80,
+        "y": 7,
+        "w": 66,
+        "h": 187,
+        "text": "Composite Out 2"
+      },
+      {
+        "x": 229,
+        "y": 7,
+        "w": 66,
+        "h": 187,
+        "text": "19 kHz Pilot "
+      },
+      {
+        "x": 149,
+        "y": 168,
+        "w": 76,
+        "h": 26,
+        "text": "Diversity Delay"
+      }
+    ]
+  },
+  {
+    "title": "Remote Interface / Silence",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 216,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "ANALOG FALLBACK",
+        "label": "Analog Fallback",
+        "x": 228,
+        "y": 96,
+        "w": 60,
+        "id": 3340,
+        "reference_id": 271,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "SILENCE THR",
+        "label": "Silence Threshold",
+        "x": 157,
+        "y": 138,
+        "w": 83,
+        "id": 3341,
+        "reference_id": 275,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SILENCE DELAY",
+        "label": "Silence Delay",
+        "x": 157,
+        "y": 166,
+        "w": 83,
+        "id": 3325,
+        "reference_id": 276,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DIGITAL FALLBACK",
+        "label": "Silence Detect",
+        "x": 227,
+        "y": 117,
+        "w": 61,
+        "id": 3348,
+        "reference_id": 272,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 140,
+        "h": 187,
+        "text": "Remote Interface (GPI) Functions "
+      },
+      {
+        "x": 153,
+        "y": 7,
+        "w": 140,
+        "h": 62,
+        "text": "Tally Outputs"
+      },
+      {
+        "x": 154,
+        "y": 80,
+        "w": 140,
+        "h": 114,
+        "text": "Silence Detect"
+      },
+      {
+        "x": 157,
+        "y": 90,
+        "w": 133,
+        "h": 18,
+        "text": ""
+      },
+      {
+        "x": 157,
+        "y": 111,
+        "w": 133,
+        "h": 18,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Diversity Delay",
+    "width": 305,
+    "height": 201,
+    "reference_dialog": 219,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "DIVERSITY DELAY ADJ",
+        "label": "Diversity Delay ADJ",
+        "x": 11,
+        "y": 144,
+        "w": 221,
+        "id": 3323,
+        "reference_id": 261,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 5,
+        "y": 122,
+        "w": 292,
+        "h": 43,
+        "text": " Diversity Delay Trim"
+      }
+    ]
+  }
+]

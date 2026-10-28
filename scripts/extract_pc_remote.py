@@ -67,6 +67,11 @@ CONFIGS = {
         meter=dict(subclass=0x51A87D, init=0x436F80, chan=0x438C90, curve=0x437620,
                    dialogs=[247, 373, 399], primary=247, max_values=79),
         overrides={},
+        # The Setup tabs in the order the client's property sheet adds them
+        # (0x447220: AddPage 212, 218, 214, 215, 371, 213, 216, 219), the
+        # 5500i's order without its last two tabs; dialog 219 is titled "Dialog".
+        system_pages=[212, 218, 214, 215, 371, 213, 216, 219],
+        system_titles={219: "Diversity Delay"},
     ),
     "63def9bbe3ea4cc5714b958a330f511e9f8540b973f0cedaf596dd7956054b43": dict(
         model="5700i", adapter="pc-remote-5700i-3.0.1.20", firmware="3.0.1.20",
