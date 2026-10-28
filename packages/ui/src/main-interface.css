@@ -455,3 +455,33 @@ main:not(.connection-mode)::before {
   left: 30px !important;
   transform: none !important;
 }
+
+/*
+ * Native windows of the macOS app: every window is one page on one processor
+ * and fills its own window. The browser keeps the combined page above.
+ */
+main[data-window="meters"],
+main[data-window="processing"],
+main[data-window="presets"] {
+  min-width: 0;
+  min-height: 100vh;
+}
+
+main[data-window="processing"] .app-body,
+main[data-window="presets"] .app-body {
+  min-height: 100vh;
+}
+
+main[data-window="processing"] .processing {
+  min-height: 0;
+  padding-bottom: 18px;
+}
+
+main[data-window="meters"] > .development {
+  margin: 0;
+}
+
+main[data-window="processing"] .tabs {
+  overflow-x: auto;
+  scrollbar-width: none;
+}

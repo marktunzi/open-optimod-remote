@@ -20,12 +20,15 @@ import { modifiedFieldNames, optimisticLessMoreAvailability, optimisticModifiedF
 import { nextControlIndex } from './control-keyboard';
 import { resolveProcessorSkin } from './skin-registry';
 import { ModelMeterPanel } from './ModelMeterPanel';
+import { deviceBinding, parseWindowRoute, scopedSnapshot, type WindowKind } from './window-route';
 declare global {
   interface Window {
     webkit?: { messageHandlers?: {
       openSystemSettings?: { postMessage: (body: unknown) => void };
       openConnections?: { postMessage: (body: unknown) => void };
       openPresets?: { postMessage: (body: unknown) => void };
+      openMeters?: { postMessage: (body: unknown) => void };
+      openProcessing?: { postMessage: (body: unknown) => void };
       recordError?: { postMessage: (body: unknown) => void };
     } };
     /** Called by the macOS app menu (Command-,) so it opens the right settings for the connected model. */
@@ -228,14 +231,25 @@ function BinaryToggle({ name, label, options, field, disabled, pending, modified
     <span className="sr-only">{name}</span>
   </div>;
 }
+/** The first view of each native window; the browser starts on Processing. */
+function initialArea(kind: WindowKind | 'combined', nativeConnections: boolean): WorkspaceView {
+  if (kind === 'presets') return 'Presets';
+  if (kind === 'processing' || kind === 'meters') return 'Processing';
+  return initialWorkspace(false, nativeConnections);
+}
 function App() {
-  const [snapshot, setSnapshot] = useState<Snapshot>(empty);
+  // In the macOS app every window is its own page on one processor.
+  const route = useMemo(() => parseWindowRoute(window.location.search), []);
+  const windowed = route.kind !== 'combined';
+  const [sessionSnapshot, setSnapshot] = useState<Snapshot>(empty);
+  const binding = deviceBinding(route, sessionSnapshot);
+  const snapshot = scopedSnapshot(route, sessionSnapshot, empty);
   const [definitions, setDefinitions] = useState<Definition[]>([]);
   const [modelLayouts, setModelLayouts] = useState<LayoutPage[] | null>(null);
   const [supplementLayouts, setSupplementLayouts] = useState<LayoutPage[]>([]);
   const [meterModel, setMeterModel] = useState<MeterModel>(REFERENCE_METERS);
   const [path, setPath] = useState<"FM" | "HD">("FM");
-  const [area, setArea] = useState<WorkspaceView>(() => initialWorkspace(false, Boolean(window.webkit?.messageHandlers?.openConnections)));
+  const [area, setArea] = useState<WorkspaceView>(() => initialArea(route.kind, Boolean(window.webkit?.messageHandlers?.openConnections)));
   const [tab, setTab] = useState("AGC");
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState("");
@@ -354,12 +368,15 @@ function App() {
   }, [lessMoreAvailable, tab]);
   const openSystemSettings = () => {
     const handler = window.webkit?.messageHandlers?.openSystemSettings;
+    // A native window asks the app, which opens this processor's own System Settings window.
+    if (windowed && handler) { handler.postMessage({ device: route.deviceId }); return; }
     // The native Settings window follows the 5700i worksheet; models with their
     // own profile use the generic Setup workspace that lists every system field.
     if (systemSettingsTarget(Boolean(handler) && modelLayouts === null) === 'native') handler!.postMessage({ source: '5700i-interface' });
     else setArea('Setup');
   };
   useEffect(() => {
+    if (windowed) return;
     window.openOptimodSystemSettings = openSystemSettings;
     window.openOptimodPresets = () => setArea('Presets');
     return () => { delete window.openOptimodSystemSettings; delete window.openOptimodPresets; };
@@ -371,19 +388,29 @@ function App() {
   };
   // The Presets workspace holds recall, on-device save/rename/delete, preset
   // files and backups for every model, so the macOS app uses it as well.
-  const openPresets = () => setArea('Presets');
+  const openPresets = () => {
+    const handler = window.webkit?.messageHandlers?.openPresets;
+    if (windowed && handler) handler.postMessage({ device: route.deviceId });
+    else setArea('Presets');
+  };
   // Shown in every view: after a lost session the app may wait minutes.
   const reconnectBanner = !snapshot.connected && snapshot.reconnect
     ? <div className="development" role="status">{reconnectMessage(snapshot.reconnect, Date.now())} <button disabled={busy || snapshot.reconnect.in_progress} onClick={() => void api('reconnect/cancel', {}).then(load).catch(e => reportError('Cancel reconnect', e))}>Cancel</button></div>
     : null;
+  // A window of one processor while another one is connected (Phase 6 keeps both).
+  const otherDeviceNotice = <div className="development window-other-device" role="status">
+    This window belongs to another processor, which is not connected. Its data is not shown here.
+  </div>;
   return (
-    <main className={area === 'Connections' ? 'connection-mode' : ''} data-skin={skin.id} data-material={skin.material}>
+    <main className={area === 'Connections' ? 'connection-mode' : ''} data-skin={skin.id} data-material={skin.material}
+      data-window={route.kind} data-binding={binding}>
       <a className="skip-link" href="#main-workspace">Skip to Controls</a>
       {area === 'Connections' ? <div className="connection-workspace" id="main-workspace" tabIndex={-1}>
         {reconnectBanner}
         <Devices connected={snapshot.connected} activeId={snapshot.device_id} activeHost={snapshot.host}
           busy={busy} action={action} onConnected={() => setArea('Processing')}/>
       </div> : <>
+      {(route.kind === 'combined' || route.kind === 'meters') && <>
       <InstrumentHeader snapshot={snapshot} skin={skin} coupling={coupling}
         couplingDefinition={definition('Processing','HD COUPLING')} busy={busy}
         meterLive={meterLive} action={action} activeView={area}
@@ -394,9 +421,15 @@ function App() {
         ? <ModelMeterPanel skin={skin}/>
         : <MeterStrip connected={snapshot.connected} identity={snapshot.session_id || snapshot.device_id || snapshot.host}
             view={DEFAULT_METER_VIEW} onLiveChange={setMeterLive} model={meterModel} values={meterSettings}/>}
-      <div className="app-body">
+      </>}
+      {route.kind === 'meters' && (binding === 'other-device' ? otherDeviceNotice : reconnectBanner)}
+      {route.kind !== 'meters' && <div className="app-body">
       <div className="workspace" id="main-workspace" tabIndex={-1}>
+      {binding === 'other-device' && otherDeviceNotice}
       {reconnectBanner}
+      {windowed && !snapshot.connected && !snapshot.reconnect && binding !== 'other-device' && <div className="development window-offline" role="status">
+        Not connected. <button onClick={openConnections}>Connections…</button></div>}
+
       {snapshot.connected && snapshot.sync_error && <div className="development" role="status">{snapshot.sync_error} <button disabled={busy} onClick={() => void action('refresh', {})}>Refresh</button></div>}
       {snapshot.connected && !snapshot.write_enabled && <div className="development">Read-only access: this connection does not allow changes.</div>}
       {snapshot.connected && snapshot.write_enabled && snapshot.evidence === 'static' && <div className="development">Statically derived profile, not yet verified on this processor. Every change is confirmed by reading the processor back.</div>}
@@ -517,7 +550,7 @@ function App() {
         </section>
       )}
       </div>
-      </div>
+      </div>}
       </>}
     </main>
   );
