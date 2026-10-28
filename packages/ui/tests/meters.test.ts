@@ -81,7 +81,7 @@ test('approved SVG fixes meter geometry and palette exactly',()=>{
   ticks:'#656565',label:'#9F9F9F',blue:'#0088FF',amber:'#FFCC00',
   red:'#FF383C',green:'#76D672',live:'#34C759',magenta:'#A62E9C',lcdTop:'#101A24',lcdBottom:'#182431',lcdText:'#7E95B1',
  });
- const fiveBand=groups.filter(group=>!group.name.includes('2-Band'));
+ const fiveBand=groups.filter(group=>!group.name.includes('2-Band') && group.name!=='HF Limiting');
  assert.deepEqual(fiveBand.map(group=>group.referenceWidth),[71.021,95.541,73.042,169.542,66.542,67.041,53.042,59.541,169.542,72.042,65.042,65.542,72.52]);
  assert(Math.abs(meterCanvasWidth(fiveBand)-1100)<1e-9);
  const paired=meterChannelLayout(groups.find(group=>group.name==='FM Gain Reduction')!)[0];

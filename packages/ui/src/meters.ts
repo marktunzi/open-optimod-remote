@@ -45,6 +45,8 @@ export const groups: MeterGroup[] = [
  {name:'FM HF Enhance',kind:'enhance',referenceWidth:73.042,contentOffset:31.521,channels:[pair('',34,35,['L','R'])]},
  {name:'FM Gain Reduction',kind:'reduction',referenceWidth:169.542,contentOffset:25.021,channels:[pair('1',5,14),pair('2',6,15),pair('3',7,16),pair('4',8,17),pair('5',9,18)],when:FM_FIVE_BAND},
  {name:'FM 2-Band Gain Reduction',kind:'reduction',referenceWidth:67,contentOffset:25,channels:[mono('B',64),mono('M',65)],when:FM_TWO_BAND},
+ // The original 5700i client's 2-band view (dialog 373) adds the HF limiter, values 21/22 (28 October 2026, live).
+ {name:'HF Limiting',kind:'reduction',referenceWidth:72.042,contentOffset:27.521,channels:[pair('',21,22,['L','R'])],when:FM_TWO_BAND},
  {name:'FM Loudness',kind:'loudness',referenceWidth:66.542,contentOffset:24.521,channels:[pair('',59,58)]},
  {name:'FM Output',kind:'level',referenceWidth:67.041,contentOffset:24.52,channels:[pair('',27,28,['L','R'])]},
  {name:'Composite',kind:'composite',referenceWidth:53.042,contentOffset:24.521,channels:[mono('',29)]},

@@ -160,6 +160,13 @@ test('2-band and 5-band meter groups follow the on-air document of every model',
   }
 });
 
+test('the 5700i 2-band view shows the 2-band gain reduction and HF limiter, as its original client does', () => {
+  const two = visibleGroups('Both', REFERENCE_METERS, { 'Processing:2B DRIVE': '0', 'Processing:HD 2B DRIVE': '0' }).map(g => g.name);
+  assert.deepEqual(two.filter(n => /2-Band|HF Limiting|Gain Reduction/.test(n)), ['FM 2-Band Gain Reduction', 'HF Limiting', 'HD 2-Band Gain Reduction']);
+  const five = visibleGroups('Both', REFERENCE_METERS, { 'Processing:B1 ATTACK': '0', 'Processing:HD B1 ATTACK': '0' }).map(g => g.name);
+  assert.ok(!five.includes('HF Limiting') && five.includes('FM Gain Reduction'));
+});
+
 test('the 8400 meters use the unit\'s own bar heights and scales', () => {
   const model = meterModelFromProfile(profile('8400/3.0.5.7/meters.json'));
   assert.deepEqual(model.groups.map(g => g.name), ['Input', 'AGC', 'Multiband', '2 Band', 'HF', 'Out', 'PWR', 'Comp']);
