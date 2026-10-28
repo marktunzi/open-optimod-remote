@@ -2616,7 +2616,12 @@ async fn apply_preset(
             sleep(Duration::from_millis(180)).await;
         }
     }
-    let after = after.expect("verification loop always produces a snapshot");
+    let mut after = after.expect("verification loop always produces a snapshot");
+    // The unit names the on-air preset "modif …" after any processing write,
+    // but its on-air document can still carry the old name (seen on the 5700i).
+    if !changes.is_empty() && !after.name.starts_with("modif ") {
+        after.name = format!("modif {}", after.name);
+    }
     if !imported
         .fields
         .iter()

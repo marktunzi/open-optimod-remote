@@ -50,12 +50,12 @@ Original client: `5700iPC.exe` (SHA-256 `63def9bb…`), menus from its own resou
 
 | Windows function | Mac app | Status | Evidence |
 |---|---|---|---|
-| Recall Preset (factory and user) | Recall | PASS | [Recall keeps the session](2026-10-20-recall-session.md), user presets told apart in [M1C](2026-10-28-m1c-preset-save-delete.md) |
-| Save Preset | Presets › Save NAME… (replaces the on-air user preset) | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md) |
-| Save Preset As | Presets › Save on-air as… | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md) |
-| Delete Preset | Presets › Delete selected… | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md) |
-| Backup to PC | Presets › Save backup (the client's plain-text files) | PASS | [M1D](2026-10-28-m1d-backup-restore.md) |
-| Restore from PC | Presets › Restore from backup… (preset files as 231, setup field by field) | PASS; encrypted client backups not read | [M1D](2026-10-28-m1d-backup-restore.md) |
+| Recall Preset (factory and user) | native Presets window › Recall | PASS | [Recall keeps the session](2026-10-20-recall-session.md), user presets told apart in [M1C](2026-10-28-m1c-preset-save-delete.md) |
+| Save Preset | native Presets window › Save (replaces the on-air user preset) | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md), native [M1G](2026-10-28-m1g-native-presets.md) |
+| Save Preset As | native Presets window › Save As… | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md), native [M1G](2026-10-28-m1g-native-presets.md) |
+| Delete Preset | native Presets window › ⋯ › Delete… (or Delete key) | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md), native [M1G](2026-10-28-m1g-native-presets.md) |
+| Backup to PC | native Presets window › ⋯ › Back Up… (the client's plain-text files) | PASS | [M1D](2026-10-28-m1d-backup-restore.md), native [M1G](2026-10-28-m1g-native-presets.md) |
+| Restore from PC | native Presets window › ⋯ › Restore from Backup… (backup folder or files) | PASS; encrypted client backups not read | [M1D](2026-10-28-m1d-backup-restore.md), native [M1G](2026-10-28-m1g-native-presets.md) |
 
 ## Tools and Help
 

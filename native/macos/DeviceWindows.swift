@@ -8,13 +8,11 @@ import WebKit
 enum DeviceWindowKind: String, CaseIterable, Sendable {
     case meters
     case processing
-    case presets
 
     var title: String {
         switch self {
         case .meters: "Meters"
         case .processing: "Processing Settings"
-        case .presets: "Presets"
         }
     }
 
@@ -24,7 +22,6 @@ enum DeviceWindowKind: String, CaseIterable, Sendable {
         switch self {
         case .meters: NSSize(width: 1133, height: 370)
         case .processing: NSSize(width: 1133, height: 500)
-        case .presets: NSSize(width: 1000, height: 640)
         }
     }
 
@@ -33,28 +30,11 @@ enum DeviceWindowKind: String, CaseIterable, Sendable {
         // The meters scale with the window; below this the labels get too small to read.
         case .meters: NSSize(width: 760, height: 300)
         case .processing: NSSize(width: 900, height: 360)
-        case .presets: NSSize(width: 760, height: 460)
         }
     }
 
     /// The windows the app opens when it starts for the first time.
     static let startup: [DeviceWindowKind] = [.meters, .processing]
-}
-
-/// What a processor offers, as reported by its adapter. A window that needs a
-/// capability the processor lacks shows that instead of guessing.
-struct DeviceCapabilitiesPayload: Decodable, Equatable, Sendable {
-    let parameterReads: Bool
-    let parameterWrites: Bool
-    let liveMeters: Bool
-    let presetCatalog: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case parameterReads = "parameter_reads"
-        case parameterWrites = "parameter_writes"
-        case liveMeters = "live_meters"
-        case presetCatalog = "preset_catalog"
-    }
 }
 
 /// The parts of the service state that tell the windows which processor they
@@ -481,9 +461,13 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
     }
 
     private static let openKindsDefault = "OpenOptimodOpenWindows"
+    private static let presetsKind = "presets"
 
     private var windows: [Key: DeviceWebWindowController] = [:]
     private var nativeSettings: [String: SystemSettingsWindowController] = [:]
+    /// Presets is a native window per processor, like System Settings.
+    private var presets: [String: PresetsWindowController] = [:]
+    var onPresetsChanged: (() -> Void)?
     private let bridge = DeviceWindowBridge()
     private let dataStore = WKWebsiteDataStore.nonPersistent()
     private var interfaceReady = false
@@ -551,6 +535,24 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         controller.show()
     }
 
+    /// The Presets window of the current processor.
+    func showPresets() {
+        let key = currentDeviceID ?? ""
+        let controller = presets[key] ?? {
+            let controller = PresetsWindowController(deviceID: currentDeviceID)
+            controller.onChanged = { [weak self] in self?.onPresetsChanged?() }
+            controller.onClose = { [weak self] closed in
+                guard let self else { return }
+                self.presets = self.presets.filter { $0.value !== closed }
+                if !self.terminating { self.rememberOpenKinds() }
+            }
+            return controller
+        }()
+        presets[key] = controller
+        controller.show()
+        rememberOpenKinds()
+    }
+
     /// The startup window shows the service's progress until the interface loads.
     func showStartup(html: String) {
         show(.meters).showStatus(html: html)
@@ -563,6 +565,7 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
             .compactMap(DeviceWindowKind.init(rawValue:)) ?? DeviceWindowKind.startup
         for kind in kinds.isEmpty ? [.meters] : kinds { show(kind) }
         for controller in windows.values where !controller.hasPage { controller.loadPage() }
+        if UserDefaults.standard.stringArray(forKey: Self.openKindsDefault)?.contains(Self.presetsKind) == true { showPresets() }
     }
 
     /// After a connection, the processor's main windows come forward.
@@ -584,7 +587,7 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         // The startup window shows progress only; it is not a choice to keep.
         guard interfaceReady else { return }
         let kinds = DeviceWindowKind.allCases.filter { kind in windows.keys.contains { $0.kind == kind } }
-        UserDefaults.standard.set(kinds.map(\.rawValue), forKey: Self.openKindsDefault)
+        UserDefaults.standard.set(kinds.map(\.rawValue) + (presets.isEmpty ? [] : [Self.presetsKind]), forKey: Self.openKindsDefault)
     }
 
     private func device(for id: String?) -> DeviceRef? {
@@ -604,13 +607,21 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
                 controller.adopt(deviceID: connected.id)
                 windows[Key(kind: key.kind, deviceID: connected.id)] = controller
             }
+            if let unbound = presets[""] {
+                presets[""] = nil
+                unbound.adopt(deviceID: connected.id)
+                presets[connected.id] = unbound
+            }
             if let previous = lastDevice, previous.id != connected.id {
                 let kinds = windows.keys.filter { $0.deviceID == previous.id }.map(\.kind)
                 for key in windows.keys where key.deviceID == previous.id { windows[key]?.close() }
                 nativeSettings[previous.id]?.close()
                 nativeSettings[previous.id] = nil
+                let hadPresets = presets[previous.id] != nil
+                presets[previous.id]?.close()
                 lastDevice = connected
                 for kind in DeviceWindowKind.allCases where kinds.contains(kind) { show(kind) }
+                if hadPresets { showPresets() }
             }
             lastDevice = connected
         }
@@ -632,6 +643,9 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         let kind = parts.count > 1 ? DeviceWindowKind(rawValue: parts[1]) : nil
         let controller = kind.flatMap { kind in windows.first { $0.key.kind == kind }?.value }
         switch verb {
+        case "show" where parts.count > 1 && parts[1] == Self.presetsKind: showPresets()
+        case "close" where parts.count > 1 && parts[1] == Self.presetsKind: presets.values.forEach { $0.close() }
+        case Self.presetsKind: presets.values.forEach { $0.perform(Array(parts.dropFirst())) }
         case "show": if let kind { show(kind) }
         case "settings": showSystemSettings()
         case "close" where parts.count > 1 && parts[1] == "settings":
@@ -685,7 +699,7 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
                 "window_number": controller.window?.windowNumber ?? 0,
                 "frame": [frame.origin.x, frame.origin.y, frame.width, frame.height],
             ]
-        } + nativeSettings.map { id, controller in
+        } + presets.values.map(\.testState) + nativeSettings.map { id, controller in
             ["kind": "native-system-settings", "device": id, "visible": controller.window?.isVisible ?? false,
              "window_number": controller.window?.windowNumber ?? 0]
         }
@@ -694,7 +708,7 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
     func deviceWindow(_ webView: WKWebView?, didRequest name: String, body: Any) {
         switch name {
         case "openSystemSettings": showSystemSettings()
-        case "openPresets": show(.presets)
+        case "openPresets": showPresets()
         case "openMeters": show(.meters)
         case "openProcessing": show(.processing)
         case "meterSize":

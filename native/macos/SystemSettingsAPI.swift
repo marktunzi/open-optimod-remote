@@ -88,6 +88,26 @@ struct DevicePresetPayload: Codable, Sendable {
     let kind: String
 }
 
+/// What a processor offers, as reported by its adapter. A window that needs a
+/// capability the processor lacks shows that instead of guessing.
+struct DeviceCapabilitiesPayload: Codable, Equatable, Sendable {
+    let parameterReads: Bool
+    let parameterWrites: Bool
+    let liveMeters: Bool
+    let presetCatalog: Bool
+    var presetStore: Bool?
+    var presetDelete: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case parameterReads = "parameter_reads"
+        case parameterWrites = "parameter_writes"
+        case liveMeters = "live_meters"
+        case presetCatalog = "preset_catalog"
+        case presetStore = "preset_store"
+        case presetDelete = "preset_delete"
+    }
+}
+
 struct DeviceSnapshotPayload: Codable, Sendable {
     let connected: Bool
     let firmware: String
@@ -101,9 +121,10 @@ struct DeviceSnapshotPayload: Codable, Sendable {
     let adapterID: String?
     let deviceID: String?
     let revision: Int?
+    var capabilities: DeviceCapabilitiesPayload?
 
     enum CodingKeys: String, CodingKey {
-        case connected, firmware, host, system, processing, error, presets, revision
+        case connected, firmware, host, system, processing, error, presets, revision, capabilities
         case deviceID = "device_id"
         case writeEnabled = "write_enabled"
         case sessionID = "session_id"

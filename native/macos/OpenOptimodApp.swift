@@ -12,7 +12,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
     private var terminationRequested = false
     private var terminationReplySent = false
     private var connectionsWindowController: ConnectionsWindowController?
-    private var presetsWindowController: PresetsWindowController?
     private var errorLogWindowController: ErrorLogWindowController?
     private var presentedInitialConnections = false
 
@@ -26,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         windows.appDelegate = self
+        windows.onPresetsChanged = { [weak self] in self?.connectionsWindowController?.refreshStatusNow() }
         configureApplicationMenu()
         NSApp.activate(ignoringOtherApps: true)
         showStatus(title: "Starting Open Optimod Remote", detail: "Preparing the local control service…")
@@ -348,22 +348,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         connectionsWindowController?.show()
     }
 
-    /// Shift-Command-P opens the Presets window, which has every preset
-    /// function for the connected model. Before the interface has loaded the
-    /// native preset window opens.
+    /// Shift-Command-P opens the native Presets window of the processor,
+    /// which has every preset function of its model.
     @objc private func showPresets(_ sender: Any?) {
-        if loadedInterface { windows.show(.presets) } else { showNativePresets() }
-    }
-
-    private func showNativePresets() {
-        if presetsWindowController == nil {
-            let controller = PresetsWindowController()
-            controller.onChanged = { [weak self] in
-                self?.connectionsWindowController?.refreshStatusNow()
-            }
-            presetsWindowController = controller
-        }
-        presetsWindowController?.show()
+        windows.showPresets()
     }
 
     @objc private func showErrorLog(_ sender: Any?) {
