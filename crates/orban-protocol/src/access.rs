@@ -3,8 +3,10 @@
 //! compare the login's level with these bounds (Recall 0x4382e0, Save/Save
 //! As/Delete 0x437ef0/0x437a00/0x438af0, Setup 0x438cb0, Automation
 //! 0x43abd0, Security 0x43aca0, Backup/Restore 0x43ad70/0x43add0); the level
-//! names are those of its Security dialog. Other models keep full access at
-//! level 0 and read-only access otherwise until their clients are compared.
+//! names are those of its Security dialog. `5500iPC.exe` 3.1.0.2 has the same
+//! bounds except Delete Preset, which needs level 1 or lower (0x42f560).
+//! Other models keep full access at level 0 and read-only access otherwise
+//! until their clients are compared.
 use crate::adapter::DeviceModel;
 use serde::Serialize;
 
@@ -15,8 +17,10 @@ pub struct Access {
     pub recall: bool,
     /// Change processing (Modify).
     pub modify: bool,
-    /// Save, Save As, Rename and Delete user presets.
+    /// Save, Save As and Rename user presets.
     pub presets: bool,
+    /// Delete user presets (a Rename deletes too).
+    pub delete: bool,
     /// Change System Setup.
     pub setup: bool,
     pub automation: bool,
@@ -26,7 +30,7 @@ pub struct Access {
 }
 
 pub fn access(model: DeviceModel, level: u8) -> Access {
-    if model == DeviceModel::Optimod5700i {
+    if matches!(model, DeviceModel::Optimod5700i | DeviceModel::Optimod5500i) {
         // 0 All screens, 1 … except Security, 2 … except Modify and Security,
         // 3 Presets, Modify, Save, Memory and Automation, 4 Presets and
         // Automation, 5 Presets. Level 3's "Memory" is not Backup/Restore:
@@ -36,6 +40,11 @@ pub fn access(model: DeviceModel, level: u8) -> Access {
             recall: level <= 5,
             modify: matches!(level, 0 | 1 | 3),
             presets: matches!(level, 0 | 1 | 3),
+            delete: if model == DeviceModel::Optimod5500i {
+                level <= 1
+            } else {
+                matches!(level, 0 | 1 | 3)
+            },
             setup: level <= 2,
             automation: level <= 4,
             security: level == 0,
@@ -48,6 +57,7 @@ pub fn access(model: DeviceModel, level: u8) -> Access {
         recall: full,
         modify: full,
         presets: full,
+        delete: full,
         setup: full,
         automation: full,
         security: full,
@@ -69,6 +79,7 @@ mod tests {
                 recall: true,
                 modify: true,
                 presets: true,
+                delete: true,
                 setup: true,
                 automation: true,
                 security: true,
@@ -81,5 +92,13 @@ mod tests {
         assert!(a(4).recall && a(4).automation && !a(4).modify);
         assert!(a(5).recall && !a(5).automation && !a(5).setup);
         assert!(!access(DeviceModel::Optimod8700Hd, 1).recall);
+    }
+
+    #[test]
+    fn the_5500i_client_deletes_only_at_level_1_or_lower() {
+        let a = |level| access(DeviceModel::Optimod5500i, level);
+        assert!(a(1).delete && a(3).presets && !a(3).delete);
+        assert!(a(2).setup && !a(2).modify && a(4).automation && !a(5).automation);
+        assert!(access(DeviceModel::Optimod5700i, 3).delete);
     }
 }

@@ -145,6 +145,8 @@ struct DeviceAccessPayload: Codable, Sendable, Equatable {
     let recall: Bool
     let modify: Bool
     let presets: Bool
+    /// Absent from older services: then the presets right decides.
+    let delete: Bool?
     let setup: Bool
     let automation: Bool
     let security: Bool

@@ -12,7 +12,9 @@ struct PresetBrowserContext: Sendable {
     /// Restore from backup (the client's Restore from PC).
     var canRestore: Bool { snapshot.allows(\.memory) }
     var canStore: Bool { snapshot.allows(\.presets) && snapshot.capabilities?.presetStore == true }
-    var canDelete: Bool { snapshot.allows(\.presets) && snapshot.capabilities?.presetDelete == true }
+    var canDelete: Bool {
+        snapshot.connected && (snapshot.access?.delete ?? snapshot.allows(\.presets)) && snapshot.capabilities?.presetDelete == true
+    }
     /// Saving, renaming and deleting presets on the processor itself.
     var managesOnDevice: Bool {
         snapshot.capabilities?.presetStore == true || snapshot.capabilities?.presetDelete == true

@@ -2550,7 +2550,8 @@ async fn manage_preset(
     if !body.confirmed {
         return Err(OperationError::safe("Confirm the preset change first"));
     }
-    if !device.session.info.access().presets {
+    let access = device.session.info.access();
+    if (needs_store && !access.presets) || (needs_delete && !access.delete) {
         return Err(OperationError::safe(
             "Preset changes are not enabled for this access level",
         ));
