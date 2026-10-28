@@ -89,9 +89,54 @@ test('statically derived pages appear only when the processor reports their fiel
   // A 5-band preset on a 5700i without the MX upgrade reports neither 2B nor MX fields.
   const fiveBand = livePages(supplement, { 'B1 COMP THRSH': {}, 'LESS MORE': {} }).map(page => page.title);
   assert.ok(!fiveBand.some(title => title.startsWith('MX') || title.includes('2 Band')), fiveBand.join(', '));
-  const mx = livePages(supplement, { 'MX CLIP DRIVE': {}, 'B1 ATTACK': {} }).map(page => page.title);
+  const mx = livePages(supplement, { 'MX CLIP DRIVE': {}, 'B1 ATTACK': {}, 'MX SWITCH': { index: 1, value: { type: 'Int', value: 1 } } }).map(page => page.title);
   assert.ok(mx.includes('MX Distortion Control'), mx.join(', '));
-  assert.equal(livePages(supplement, undefined).length, supplement.length);
+  // MX fields with MX SWITCH 0 (a 5700i without the upgrade) show no MX page.
+  const off = livePages(supplement, { 'MX CLIP DRIVE': {}, 'B1 ATTACK': {}, 'MX SWITCH': { index: 0, value: { type: 'Int', value: 0 } } }).map(page => page.title);
+  assert.ok(!off.some(title => title.startsWith('MX') || title === 'Final Clip'), off.join(', '));
+  assert.ok(livePages(supplement, undefined).every(page => !page.title.startsWith('MX')));
+});
+
+test('an MX 5700i shows one Distortion, Speech Mode and Final Clipping tab', async () => {
+  const { livePages, mergeSupplementPages, processingPages, tabLabel } = await import('../src/navigation-model.ts');
+  const builtin = (await import('../src/layouts.json', { with: { type: 'json' } })).default as LayoutPage[];
+  const merged = mergeSupplementPages(builtin, profile('5700i/3.0.1.20/static-layouts.json'));
+  const names = merged.filter(page => page.path !== 'HD').flatMap(page => page.controls.map(c => c.name));
+  const fields = (mx: number) => ({ ...Object.fromEntries(names.filter(n => !n.startsWith('2B')).map(n => [n, {}])), 'B1 ATTACK': {},
+    'MX SWITCH': { index: mx, value: { type: 'Int', value: mx } } });
+  for (const mx of [0, 1]) {
+    const tabs = processingPages(livePages(merged, fields(mx)), 'FM', undefined).map(page => tabLabel(page.title));
+    assert.equal(new Set(tabs).size, tabs.length, tabs.join(', '));
+    for (const tab of ['Distortion', 'Speech mode', 'Final Clipping']) assert.equal(tabs.filter(t => t === tab).length, 1, `${mx}: ${tabs.join(', ')}`);
+  }
+});
+
+test('MX pages replace the standard ones only while MX SWITCH is 1, as the original 8700HD client shows', async () => {
+  const { livePages, tabLabel } = await import('../src/navigation-model.ts');
+  const layouts: LayoutPage[] = profile('8700hd/1.0.2.161/layouts.json');
+  const fieldsOf = (names: string[], mx?: number) => ({
+    ...Object.fromEntries(names.map(name => [name, {}])),
+    ...(mx === undefined ? {} : { 'MX SWITCH': { index: mx, value: { type: 'Int', value: mx } } }),
+  });
+  const all = (titles: string[]) => layouts.filter(page => page.path === 'FM' && titles.includes(page.title)).flatMap(page => page.controls.map(c => c.name));
+  // Documents carry the fields of both variants (3FM STREAM V03 has every MX field with MX SWITCH 0).
+  const five = all(['AGC', 'Multiband', 'Distortion Control', 'MX Distortion Control', 'Speech Mode', 'MX Speech Mode', 'Final Clipping', 'Final Clip']).concat('B1 ATTACK');
+  const two = all(['AGC', '2 Band', '2 Band Distortion', 'MX 2 Band Distortion', 'Final Clipping', 'Final Clip']).concat('2B DRIVE');
+  const tabs = (fields: Record<string, unknown>) => livePages(layouts, fields).filter(page => page.path === 'FM').map(page => tabLabel(page.title));
+  const titles = (fields: Record<string, unknown>) => livePages(layouts, fields).filter(page => page.path === 'FM').map(page => page.title);
+  // CLASSICAL-5 BAND / 3FM STREAM V03 (MX SWITCH 0) and GREGG MX (MX SWITCH 1)
+  for (const mx of [undefined, 0]) {
+    assert.deepEqual(titles(fieldsOf(five, mx)).filter(t => /Distortion|Speech|Final/.test(t)), ['Distortion Control', 'Final Clipping', 'Speech Mode']);
+  }
+  assert.deepEqual(titles(fieldsOf(five, 1)).filter(t => /Distortion|Speech|Final/.test(t)), ['MX Distortion Control', 'MX Speech Mode', 'Final Clip']);
+  // CLASSICAL-2 BAND (2B Distortion) and CLASSICAL-2B+AGC MX (Distortion)
+  assert.deepEqual(tabs(fieldsOf(two, 0)).filter(t => /Distortion|Speech|Final/.test(t)), ['2B Distortion', 'Final Clipping']);
+  assert.deepEqual(tabs(fieldsOf(two, 1)).filter(t => /Distortion|Speech|Final/.test(t)), ['Distortion', 'Final Clipping']);
+  assert.deepEqual(tabs(fieldsOf(five, 1)).filter(t => /Distortion|Speech|Final/.test(t)), ['Distortion', 'Speech mode', 'Final Clipping']);
+  // One Compressors tab unless the document has the linked page's own field.
+  const compressors = all(['Compressors', 'Compressors (B4/5 Linked)']).filter(n => n !== 'B4/5 DELTA REL');
+  assert.deepEqual(titles(fieldsOf([...five, ...compressors], 0)).filter(t => t.startsWith('Compressors')), ['Compressors']);
+  assert.ok(titles(fieldsOf([...five, ...compressors, 'B4/5 DELTA REL'], 0)).includes('Compressors (B4/5 Linked)'));
 });
 
 test('2-band and 5-band meter groups follow the on-air document of every model', () => {

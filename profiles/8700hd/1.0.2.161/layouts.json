@@ -2538,6 +2538,57 @@
     ]
   },
   {
+    "title": "Final Clip",
+    "path": "FM",
+    "width": 173,
+    "height": 133,
+    "reference_dialog": 244,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "COMP DRIVE",
+        "label": "Composite Limit Drive",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3210,
+        "reference_id": 134,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PILOT PROTECT",
+        "label": "Pilot Protect",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3217,
+        "reference_id": 216,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMPOSITE MODE",
+        "label": "Composite Limit Mode",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3221,
+        "reference_id": 135,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 0,
+        "w": 166,
+        "h": 133,
+        "text": ""
+      }
+    ]
+  },
+  {
     "title": "Equalizer",
     "path": "HD",
     "width": 519,

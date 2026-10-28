@@ -70,10 +70,59 @@ export function mergeSupplementPages(builtin: LayoutPage[], supplement: LayoutPa
  * when the processor reports their fields. Without a document every page is kept.
  */
 export function livePages(pages: LayoutPage[], fields: Record<string, unknown> | undefined): LayoutPage[] {
-  if (!fields) return pages.filter(page => !page.when);
+  if (!fields) return pages.filter(page => !page.when && mxStructure(page) !== 'mx');
+  const mx = mxOnAir(fields);
+  const titles = new Set(pages.map(page => `${page.path}:${page.title}`));
   return pages.filter(page => page.controls.some(control => control.name in fields)
     && (!page.when || (fields[page.when.field] as { value?: { value?: unknown } } | undefined)?.value?.value === page.when.value)
-    && structureOnAir(page, fields));
+    && structureOnAir(page, fields)
+    && mxPageOnAir(page, mx, titles)
+    && (!(page.title in PAGE_FIELD) || PAGE_FIELD[page.title] in fields));
+}
+
+/**
+ * Pages that share most controls with another page and appear only with the
+ * field that sets them apart: the original 8700HD client shows one
+ * Compressors tab in every 5-band preset whose document lacks `B4/5 DELTA REL`.
+ */
+const PAGE_FIELD: Record<string, string> = {
+  'Compressors (B4/5 Linked)': 'B4/5 DELTA REL',
+};
+
+/**
+ * MX pages and the pages they replace, as the original clients switch them
+ * (8700HD PC Remote 1.0.2.161, 28 October 2026): with `MX SWITCH` 1 the
+ * Distortion, Speech Mode and Final Clipping tabs show the MX dialogs; with
+ * `MX SWITCH` 0 or absent they show the standard ones, even when the
+ * document carries the MX fields (a 5700i without the MX upgrade does).
+ */
+const MX_REPLACES: Record<string, string[]> = {
+  // The 5700i's built-in page is called Distortion.
+  'MX Distortion Control': ['Distortion Control', 'Distortion'],
+  'MX 2 Band Distortion': ['2 Band Distortion'],
+  'MX Speech Mode': ['Speech Mode'],
+  'Final Clip': ['Final Clipping'],
+};
+const MX_REPLACED = new Map(Object.entries(MX_REPLACES).flatMap(([mx, standards]) => standards.map(standard => [standard, mx] as const)));
+
+export function mxStructure(page: LayoutPage): 'mx' | 'standard' | null {
+  if (page.path !== 'FM') return null;
+  if (page.title in MX_REPLACES) return 'mx';
+  return MX_REPLACED.has(page.title) ? 'standard' : null;
+}
+
+/** Whether the MX structure is on air: the document's `MX SWITCH` is 1. */
+export function mxOnAir(fields: Record<string, unknown>): boolean {
+  const value = (fields['MX SWITCH'] as { value?: { value?: unknown } } | undefined)?.value?.value;
+  return value === 1 || value === '1' || value === 'On';
+}
+
+function mxPageOnAir(page: LayoutPage, mx: boolean, titles: Set<string>): boolean {
+  const kind = mxStructure(page);
+  if (kind === 'mx') return mx;
+  // A standard page gives way only to an MX page this model actually has.
+  if (kind === 'standard') return !mx || !titles.has(`FM:${MX_REPLACED.get(page.title)}`);
+  return true;
 }
 
 /** Pages of the original clients that belong to the 5-band structure. */
@@ -111,13 +160,20 @@ export function pageControls<T extends { name: string; kind: string }>(controls:
   return first > 0 ? [present[first], ...present.slice(0, first), ...present.slice(first + 1)] : present;
 }
 
-/** Short tab names in the style of the Figma tab bar; the full title stays as tooltip. */
+/**
+ * Short tab names in the style of the Figma tab bar; the full title stays as
+ * tooltip. An MX page takes the tab name of the page it replaces, as in the
+ * original client.
+ */
 const TAB_LABELS: Record<string, string> = {
   'Equalizer': 'EQ',
   'Speech Mode': 'Speech mode',
-  'MX Speech Mode': 'MX Speech',
+  'MX Speech Mode': 'Speech mode',
   'Distortion Control': 'Distortion',
-  'MX Distortion Control': 'MX Distortion',
+  'MX Distortion Control': 'Distortion',
+  '2 Band Distortion': '2B Distortion',
+  'MX 2 Band Distortion': 'Distortion',
+  'Final Clip': 'Final Clipping',
   'Compressors (B4/5 Linked)': 'B4/5 Linked',
 };
 

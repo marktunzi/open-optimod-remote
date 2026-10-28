@@ -2532,6 +2532,68 @@
     ]
   },
   {
+    "title": "Final Clip",
+    "path": "FM",
+    "width": 173,
+    "height": 162,
+    "reference_dialog": 244,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "COMP DRIVE",
+        "label": "Composite Limit Drive",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3210,
+        "reference_id": 137,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PILOT PROTECT",
+        "label": "Pilot Protect",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3217,
+        "reference_id": 223,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMPOSITE MODE",
+        "label": "Composite Limit Mode",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3221,
+        "reference_id": 138,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MPX PWR GATE CTRL",
+        "label": "MPX Pwr Ctrlr Gate",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 1396,
+        "reference_id": 326,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 0,
+        "w": 166,
+        "h": 161,
+        "text": ""
+      }
+    ]
+  },
+  {
     "title": "Equalizer",
     "path": "HD",
     "width": 519,

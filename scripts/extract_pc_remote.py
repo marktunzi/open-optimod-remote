@@ -182,9 +182,13 @@ CONFIGS = {
     ),
 }
 # Page titles where the dialog caption is empty, generic or shared by variants.
-PAGE_TITLES = {246: "Less More", 381: "Clipper Options", 393: "Equalizer", 396: "MX Distortion Control",
+PAGE_TITLES = {246: "Less More", 244: "Final Clip", 381: "Clipper Options", 393: "Equalizer", 396: "MX Distortion Control",
                388: "2 Band", 395: "Speech Mode", 399: "MX Speech Mode", 370: "Speech Mode",
                368: "Distortion Control"}
+# Dialogs the original clients show in place of another page while the MX
+# structure is on (`MX SWITCH` 1): they can hold a subset of that page's
+# controls and must still be kept (8700HD session, 28 October 2026).
+MX_VARIANT_DIALOGS = {244, 396, 399, 400}
 PAGE_ORDER = ["Less More", "Stereo Enhancer", "AGC", "Equalizer", "Multiband", "Compressors", "Band Mix",
               "2 Band", "Distortion Control", "2 Band Distortion", "Final Clipping", "Clipper Options",
               "Speech Mode", "HD Limiting"]
@@ -726,7 +730,8 @@ def build_layouts(image: Image, config: dict, profile_fields, raw):
     kept = []
     for index, page in enumerate(pages):
         names_here = {c["name"] for c in page["controls"]}
-        larger = any(other is not page and other["path"] == page["path"] and names_here < {c["name"] for c in other["controls"]} for other in pages)
+        larger = page["reference_dialog"] not in MX_VARIANT_DIALOGS and any(
+            other is not page and other["path"] == page["path"] and names_here < {c["name"] for c in other["controls"]} for other in pages)
         repeated = any(other["path"] == page["path"] and names_here == {c["name"] for c in other["controls"]} for other in pages[:index])
         if not larger and not repeated:
             kept.append(page)
