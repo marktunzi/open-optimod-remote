@@ -18,7 +18,7 @@ use orban_protocol::{
     profile::Profile,
 };
 use serde_json::json;
-use std::{net::IpAddr, net::SocketAddr, sync::Arc, time::Duration};
+use std::{collections::HashMap, net::IpAddr, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{net::UdpSocket, task::JoinHandle, time::Instant};
 use zeroize::Zeroizing;
 
@@ -47,7 +47,7 @@ pub struct Unit {
     pub session: Session,
     capabilities: Capabilities,
     profile: Option<Arc<Profile>>,
-    meters: Option<JoinHandle<()>>,
+    meters: Option<MeterRoute>,
     processing_baseline: Option<Document>,
     /// The time of the last message to the unit.
     pub last_sent: Instant,
@@ -55,9 +55,7 @@ pub struct Unit {
 
 impl Unit {
     pub async fn disconnect(mut self) -> Result<(), String> {
-        if let Some(task) = self.meters.take() {
-            task.abort();
-        }
+        self.meters.take();
         self.session.disconnect().await
     }
 }
@@ -103,9 +101,9 @@ pub async fn connect(body: Connect, app: &App) -> Result<Unit, String> {
         let _ = unit.disconnect().await;
         return Err(error);
     }
-    let meters = match UdpSocket::bind(("0.0.0.0", o8400::METER_PORT)).await {
-        Ok(socket) => {
-            unit.meters = Some(tokio::spawn(receive_meters(socket, ip, app.clone())));
+    let meters = match app.peer.peers.meters_8400.route(ip, app.clone()) {
+        Ok(route) => {
+            unit.meters = Some(route);
             unit.session
                 .event(METERS_ON_EVENT, 0, "")
                 .await
@@ -156,18 +154,81 @@ pub async fn connect(body: Connect, app: &App) -> Result<Unit, String> {
     Ok(unit)
 }
 
-/// The meter packets of this unit (type 1, 34 bytes) as meter values; the
-/// clock packets (type 2) and other senders are ignored.
-async fn receive_meters(socket: UdpSocket, unit: IpAddr, app: App) {
+/// Every 8400 sends its meters to the same UDP port of the PC (16540), so
+/// the app binds it once for all 8400 sessions and hands each packet to the
+/// session of the unit that sent it. The port is bound while at least one
+/// 8400 is connected.
+#[derive(Default)]
+pub struct MeterListener {
+    state: Arc<std::sync::Mutex<Listening>>,
+}
+
+#[derive(Default)]
+struct Listening {
+    routes: HashMap<IpAddr, App>,
+    task: Option<JoinHandle<()>>,
+}
+
+/// One unit's share of the meter port; dropping it stops its packets.
+pub struct MeterRoute {
+    state: Arc<std::sync::Mutex<Listening>>,
+    unit: IpAddr,
+}
+
+impl Drop for MeterRoute {
+    fn drop(&mut self) {
+        let Ok(mut state) = self.state.lock() else {
+            return;
+        };
+        state.routes.remove(&self.unit);
+        if state.routes.is_empty()
+            && let Some(task) = state.task.take()
+        {
+            task.abort();
+        }
+    }
+}
+
+impl MeterListener {
+    /// Sends the meter packets of `unit` to `app`.
+    pub fn route(&self, unit: IpAddr, app: App) -> Result<MeterRoute, String> {
+        let mut state = self.state.lock().map_err(|_| "Meter port unavailable")?;
+        if state.routes.contains_key(&unit) {
+            return Err(format!(
+                "{unit} already sends its meters to another session"
+            ));
+        }
+        if state.task.is_none() {
+            let socket = std::net::UdpSocket::bind(("0.0.0.0", o8400::METER_PORT))
+                .and_then(|socket| socket.set_nonblocking(true).map(|()| socket))
+                .and_then(UdpSocket::from_std)
+                .map_err(|error| error.to_string())?;
+            state.task = Some(tokio::spawn(receive_meters(socket, self.state.clone())));
+        }
+        state.routes.insert(unit, app);
+        Ok(MeterRoute {
+            state: self.state.clone(),
+            unit,
+        })
+    }
+}
+
+/// The meter packets of each routed unit (type 1, 34 bytes) as meter values;
+/// the clock packets (type 2) and other senders are ignored.
+async fn receive_meters(socket: UdpSocket, state: Arc<std::sync::Mutex<Listening>>) {
     let mut buffer = [0; 256];
     loop {
         let Ok((count, from)) = socket.recv_from(&mut buffer).await else {
             tokio::time::sleep(Duration::from_millis(100)).await;
             continue;
         };
-        if from.ip() != unit {
+        let Some(app) = state
+            .lock()
+            .ok()
+            .and_then(|routes| routes.routes.get(&from.ip()).cloned())
+        else {
             continue;
-        }
+        };
         if let Some(values) = o8400::meter_values(&buffer[..count]) {
             app.activity
                 .meter_frames

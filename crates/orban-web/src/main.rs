@@ -2,6 +2,7 @@ mod automation;
 mod devices;
 mod o8400;
 mod security;
+mod sessions;
 use axum::{
     Json, Router,
     extract::{Request, State},
@@ -155,6 +156,8 @@ struct App {
     /// What the owner did on the processor, so the app's windows can show
     /// that they share one session instead of each opening their own.
     activity: Arc<Activity>,
+    /// This session's name among the app's other processor sessions.
+    peer: sessions::Peer,
 }
 /// Counters of processor traffic since the service started. A window that
 /// opens, closes or reloads must not move any of them except meter readers.
@@ -407,6 +410,26 @@ struct InputStatus {
     at: tokio::time::Instant,
     after_change: bool,
 }
+/// A new processor session named `key`: its own state, meters, commands,
+/// profile and owner task, sharing the connection book and peers of `base`.
+fn start_session(base: &App, key: &str) -> App {
+    let (tx, rx) = mpsc::channel(8);
+    let (meters, _) = watch::channel(json!({"live":false}));
+    let app = App {
+        activity: Arc::default(),
+        peer: sessions::Peer {
+            key: key.into(),
+            peers: base.peer.peers.clone(),
+        },
+        state: Arc::new(RwLock::new(Snapshot::default())),
+        meters,
+        commands: tx,
+        profile: shared_profile(reference_profile()),
+        book: base.book.clone(),
+    };
+    tokio::spawn(owner(app.clone(), rx));
+    app
+}
 fn reference_profile() -> Arc<Profile> {
     Arc::new(Profile::embedded().expect("Valid bundled profile"))
 }
@@ -420,6 +443,7 @@ async fn main() {
     let (meters, _) = watch::channel(json!({"live":false}));
     let app = App {
         activity: Arc::default(),
+        peer: sessions::Peer::default(),
         state: Arc::new(RwLock::new(Snapshot::default())),
         meters,
         commands: tx,
@@ -435,6 +459,7 @@ async fn main() {
         )),
     };
     tokio::spawn(owner(app.clone(), rx));
+    let hub = sessions::Hub::new(app.clone(), device_routes());
     let bundled_assets = std::env::current_exe().ok().and_then(|executable| {
         bundled_asset_candidates(&executable)
             .into_iter()
@@ -445,8 +470,46 @@ async fn main() {
         .map(std::path::PathBuf::from)
         .or(bundled_assets)
         .unwrap_or_else(|| "packages/ui/dist".into());
+    let sessions = Router::new()
+        .route(
+            "/api/d/{device}/{*rest}",
+            axum::routing::any(sessions::device_request),
+        )
+        .route("/api/sessions", get(sessions::sessions))
+        .route("/api/disconnect-all", post(sessions::disconnect_all))
+        .with_state(hub);
     let routes = Router::new()
         .route("/api/health", get(|| async { "open-optimod-remote/0.2.0" }))
+        .merge(device_routes().with_state(app))
+        .merge(sessions)
+        .fallback_service(ServeDir::new(assets))
+        .layer(middleware::from_fn(local_origin));
+    let listener = tokio::net::TcpListener::bind(HOST.as_str())
+        .await
+        .unwrap_or_else(|_| panic!("Local port {} available", *SERVICE_PORT));
+    if bundled {
+        if let Some(home) = std::env::var_os("HOME") {
+            let cache = std::path::PathBuf::from(home).join("Library/Caches/OpenOptimodRemote");
+            let _ = std::fs::create_dir_all(&cache);
+            let _ = std::fs::write(cache.join("service.pid"), std::process::id().to_string());
+        }
+        if should_open_default_browser(std::env::var_os("OPEN_OPTIMOD_NO_BROWSER").as_deref()) {
+            #[cfg(target_os = "macos")]
+            tokio::spawn(async {
+                tokio::time::sleep(Duration::from_millis(250)).await;
+                let _ = std::process::Command::new("/usr/bin/open")
+                    .arg(ORIGIN.as_str())
+                    .spawn();
+            });
+        }
+    }
+    println!("Open Optimod Remote development build: {}", *ORIGIN);
+    axum::serve(listener, routes).await.unwrap();
+}
+/// The routes of one processor session, the same under `/api/d/{device}/`
+/// as unprefixed for the browser's session.
+fn device_routes() -> Router<App> {
+    Router::new()
         .route("/api/state", get(state))
         .route("/api/profile", get(profile_handler))
         .route("/api/meters", get(meters_handler))
@@ -487,30 +550,6 @@ async fn main() {
         .route("/api/devices/groups", post(devices_groups))
         .route("/api/devices/code", post(devices_code))
         .route("/api/devices/connect", post(devices_connect))
-        .fallback_service(ServeDir::new(assets))
-        .layer(middleware::from_fn(local_origin))
-        .with_state(app);
-    let listener = tokio::net::TcpListener::bind(HOST.as_str())
-        .await
-        .unwrap_or_else(|_| panic!("Local port {} available", *SERVICE_PORT));
-    if bundled {
-        if let Some(home) = std::env::var_os("HOME") {
-            let cache = std::path::PathBuf::from(home).join("Library/Caches/OpenOptimodRemote");
-            let _ = std::fs::create_dir_all(&cache);
-            let _ = std::fs::write(cache.join("service.pid"), std::process::id().to_string());
-        }
-        if should_open_default_browser(std::env::var_os("OPEN_OPTIMOD_NO_BROWSER").as_deref()) {
-            #[cfg(target_os = "macos")]
-            tokio::spawn(async {
-                tokio::time::sleep(Duration::from_millis(250)).await;
-                let _ = std::process::Command::new("/usr/bin/open")
-                    .arg(ORIGIN.as_str())
-                    .spawn();
-            });
-        }
-    }
-    println!("Open Optimod Remote development build: {}", *ORIGIN);
-    axum::serve(listener, routes).await.unwrap();
 }
 async fn local_origin(req: Request, next: Next) -> Response {
     let host = req
@@ -998,6 +1037,10 @@ async fn devices_code(State(app): State<App>, Json(body): Json<SavedCode>) -> Ap
     Ok(Json(json!({"ok":true})))
 }
 async fn devices_connect(State(app): State<App>, Json(body): Json<SavedCode>) -> ApiResult {
+    // A processor's own session connects only that saved connection.
+    if !app.peer.key.is_empty() && *app.peer.key != body.id {
+        return Err(api_error("This window belongs to another processor"));
+    }
     let provided = body.code.map(Zeroizing::new);
     let connect = book_task(&app, move |book| {
         let device = book.find(&body.id)?;
@@ -3594,202 +3637,216 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
     let mut pending: Option<PendingReconnect> = None;
     let mut tick = interval(METER_POLL_PERIOD);
     tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
-    loop {
-        tokio::select! {
-         command=rx.recv()=>{
-          let Some(command)=command else{break};
-          match command{
-           Command::Connect(body,reply)=>{
-            if device.is_some()||unit.is_some(){let _=reply.send(Err("Disconnect the current device first".into()));continue;}
-            Activity::count(&app.activity.session_opens);
-            // A manual connection replaces any pending automatic one.
-            pending=None;
-            target=None;
-            *app.state.write().await = Snapshot::default();
-            let remembered=ReconnectTarget::from(&body,&app);
-            if o8400::wanted(&body) {
-             match o8400::connect(body,&app).await{Ok(u)=>{unit=Some(u);target=Some(remembered);let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
-             continue;
-            }
-            match make_device(body,&app).await{Ok(d)=>{device=Some(d);target=Some(remembered);let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
-           }
-           Command::Disconnect(reply)=>{
-            // A manual disconnect is never followed by an automatic reconnect.
-            pending=None;
-            target=None;
-            let disconnecting=device.take();
-            let disconnecting_unit=unit.take();
-            let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=None;state.reconnect=None;drop(state);app.meters.send_replace(json!({"live":false}));
-            let result=if let Some(d)=disconnecting{d.session.disconnect().await}else if let Some(u)=disconnecting_unit{u.disconnect().await}else{Ok(())};
-            let _=reply.send(result);
-           }
-           Command::Refresh(reply)=>{
-            let result=if let Some(u)=&mut unit{
-             let result=o8400::synchronize(&app,u).await;
-             if let Err(e)=&result{app.state.write().await.sync_error=Some(format!("Settings could not be read: {e}"));}
-             result
-            }else if let Some(d)=&mut device{
-             let result=synchronize(&app,d).await;
-             if let Err(e)=&result{app.state.write().await.sync_error=Some(sync_failure(d,e));}
-             result
-            }else{Err("Not connected".into())};
-            let _=reply.send(result);
-           }
-           Command::Recall(body,reply)=>{
-            Activity::count(&app.activity.device_writes);
-            let result=if let Some(u)=&mut unit{o8400::recall(u,&app,body).await}else if let Some(d)=&mut device{recall(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
-            tick.reset();
-           match result {
-            Ok(())=>{let _=reply.send(Ok(()));}
-            Err(e)=>{
-              let _=reply.send(Err(e.message));
+    'owner: loop {
+        'turn: {
+            tokio::select! {
+             command=rx.recv()=>{
+              let Some(command)=command else{break 'owner};
+              match command{
+               Command::Connect(body,reply)=>{
+                if device.is_some()||unit.is_some(){let _=reply.send(Err("Disconnect the current device first".into()));break 'turn;}
+                // One processor, one session: another tab that holds it keeps it.
+                if let Err(e)=app.peer.claim(&body.host,body.port){let _=reply.send(Err(e));break 'turn;}
+                Activity::count(&app.activity.session_opens);
+                // A manual connection replaces any pending automatic one.
+                pending=None;
+                target=None;
+                *app.state.write().await = Snapshot::default();
+                let remembered=ReconnectTarget::from(&body,&app);
+                if o8400::wanted(&body) {
+                 match o8400::connect(body,&app).await{Ok(u)=>{unit=Some(u);target=Some(remembered);let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
+                 break 'turn;
+                }
+                match make_device(body,&app).await{Ok(d)=>{device=Some(d);target=Some(remembered);let _=reply.send(Ok(()));},Err(e)=>{let _=reply.send(Err(e));}}
+               }
+               Command::Disconnect(reply)=>{
+                // A manual disconnect is never followed by an automatic reconnect.
+                pending=None;
+                target=None;
+                let disconnecting=device.take();
+                let disconnecting_unit=unit.take();
+                let mut state=app.state.write().await;state.connected=false;state.session_id=None;state.error=None;state.reconnect=None;drop(state);app.meters.send_replace(json!({"live":false}));
+                let result=if let Some(d)=disconnecting{d.session.disconnect().await}else if let Some(u)=disconnecting_unit{u.disconnect().await}else{Ok(())};
+                let _=reply.send(result);
+               }
+               Command::Refresh(reply)=>{
+                let result=if let Some(u)=&mut unit{
+                 let result=o8400::synchronize(&app,u).await;
+                 if let Err(e)=&result{app.state.write().await.sync_error=Some(format!("Settings could not be read: {e}"));}
+                 result
+                }else if let Some(d)=&mut device{
+                 let result=synchronize(&app,d).await;
+                 if let Err(e)=&result{app.state.write().await.sync_error=Some(sync_failure(d,e));}
+                 result
+                }else{Err("Not connected".into())};
+                let _=reply.send(result);
+               }
+               Command::Recall(body,reply)=>{
+                Activity::count(&app.activity.device_writes);
+                let result=if let Some(u)=&mut unit{o8400::recall(u,&app,body).await}else if let Some(d)=&mut device{recall(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+                tick.reset();
+               match result {
+                Ok(())=>{let _=reply.send(Ok(()));}
+                Err(e)=>{
+                  let _=reply.send(Err(e.message));
+                 }
+                }
+               }
+               Command::Change(body,reply)=>{
+                Activity::count(&app.activity.device_writes);
+                let result=if let Some(u)=&mut unit{o8400::change(u,&app,body).await}else if let Some(d)=&mut device{change(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+                match result {
+                 Ok(())=>{let _=reply.send(Ok(()));}
+                Err(e)=>{
+                  // Operation failures are logged; the heartbeat owns transport-loss detection.
+                  let _=reply.send(Err(e.message));
+                 }
+                }
+               }
+               Command::PresetFile(body,reply)=>{
+                Activity::count(&app.activity.device_writes);
+                let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{manage_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+                tick.reset();
+                let _=reply.send(result.map_err(|e| e.message));
+               }
+               Command::RestoreSetup(body,reply)=>{
+                Activity::count(&app.activity.device_writes);
+                let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{restore_setup(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+                let _=reply.send(result.map_err(|e| e.message));
+               }
+               Command::BackupFiles(reply)=>{
+                let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{backup_files(d,&app).await}else{Err("Not connected".to_owned())};
+                tick.reset();
+                let _=reply.send(result);
+               }
+               Command::ReadUnitFile(request,reply)=>{
+                let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{read_unit_file_from(d,&app,request).await}else{Err("Not connected".to_owned())};
+                tick.reset();
+                let _=reply.send(result);
+               }
+               Command::WriteUnitFile(body,reply)=>{
+                Activity::count(&app.activity.device_writes);
+                let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{write_unit_file(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+                tick.reset();
+                let _=reply.send(result.map_err(|e| e.message));
+               }
+               Command::SetupPresets(reply)=>{
+                let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{setup_presets(d,&app).await.map(|files| files.into_iter().map(|(name,_)| name).collect())}else{Err("Not connected".to_owned())};
+                tick.reset();
+                let _=reply.send(result);
+               }
+               Command::SetupPreset(body,reply)=>{
+                Activity::count(&app.activity.device_writes);
+                let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{setup_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+                tick.reset();
+                let _=reply.send(result.map_err(|e| e.message));
+               }
+               Command::RestorePresetFiles(body,reply)=>{
+                Activity::count(&app.activity.device_writes);
+                let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{restore_preset_files(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+                tick.reset();
+                let _=reply.send(result.map_err(|e| e.message));
+               }
+               Command::CancelReconnect(reply)=>{
+                // A Cancel that waited behind a successful attempt has nothing
+                // left to cancel; it must not turn off later reconnects.
+                if pending.is_none(){let _=reply.send(Err("No reconnection is pending".into()));break 'turn;}
+                pending=None;
+                target=None;
+                app.state.write().await.reconnect=None;
+                let _=reply.send(Ok(()));
+               }
+               Command::ApplyPreset(body,reply)=>{
+                Activity::count(&app.activity.device_writes);
+                let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{apply_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+                match result {
+                Ok(())=>{let _=reply.send(Ok(()));}
+                Err(e)=>{
+                  let _=reply.send(Err(e.message));
+                 }
+                }
+               }
+              }
+              // A poll during the command may have found the session lost.
+              if let Some(lost)=device.as_mut().and_then(|d| d.lost.take()) {
+                 end_session(&app,&mut device,lost.clone()).await;
+                 pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
+              }
+              if let Some(d)=device.as_mut().filter(|d| d.pushed.is_some()) {on_air_pushed(&app,d).await;}
+             }
+             _=keepalive.tick(),if unit.is_some()=>{
+              let u=unit.as_mut().unwrap();
+              if let Err(e)=o8400::keepalive(u).await {
+                 let lost=format!("The PC Remote session was lost: {e}");
+                 if let Some(u)=unit.take(){let _=u.disconnect().await;}
+                 end_session(&app,&mut device,lost.clone()).await;
+                 pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
+              }
+             }
+             _=tick.tick(),if device.as_ref().is_some_and(|d| d.session.info.capabilities.live_meters)=>{
+              let d=device.as_mut().unwrap();Activity::count(&app.activity.meter_polls);let result=async{d.session.send(219,b"").await?;drain(d,&app).await}.await;
+              if let Err(e)=result && let Some(lost)=session_lost(d,&e) {
+                 end_session(&app,&mut device,lost.clone()).await;
+                 pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
+              } else if d.pushed.is_some() {
+                 on_air_pushed(&app,d).await;
+              } else if d.archive_retry.is_some_and(|(at,_)| at<=tokio::time::Instant::now()) {
+                 read_pushed_on_air(&app,d).await;
+              } else if d.input_status.is_some_and(|due| due.at<=tokio::time::Instant::now()) {
+                 read_input_status(&app,d).await;
+              }
+             }
+             _=tokio::time::sleep_until(pending.as_ref().map_or_else(tokio::time::Instant::now,|p| p.at)),if pending.is_some()=>{
+              let mut attempt=pending.take().unwrap();
+              if !attempt.target.still_saved(&app) {
+               let mut state=app.state.write().await;
+               state.reconnect=None;
+               state.error=Some("Automatic reconnection stopped: the saved connection or its access code was changed or removed".into());
+               break 'turn;
+              }
+              publish_reconnect(&app,&policy,&attempt,true).await;
+              // The same reset of the visible state as a manual connect, keeping the status.
+              let status=app.state.read().await.reconnect.clone();
+              *app.state.write().await=Snapshot{reconnect:status,..Snapshot::default()};
+              let body=attempt.target.connect();
+              Activity::count(&app.activity.session_opens);
+              let made=if o8400::wanted(&body){o8400::connect(body,&app).await.map(|u|{unit=Some(u);})}else{make_device(body,&app).await.map(|d|{device=Some(d);})};
+              match made {
+               Ok(())=>{
+                target=Some(attempt.target);
+                app.state.write().await.reconnect=None;
+               }
+               Err(e)=>{
+                if attempt.attempt>=policy.attempts || refuses_this_target(&e) {
+                 let mut state=app.state.write().await;
+                 state.reconnect=None;
+                 state.error=Some(if refuses_this_target(&e) {
+                  format!("Automatic reconnection stopped: the processor refused this connection. {e}")
+                 } else {
+                  format!("Automatic reconnection stopped after {} attempts. Connect again when the processor is reachable. {e}",policy.attempts)
+                 });
+                } else {
+                 attempt.attempt+=1;
+                 attempt.at=tokio::time::Instant::now()+policy.delay(attempt.attempt);
+                 attempt.reason=e;
+                 publish_reconnect(&app,&policy,&attempt,false).await;
+                 pending=Some(attempt);
+                }
+               }
+              }
              }
             }
-           }
-           Command::Change(body,reply)=>{
-            Activity::count(&app.activity.device_writes);
-            let result=if let Some(u)=&mut unit{o8400::change(u,&app,body).await}else if let Some(d)=&mut device{change(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
-            match result {
-             Ok(())=>{let _=reply.send(Ok(()));}
-            Err(e)=>{
-              // Operation failures are logged; the heartbeat owns transport-loss detection.
-              let _=reply.send(Err(e.message));
-             }
-            }
-           }
-           Command::PresetFile(body,reply)=>{
-            Activity::count(&app.activity.device_writes);
-            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{manage_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
-            tick.reset();
-            let _=reply.send(result.map_err(|e| e.message));
-           }
-           Command::RestoreSetup(body,reply)=>{
-            Activity::count(&app.activity.device_writes);
-            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{restore_setup(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
-            let _=reply.send(result.map_err(|e| e.message));
-           }
-           Command::BackupFiles(reply)=>{
-            let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{backup_files(d,&app).await}else{Err("Not connected".to_owned())};
-            tick.reset();
-            let _=reply.send(result);
-           }
-           Command::ReadUnitFile(request,reply)=>{
-            let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{read_unit_file_from(d,&app,request).await}else{Err("Not connected".to_owned())};
-            tick.reset();
-            let _=reply.send(result);
-           }
-           Command::WriteUnitFile(body,reply)=>{
-            Activity::count(&app.activity.device_writes);
-            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{write_unit_file(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
-            tick.reset();
-            let _=reply.send(result.map_err(|e| e.message));
-           }
-           Command::SetupPresets(reply)=>{
-            let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{setup_presets(d,&app).await.map(|files| files.into_iter().map(|(name,_)| name).collect())}else{Err("Not connected".to_owned())};
-            tick.reset();
-            let _=reply.send(result);
-           }
-           Command::SetupPreset(body,reply)=>{
-            Activity::count(&app.activity.device_writes);
-            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{setup_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
-            tick.reset();
-            let _=reply.send(result.map_err(|e| e.message));
-           }
-           Command::RestorePresetFiles(body,reply)=>{
-            Activity::count(&app.activity.device_writes);
-            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{restore_preset_files(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
-            tick.reset();
-            let _=reply.send(result.map_err(|e| e.message));
-           }
-           Command::CancelReconnect(reply)=>{
-            // A Cancel that waited behind a successful attempt has nothing
-            // left to cancel; it must not turn off later reconnects.
-            if pending.is_none(){let _=reply.send(Err("No reconnection is pending".into()));continue;}
-            pending=None;
-            target=None;
-            app.state.write().await.reconnect=None;
-            let _=reply.send(Ok(()));
-           }
-           Command::ApplyPreset(body,reply)=>{
-            Activity::count(&app.activity.device_writes);
-            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{apply_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
-            match result {
-            Ok(())=>{let _=reply.send(Ok(()));}
-            Err(e)=>{
-              let _=reply.send(Err(e.message));
-             }
-            }
-           }
-          }
-          // A poll during the command may have found the session lost.
-          if let Some(lost)=device.as_mut().and_then(|d| d.lost.take()) {
-             end_session(&app,&mut device,lost.clone()).await;
-             pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
-          }
-          if let Some(d)=device.as_mut().filter(|d| d.pushed.is_some()) {on_air_pushed(&app,d).await;}
-         }
-         _=keepalive.tick(),if unit.is_some()=>{
-          let u=unit.as_mut().unwrap();
-          if let Err(e)=o8400::keepalive(u).await {
-             let lost=format!("The PC Remote session was lost: {e}");
-             if let Some(u)=unit.take(){let _=u.disconnect().await;}
-             end_session(&app,&mut device,lost.clone()).await;
-             pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
-          }
-         }
-         _=tick.tick(),if device.as_ref().is_some_and(|d| d.session.info.capabilities.live_meters)=>{
-          let d=device.as_mut().unwrap();Activity::count(&app.activity.meter_polls);let result=async{d.session.send(219,b"").await?;drain(d,&app).await}.await;
-          if let Err(e)=result && let Some(lost)=session_lost(d,&e) {
-             end_session(&app,&mut device,lost.clone()).await;
-             pending=schedule_reconnect(&app,&policy,target.take(),lost).await;
-          } else if d.pushed.is_some() {
-             on_air_pushed(&app,d).await;
-          } else if d.archive_retry.is_some_and(|(at,_)| at<=tokio::time::Instant::now()) {
-             read_pushed_on_air(&app,d).await;
-          } else if d.input_status.is_some_and(|due| due.at<=tokio::time::Instant::now()) {
-             read_input_status(&app,d).await;
-          }
-         }
-         _=tokio::time::sleep_until(pending.as_ref().map_or_else(tokio::time::Instant::now,|p| p.at)),if pending.is_some()=>{
-          let mut attempt=pending.take().unwrap();
-          if !attempt.target.still_saved(&app) {
-           let mut state=app.state.write().await;
-           state.reconnect=None;
-           state.error=Some("Automatic reconnection stopped: the saved connection or its access code was changed or removed".into());
-           continue;
-          }
-          publish_reconnect(&app,&policy,&attempt,true).await;
-          // The same reset of the visible state as a manual connect, keeping the status.
-          let status=app.state.read().await.reconnect.clone();
-          *app.state.write().await=Snapshot{reconnect:status,..Snapshot::default()};
-          let body=attempt.target.connect();
-          Activity::count(&app.activity.session_opens);
-          let made=if o8400::wanted(&body){o8400::connect(body,&app).await.map(|u|{unit=Some(u);})}else{make_device(body,&app).await.map(|d|{device=Some(d);})};
-          match made {
-           Ok(())=>{
-            target=Some(attempt.target);
-            app.state.write().await.reconnect=None;
-           }
-           Err(e)=>{
-            if attempt.attempt>=policy.attempts || refuses_this_target(&e) {
-             let mut state=app.state.write().await;
-             state.reconnect=None;
-             state.error=Some(if refuses_this_target(&e) {
-              format!("Automatic reconnection stopped: the processor refused this connection. {e}")
-             } else {
-              format!("Automatic reconnection stopped after {} attempts. Connect again when the processor is reachable. {e}",policy.attempts)
-             });
-            } else {
-             attempt.attempt+=1;
-             attempt.at=tokio::time::Instant::now()+policy.delay(attempt.attempt);
-             attempt.reason=e;
-             publish_reconnect(&app,&policy,&attempt,false).await;
-             pending=Some(attempt);
-            }
-           }
-          }
-         }
         }
+        // The processor this session holds until the next turn: connected,
+        // or waiting to reconnect.
+        let held = if device.is_some() || unit.is_some() {
+            target.as_ref().map(|t| (t.host.as_str(), t.port))
+        } else {
+            pending
+                .as_ref()
+                .map(|p| (p.target.host.as_str(), p.target.port))
+        };
+        app.peer.hold(held);
     }
     if let Some(d) = device {
         let _ = d.session.disconnect().await;
@@ -4041,6 +4098,7 @@ mod tests {
         let storage = tempfile::tempdir().unwrap();
         let app = App {
             activity: Arc::default(),
+            peer: sessions::Peer::default(),
             state: Arc::new(RwLock::new(Snapshot::default())),
             meters,
             commands,
@@ -4149,6 +4207,7 @@ mod tests {
         };
         let app = App {
             activity: Arc::default(),
+            peer: sessions::Peer::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -4308,6 +4367,7 @@ mod tests {
         let current = processing("CURRENT", 20);
         let app = App {
             activity: Arc::default(),
+            peer: sessions::Peer::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -6184,6 +6244,7 @@ mod tests {
         let storage = tempfile::tempdir().unwrap();
         let app = App {
             activity: Arc::default(),
+            peer: sessions::Peer::default(),
             state: Arc::new(RwLock::new(Snapshot::default())),
             meters,
             commands,
@@ -6583,6 +6644,7 @@ mod tests {
         let current = processing("CURRENT", 20);
         let app = App {
             activity: Arc::default(),
+            peer: sessions::Peer::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -6813,6 +6875,7 @@ mod tests {
         let storage = tempfile::tempdir().unwrap();
         let app = App {
             activity: Arc::default(),
+            peer: sessions::Peer::default(),
             state: Arc::new(RwLock::new(Snapshot::default())),
             meters,
             commands: tx,
@@ -6853,6 +6916,7 @@ mod tests {
         let (meters, _) = watch::channel(json!({"live":false}));
         let app = App {
             activity: Arc::default(),
+            peer: sessions::Peer::default(),
             state: Arc::new(RwLock::new(Snapshot::default())),
             meters,
             commands: tx,
@@ -7019,6 +7083,7 @@ mod tests {
         );
         let app = App {
             activity: Arc::default(),
+            peer: sessions::Peer::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -7327,6 +7392,7 @@ mod tests {
         }));
         let app = App {
             activity: Arc::default(),
+            peer: sessions::Peer::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -7630,6 +7696,7 @@ mod tests {
         let storage = tempfile::tempdir().unwrap();
         let app = App {
             activity: Arc::default(),
+            peer: sessions::Peer::default(),
             state: Arc::new(RwLock::new(Snapshot {
                 connected: true,
                 host: "127.0.0.1".into(),
@@ -7871,5 +7938,215 @@ mod tests {
         .await;
         assert!(refused.is_err());
         assert_eq!(writes.lock().unwrap().len(), 1);
+    }
+
+    /// Two processor sessions of one service, as the hub starts them.
+    fn two_sessions() -> (App, App, tempfile::TempDir) {
+        let (base, storage) = test_app();
+        let first = start_session(&base, "first");
+        let second = start_session(&base, "second");
+        (first, second, storage)
+    }
+
+    #[tokio::test]
+    async fn two_processors_run_independent_sessions() {
+        let one = FakeUnit::start(Terminal::Answering).await;
+        let two = FakeUnit::start(Terminal::Answering).await;
+        let (first, second, _storage) = two_sessions();
+        command(&first, |r| Command::Connect(one.connect(), r))
+            .await
+            .unwrap();
+        command(&second, |r| Command::Connect(two.connect(), r))
+            .await
+            .unwrap();
+        let (a, b) = (
+            first.state.read().await.clone(),
+            second.state.read().await.clone(),
+        );
+        assert!(a.connected && b.connected);
+        assert_ne!(a.session_id, b.session_id);
+        assert_eq!((one.count(|c| &c.logins), two.count(|c| &c.logins)), (1, 1));
+        // Each session polls only its own processor.
+        let polls = (one.count(|c| &c.polls), two.count(|c| &c.polls));
+        sleep(Duration::from_millis(300)).await;
+        assert!(one.count(|c| &c.polls) > polls.0 && two.count(|c| &c.polls) > polls.1);
+        assert_eq!(first.activity.session_opens.load(Ordering::Relaxed), 1);
+        assert_eq!(second.activity.session_opens.load(Ordering::Relaxed), 1);
+
+        // One processor failing leaves the other session untouched.
+        one.drop_sessions();
+        assert!(wait_until(&first, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
+        let polls = two.count(|c| &c.polls);
+        sleep(Duration::from_millis(300)).await;
+        assert!(two.count(|c| &c.polls) > polls);
+        {
+            let state = second.state.read().await;
+            assert!(state.connected && state.reconnect.is_none() && state.error.is_none());
+            assert_eq!(state.session_id, b.session_id);
+        }
+        // Nor does disconnecting it.
+        command(&first, Command::Disconnect).await.unwrap();
+        assert!(second.state.read().await.connected);
+        assert_eq!(two.count(|c| &c.logins), 1);
+        assert_eq!(two.count(|c| &c.disconnects), 0);
+        assert_eq!(one.count(|c| &c.writes) + two.count(|c| &c.writes), 0);
+    }
+
+    #[tokio::test]
+    async fn a_processor_is_held_by_one_session_only() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (first, second, _storage) = two_sessions();
+        command(&first, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let refused = command(&second, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap_err();
+        assert!(refused.contains("already open in another tab"), "{refused}");
+        assert!(!second.state.read().await.connected);
+        // Still held while the first session waits to reconnect.
+        unit.drop_sessions();
+        assert!(wait_until(&first, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
+        assert!(
+            command(&second, |r| Command::Connect(unit.connect(), r))
+                .await
+                .is_err()
+        );
+        assert_eq!(unit.count(|c| &c.logins), 1);
+        // Free again once the first session lets it go.
+        command(&first, Command::Disconnect).await.unwrap();
+        command(&second, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        assert_eq!(unit.count(|c| &c.logins), 2);
+        // A failed connect holds nothing.
+        command(&second, Command::Disconnect).await.unwrap();
+        let mut wrong = unit.connect();
+        wrong.port = 1;
+        assert!(
+            command(&first, |r| Command::Connect(wrong, r))
+                .await
+                .is_err()
+        );
+        command(&second, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn device_routes_reach_their_own_session() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (base, _storage) = test_app();
+        let hub = sessions::Hub::new(base, device_routes());
+        let routes = Router::new()
+            .route(
+                "/api/d/{device}/{*rest}",
+                axum::routing::any(sessions::device_request),
+            )
+            .route("/api/sessions", get(sessions::sessions))
+            .with_state(hub);
+        let call = |method: &str, path: &str, body: Option<JsonValue>| {
+            let request = Request::builder()
+                .method(method)
+                .uri(path)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(axum::body::Body::from(
+                    body.map(|b| b.to_string()).unwrap_or_default(),
+                ))
+                .unwrap();
+            let routes = routes.clone();
+            async move {
+                let response = routes.oneshot(request).await.unwrap();
+                let status = response.status();
+                let bytes = axum::body::to_bytes(response.into_body(), 1 << 20)
+                    .await
+                    .unwrap();
+                (
+                    status,
+                    serde_json::from_slice::<JsonValue>(&bytes).unwrap_or(JsonValue::Null),
+                )
+            }
+        };
+        let connect = unit.connect();
+        let body = json!({"host": connect.host, "port": connect.port, "terminal_port": connect.terminal_port,
+                          "code": connect.code, "model": "auto"});
+        let (status, _) = call("POST", "/api/d/one/connect", Some(body)).await;
+        assert_eq!(status, StatusCode::OK);
+        let (_, one) = call("GET", "/api/d/one/state", None).await;
+        let (_, two) = call("GET", "/api/d/two/state", None).await;
+        assert_eq!(
+            (one["connected"].as_bool(), two["connected"].as_bool()),
+            (Some(true), Some(false))
+        );
+        let (_, list) = call("GET", "/api/sessions", None).await;
+        let keys: Vec<_> = list["sessions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|s| s["key"].clone())
+            .collect();
+        assert_eq!(keys, [json!("one"), json!("two")]);
+        assert_eq!(list["sessions"][0]["connected"], true);
+        // A session never connects another processor's saved connection.
+        let (status, refused) = call(
+            "POST",
+            "/api/d/two/devices/connect",
+            Some(json!({"id": "one"})),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert!(
+            refused["error"]
+                .as_str()
+                .unwrap()
+                .contains("another processor")
+        );
+        let (status, _) = call("GET", "/api/d/no%20such/state", None).await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        assert_eq!(unit.count(|c| &c.logins), 1);
+    }
+
+    #[tokio::test]
+    async fn one_meter_port_serves_every_8400_by_its_address() {
+        let (first, second, _storage) = two_sessions();
+        let listener = o8400::MeterListener::default();
+        let here: std::net::IpAddr = "127.0.0.1".parse().unwrap();
+        let elsewhere: std::net::IpAddr = "192.0.2.7".parse().unwrap();
+        let route_first = listener.route(here, first.clone()).unwrap();
+        let route_second = listener.route(elsewhere, second.clone()).unwrap();
+        // One session per unit address; the port itself is bound once.
+        assert!(listener.route(here, second.clone()).is_err());
+        assert!(std::net::UdpSocket::bind(("0.0.0.0", orban_protocol::o8400::METER_PORT)).is_err());
+        let sender = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
+        let mut packet = [0u8; 34];
+        packet[0] = 1;
+        packet[5] = 42;
+        sender
+            .send_to(&packet, ("127.0.0.1", orban_protocol::o8400::METER_PORT))
+            .unwrap();
+        let mut live = false;
+        for _ in 0..100 {
+            if first.meters.borrow()["live"] == true {
+                live = true;
+                break;
+            }
+            sleep(Duration::from_millis(10)).await;
+        }
+        assert!(live);
+        assert_eq!(first.meters.borrow()["values"][5], 42);
+        assert_eq!(second.meters.borrow()["live"], false);
+        // The port is given back once no 8400 is connected.
+        drop(route_first);
+        assert!(std::net::UdpSocket::bind(("0.0.0.0", orban_protocol::o8400::METER_PORT)).is_err());
+        drop(route_second);
+        let mut free = false;
+        for _ in 0..100 {
+            if std::net::UdpSocket::bind(("0.0.0.0", orban_protocol::o8400::METER_PORT)).is_ok() {
+                free = true;
+                break;
+            }
+            sleep(Duration::from_millis(10)).await;
+        }
+        assert!(free);
     }
 }
