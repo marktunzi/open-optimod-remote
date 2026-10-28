@@ -288,6 +288,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
                 if control == "diagnostics" { self.showDiagnostics(nil); continue }
                 if control == "automation" { self.showAutomation(nil); continue }
                 if control == "security" { self.showSecurity(nil); continue }
+                // Test hook: `connections all|group NAME` selects that sidebar row.
+                if control.hasPrefix("connections ") {
+                    self.showConnections(nil)
+                    self.connectionsWindowController?.perform(String(control.dropFirst("connections ".count)))
+                    continue
+                }
                 // Test hook: `tool automation|security WORDS…` acts as the window's controls do.
                 let words = control.split(separator: " ").map(String.init)
                 if words.count > 2, words[0] == "tool" {

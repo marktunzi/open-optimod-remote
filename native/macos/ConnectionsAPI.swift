@@ -50,10 +50,12 @@ struct SavedConnection: Codable, Equatable, Sendable, Identifiable {
     let terminalPort: Int
     let hasCode: Bool
     let model: ProcessorModel?
+    /// The connection-list group, as in the original client.
+    var group: String? = nil
 
     var processorModel: ProcessorModel { model ?? .auto }
 
-    init(id: String, name: String, host: String, port: Int, terminalPort: Int, hasCode: Bool, model: ProcessorModel = .auto) {
+    init(id: String, name: String, host: String, port: Int, terminalPort: Int, hasCode: Bool, model: ProcessorModel = .auto, group: String? = nil) {
         self.id = id
         self.name = name
         self.host = host
@@ -61,10 +63,11 @@ struct SavedConnection: Codable, Equatable, Sendable, Identifiable {
         self.terminalPort = terminalPort
         self.hasCode = hasCode
         self.model = model
+        self.group = group
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, host, port, model
+        case id, name, host, port, model, group
         case terminalPort = "terminal_port"
         case hasCode = "has_code"
     }
@@ -72,6 +75,7 @@ struct SavedConnection: Codable, Equatable, Sendable, Identifiable {
 
 struct ConnectionsResponse: Codable, Sendable {
     let devices: [SavedConnection]
+    let groups: [String]?
 }
 
 struct ConnectionEdit: Codable, Sendable {
@@ -81,18 +85,20 @@ struct ConnectionEdit: Codable, Sendable {
     let port: Int
     let terminalPort: Int
     let model: ProcessorModel
+    let group: String?
 
-    init(id: String?, name: String, host: String, port: Int, terminalPort: Int, model: ProcessorModel = .auto) {
+    init(id: String?, name: String, host: String, port: Int, terminalPort: Int, model: ProcessorModel = .auto, group: String? = nil) {
         self.id = id
         self.name = name
         self.host = host
         self.port = port
         self.terminalPort = terminalPort
         self.model = model
+        self.group = group
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, host, port, model
+        case id, name, host, port, model, group
         case terminalPort = "terminal_port"
     }
 }
@@ -101,6 +107,29 @@ struct ConnectionsContext: Sendable {
     let devices: [SavedConnection]
     let connected: Bool
     let activeID: String?
+    var groups: [String] = []
+}
+
+/// New, Rename and Delete Group of the connection list.
+enum ConnectionGroupEdit: Encodable {
+    case create(String)
+    case rename(String, to: String)
+    case delete(String)
+
+    private enum Keys: String, CodingKey { case action, name, newName = "new_name" }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+        switch self {
+        case let .create(name):
+            try container.encode("create", forKey: .action); try container.encode(name, forKey: .name)
+        case let .rename(name, newName):
+            try container.encode("rename", forKey: .action); try container.encode(name, forKey: .name)
+            try container.encode(newName, forKey: .newName)
+        case let .delete(name):
+            try container.encode("delete", forKey: .action); try container.encode(name, forKey: .name)
+        }
+    }
 }
 
 enum ConnectionSelection {
@@ -171,7 +200,8 @@ final class ConnectionsAPI {
                         self.finish(.success(ConnectionsContext(
                             devices: response.devices,
                             connected: state.connected,
-                            activeID: state.deviceID
+                            activeID: state.deviceID,
+                            groups: response.groups ?? []
                         )), completion: completion)
                     }
                 }
@@ -199,6 +229,10 @@ final class ConnectionsAPI {
 
     func disconnect(completion: @escaping (Result<Void, Error>) -> Void) {
         postWithoutResponse(path: "disconnect", body: EmptyRequest(), completion: completion)
+    }
+
+    func group(_ edit: ConnectionGroupEdit, completion: @escaping (Result<Void, Error>) -> Void) {
+        postWithoutResponse(path: "devices/groups", body: edit, completion: completion)
     }
 
     func delete(id: String, completion: @escaping (Result<Void, Error>) -> Void) {

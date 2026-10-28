@@ -465,6 +465,7 @@ async fn main() {
         )
         .route("/api/devices", get(devices_list).post(devices_save))
         .route("/api/devices/delete", post(devices_delete))
+        .route("/api/devices/groups", post(devices_groups))
         .route("/api/devices/code", post(devices_code))
         .route("/api/devices/connect", post(devices_connect))
         .fallback_service(ServeDir::new(assets))
@@ -806,10 +807,30 @@ async fn book_task<T: Send + 'static>(
     .map_err(api_error)
 }
 async fn devices_list(State(app): State<App>) -> ApiResult {
-    let devices = book_task(&app, |book| Ok(book.list())).await?;
+    let (devices, groups) = book_task(&app, |book| Ok((book.list(), book.groups()))).await?;
     Ok(Json(
-        json!({"devices":devices,"credential_storage":"local"}),
+        json!({"devices":devices,"groups":groups,"credential_storage":"local"}),
     ))
+}
+#[derive(Deserialize)]
+#[serde(tag = "action", rename_all = "snake_case")]
+enum GroupEdit {
+    Create { name: String },
+    Rename { name: String, new_name: String },
+    Delete { name: String },
+}
+/// New, Rename and Delete Group of the original client's connection list.
+/// Deleting a group deletes its connections; the active one is disconnected.
+async fn devices_groups(State(app): State<App>, Json(edit): Json<GroupEdit>) -> ApiResult {
+    let removed = book_task(&app, move |book| match edit {
+        GroupEdit::Create { name } => book.create_group(&name).map(|_| Vec::new()),
+        GroupEdit::Rename { name, new_name } => {
+            book.rename_group(&name, &new_name).map(|_| Vec::new())
+        }
+        GroupEdit::Delete { name } => book.delete_group(&name),
+    })
+    .await?;
+    Ok(Json(json!({"ok":true,"removed":removed})))
 }
 async fn devices_save(State(app): State<App>, Json(edit): Json<devices::EditDevice>) -> ApiResult {
     let device = book_task(&app, move |book| book.save(edit)).await?;
@@ -4509,6 +4530,7 @@ mod tests {
                     port: connect.port,
                     terminal_port: connect.terminal_port,
                     model: DeviceModel::Auto,
+                    group: None,
                 })
                 .unwrap();
             book.set_code(&saved.id, Some(Zeroizing::new("1234".into())))

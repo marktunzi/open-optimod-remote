@@ -15,6 +15,9 @@ pub struct SavedDevice {
     pub has_code: bool,
     #[serde(default)]
     pub model: DeviceModel,
+    /// The connection-list group it is filed under, as in the original client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -26,12 +29,17 @@ pub struct EditDevice {
     pub terminal_port: u16,
     #[serde(default)]
     pub model: DeviceModel,
+    #[serde(default)]
+    pub group: Option<String>,
 }
 #[derive(Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 struct DiskBook {
     version: u8,
     devices: Vec<SavedDevice>,
+    /// Groups of the connection list, empty ones included.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    groups: Vec<String>,
 }
 pub trait Vault: Send + Sync {
     fn get(&self, account: &str) -> Result<Zeroizing<String>, String>;
@@ -147,6 +155,21 @@ fn validate(name: &str, host: &str, port: u16, terminal_port: u16) -> Result<(),
     }
     Ok(())
 }
+/// A group name as the original client allows it: not empty, none of
+/// `\ / : * ? " < > |`, and no other group or connection by that name.
+fn validate_group(name: &str, groups: &[String], devices: &[SavedDevice]) -> Result<(), String> {
+    if name.is_empty() || name.len() > 80 || name.chars().any(char::is_control) {
+        return Err("Enter a group name between 1 and 80 characters".into());
+    }
+    if name.chars().any(|c| "\\/:*?\"<>|".contains(c)) {
+        return Err(r#"A group name cannot contain any of \ / : * ? " < > |"#.into());
+    }
+    let taken = |other: &str| other.eq_ignore_ascii_case(name);
+    if groups.iter().any(|g| taken(g)) || devices.iter().any(|d| taken(&d.name)) {
+        return Err("A group or connection with this name already exists".into());
+    }
+    Ok(())
+}
 pub fn data_file() -> Result<PathBuf, String> {
     if let Some(dir) = std::env::var_os("OPTIMOD_DATA_DIR") {
         return Ok(PathBuf::from(dir).join("connections.json"));
@@ -168,11 +191,12 @@ pub fn credential_file() -> Result<PathBuf, String> {
 pub struct Book {
     path: PathBuf,
     devices: Vec<SavedDevice>,
+    groups: Vec<String>,
     vault: Box<dyn Vault>,
 }
 impl Book {
     pub fn open(path: PathBuf, vault: Box<dyn Vault>) -> Result<Self, String> {
-        let (devices, migrate) = match fs::read(&path) {
+        let (devices, groups, migrate) = match fs::read(&path) {
             Ok(bytes) => {
                 if bytes.len() > 1_048_576 {
                     return Err("Connection file is too large".into());
@@ -189,14 +213,15 @@ impl Book {
                         return Err("Duplicate connection identifier".into());
                     }
                 }
-                (disk.devices, disk.version == 1)
+                (disk.devices, disk.groups, disk.version == 1)
             }
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => (Vec::new(), false),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => (Vec::new(), Vec::new(), false),
             Err(_) => return Err("Cannot read the connection file".into()),
         };
         let mut book = Self {
             path,
             devices,
+            groups,
             vault,
         };
         if migrate {
@@ -206,6 +231,69 @@ impl Book {
     }
     pub fn list(&self) -> Vec<SavedDevice> {
         self.devices.clone()
+    }
+    pub fn groups(&self) -> Vec<String> {
+        self.groups.clone()
+    }
+    fn persist_groups(
+        &mut self,
+        groups: Vec<String>,
+        devices: Vec<SavedDevice>,
+    ) -> Result<(), String> {
+        let previous = std::mem::replace(&mut self.groups, groups);
+        if let Err(error) = self.persist(devices) {
+            self.groups = previous;
+            return Err(error);
+        }
+        Ok(())
+    }
+    pub fn create_group(&mut self, name: &str) -> Result<(), String> {
+        let name = name.trim();
+        validate_group(name, &self.groups, &self.devices)?;
+        if self.groups.len() == 256 {
+            return Err("Up to 256 groups can be saved".into());
+        }
+        let mut groups = self.groups.clone();
+        groups.push(name.into());
+        self.persist_groups(groups, self.devices.clone())
+    }
+    pub fn rename_group(&mut self, name: &str, new_name: &str) -> Result<(), String> {
+        let new_name = new_name.trim();
+        let index = self
+            .groups
+            .iter()
+            .position(|g| g == name)
+            .ok_or("This group no longer exists")?;
+        let others: Vec<String> = self.groups.iter().filter(|g| *g != name).cloned().collect();
+        validate_group(new_name, &others, &self.devices)?;
+        let mut groups = self.groups.clone();
+        groups[index] = new_name.into();
+        let mut devices = self.devices.clone();
+        for device in devices
+            .iter_mut()
+            .filter(|d| d.group.as_deref() == Some(name))
+        {
+            device.group = Some(new_name.into());
+        }
+        self.persist_groups(groups, devices)
+    }
+    /// Removes the group and every connection in it, as the original
+    /// client's Delete Group does ("the group … and all its contents").
+    pub fn delete_group(&mut self, name: &str) -> Result<Vec<String>, String> {
+        if !self.groups.iter().any(|g| g == name) {
+            return Err("This group no longer exists".into());
+        }
+        let (gone, kept): (Vec<SavedDevice>, Vec<SavedDevice>) = self
+            .devices
+            .iter()
+            .cloned()
+            .partition(|d| d.group.as_deref() == Some(name));
+        let groups = self.groups.iter().filter(|g| *g != name).cloned().collect();
+        self.persist_groups(groups, kept)?;
+        for device in gone.iter().filter(|d| d.has_code) {
+            self.vault.delete(&account(device))?;
+        }
+        Ok(gone.into_iter().map(|d| d.id).collect())
     }
     pub fn find(&self, id: &str) -> Result<SavedDevice, String> {
         self.devices
@@ -222,6 +310,7 @@ impl Book {
         let bytes = serde_json::to_vec_pretty(&DiskBook {
             version: 2,
             devices: devices.clone(),
+            groups: self.groups.clone(),
         })
         .map_err(|e| e.to_string())?;
         file.write_all(&bytes)
@@ -241,6 +330,10 @@ impl Book {
             .to_string();
         validate(&edit.name, &host, edit.port, edit.terminal_port)?;
         let old = edit.id.as_deref().map(|id| self.find(id)).transpose()?;
+        let group = edit.group.filter(|g| !g.is_empty());
+        if group.as_ref().is_some_and(|g| !self.groups.contains(g)) {
+            return Err("This group no longer exists".into());
+        }
         if old.is_none() && self.devices.len() == 256 {
             return Err("Up to 256 connections can be saved".into());
         }
@@ -255,6 +348,7 @@ impl Book {
             terminal_port: edit.terminal_port,
             has_code: old.as_ref().is_some_and(|d| d.has_code),
             model: edit.model,
+            group,
         };
         let moved = old
             .as_ref()
@@ -370,6 +464,7 @@ mod tests {
             port: 6201,
             terminal_port: 23,
             model: DeviceModel::Auto,
+            group: None,
         }
     }
     #[test]
@@ -540,5 +635,40 @@ mod tests {
             fs::metadata(path).unwrap().permissions().mode() & 0o777,
             0o600
         );
+    }
+    #[test]
+    fn groups_rename_with_their_connections_and_delete_with_them() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut book = Book::open(
+            dir.path().join("connections.json"),
+            Box::new(FileVault::new(dir.path().join("c.json"))),
+        )
+        .unwrap();
+        book.create_group("Studio A").unwrap();
+        assert!(book.create_group("studio a").is_err());
+        assert!(book.create_group("A/B").is_err());
+        let mut entry = edit("Main", "192.168.1.10");
+        entry.group = Some("Studio A".into());
+        let saved = book.save(entry).unwrap();
+        book.save(edit("Spare", "192.168.1.11")).unwrap();
+        assert!(book.create_group("Main").is_err());
+        book.rename_group("Studio A", "Studio B").unwrap();
+        assert_eq!(
+            book.find(&saved.id).unwrap().group.as_deref(),
+            Some("Studio B")
+        );
+        let reopened = Book::open(
+            dir.path().join("connections.json"),
+            Box::new(FileVault::new(dir.path().join("c.json"))),
+        )
+        .unwrap();
+        assert_eq!(reopened.groups(), vec!["Studio B".to_string()]);
+        assert_eq!(
+            book.delete_group("Studio B").unwrap(),
+            vec![saved.id.clone()]
+        );
+        assert!(book.find(&saved.id).is_err());
+        assert_eq!(book.list().len(), 1);
+        assert!(book.groups().is_empty());
     }
 }
