@@ -255,8 +255,11 @@ final class PresetsAPI {
     private let session: URLSession
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
+    /// The processor whose session this reads and writes.
+    let deviceID: String?
 
-    init() {
+    init(deviceID: String?) {
+        self.deviceID = deviceID
         let configuration = URLSessionConfiguration.ephemeral
         // Recall can take up to 16 s, and applying a preset file writes every
         // differing field before reading the document back (about 0.15 s per
@@ -295,7 +298,7 @@ final class PresetsAPI {
 
     /// Any other preset or backup call, as JSON in and out.
     func json(_ path: String, body: [String: Any]? = nil, completion: @escaping (Result<[String: Any], Error>) -> Void) {
-        var request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!)
+        var request = URLRequest(url: BackendHealth.api(path, device: deviceID))
         request.cachePolicy = .reloadIgnoringLocalCacheData
         if let body {
             request.httpMethod = "POST"
@@ -320,7 +323,7 @@ final class PresetsAPI {
         as _: Output.Type,
         completion: @escaping (Result<Output, Error>) -> Void
     ) {
-        var request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!)
+        var request = URLRequest(url: BackendHealth.api(path, device: deviceID))
         request.httpMethod = method
         request.cachePolicy = .reloadIgnoringLocalCacheData
         if method != "GET" { request.setValue(BackendHealth.origin, forHTTPHeaderField: "Origin") }

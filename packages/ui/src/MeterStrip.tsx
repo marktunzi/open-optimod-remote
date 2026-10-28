@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { apiPath } from './api';
 import {
   METER_PALETTE,
   MeterMotion,
@@ -94,7 +95,7 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
  useEffect(()=>{
   motion.current.clear();onLiveChange?.(false);
   if(!connected)return;
-  const source=new EventSource('/api/meters');
+  const source=new EventSource(apiPath('meters'));
   source.onmessage=event=>{try{const meter=JSON.parse(event.data);if(meter.live)motion.current.push(meter.values,performance.now(),meter.peaks);else motion.current.clear();}catch{motion.current.clear();}};
   source.onerror=()=>motion.current.clear();
   return()=>{source.close();motion.current.clear();onLiveChange?.(false);};

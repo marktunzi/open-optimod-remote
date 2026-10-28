@@ -103,11 +103,14 @@ struct ConnectionEdit: Codable, Sendable {
     }
 }
 
-struct ConnectionsContext: Sendable {
+struct ConnectionsContext: Sendable, Equatable {
     let devices: [SavedConnection]
-    let connected: Bool
-    let activeID: String?
+    /// The saved connections whose own session is connected; every processor
+    /// has its own, so any number can be connected at once.
+    var connectedIDs: Set<String> = []
     var groups: [String] = []
+
+    func isConnected(_ id: String) -> Bool { connectedIDs.contains(id) }
 }
 
 /// New, Rename and Delete Group of the connection list.
@@ -142,8 +145,8 @@ enum ConnectionSelection {
         return nil
     }
 
-    static func mustDisconnect(connected: Bool, activeID: String?, deletingID: String) -> Bool {
-        connected && activeID == deletingID
+    static func mustDisconnect(connectedIDs: Set<String>, deletingID: String) -> Bool {
+        connectedIDs.contains(deletingID)
     }
 
     /// The service keeps a saved code across name and port edits only; a new
@@ -193,14 +196,13 @@ final class ConnectionsAPI {
             switch devicesResult {
             case let .failure(error): self.finish(.failure(error), completion: completion)
             case let .success(response):
-                self.get(path: "state", as: ConnectionState.self) { stateResult in
+                self.get(path: "sessions", as: SessionList.self) { stateResult in
                     switch stateResult {
                     case let .failure(error): self.finish(.failure(error), completion: completion)
-                    case let .success(state):
+                    case let .success(list):
                         self.finish(.success(ConnectionsContext(
                             devices: response.devices,
-                            connected: state.connected,
-                            activeID: state.deviceID,
+                            connectedIDs: Set(list.sessions.filter(\.connected).compactMap(\.key)),
                             groups: response.groups ?? []
                         )), completion: completion)
                     }
@@ -223,12 +225,15 @@ final class ConnectionsAPI {
         postWithoutResponse(path: "devices/code", body: ConnectionCodeRequest(id: id, code: code), completion: completion)
     }
 
+    /// Connects the saved connection in its own session; other processors
+    /// stay connected.
     func connect(id: String, completion: @escaping (Result<Void, Error>) -> Void) {
-        postWithoutResponse(path: "devices/connect", body: ConnectionCodeRequest(id: id, code: nil), completion: completion)
+        postWithoutResponse(path: "devices/connect", device: id, body: ConnectionCodeRequest(id: id, code: nil), completion: completion)
     }
 
-    func disconnect(completion: @escaping (Result<Void, Error>) -> Void) {
-        postWithoutResponse(path: "disconnect", body: EmptyRequest(), completion: completion)
+    /// Disconnects this processor only.
+    func disconnect(id: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        postWithoutResponse(path: "disconnect", device: id, body: EmptyRequest(), completion: completion)
     }
 
     func group(_ edit: ConnectionGroupEdit, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -251,8 +256,9 @@ final class ConnectionsAPI {
         }.resume()
     }
 
-    private func postWithoutResponse<T: Encodable>(path: String, body: T, completion: @escaping (Result<Void, Error>) -> Void) {
-        post(path: path, body: body, response: EmptyResponse.self) { [weak self] result in
+    private func postWithoutResponse<T: Encodable>(path: String, device: String? = nil, body: T,
+                                                   completion: @escaping (Result<Void, Error>) -> Void) {
+        post(path: path, device: device, body: body, response: EmptyResponse.self) { [weak self] result in
             guard let self else { return }
             switch result {
             case .success: self.finish(.success(()), completion: completion)
@@ -261,9 +267,10 @@ final class ConnectionsAPI {
         }
     }
 
-    private func post<T: Encodable, R: Decodable & Sendable>(path: String, body: T, response: R.Type, completion: @escaping (Result<R, Error>) -> Void) {
+    private func post<T: Encodable, R: Decodable & Sendable>(path: String, device: String? = nil, body: T, response: R.Type,
+                                                            completion: @escaping (Result<R, Error>) -> Void) {
         do {
-            var request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!)
+            var request = URLRequest(url: BackendHealth.api(path, device: device))
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue(BackendHealth.origin, forHTTPHeaderField: "Origin")
@@ -295,14 +302,13 @@ final class ConnectionsAPI {
     }
 }
 
-private struct ConnectionState: Codable, Sendable {
-    let connected: Bool
-    let deviceID: String?
-
-    enum CodingKeys: String, CodingKey {
-        case connected
-        case deviceID = "device_id"
+private struct SessionList: Codable, Sendable {
+    struct Entry: Codable, Sendable {
+        let key: String?
+        let connected: Bool
     }
+
+    let sessions: [Entry]
 }
 
 private struct SavedConnectionEnvelope: Codable, Sendable {

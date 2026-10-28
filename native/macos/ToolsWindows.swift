@@ -20,16 +20,16 @@ struct ToolError: Error {
 }
 
 enum ToolsAPI {
-    static func get(_ path: String, completion: @escaping (Result<[String: Any], ToolError>) -> Void) {
-        let request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!, cachePolicy: .reloadIgnoringLocalCacheData)
+    static func get(_ path: String, device: String?, completion: @escaping (Result<[String: Any], ToolError>) -> Void) {
+        let request = URLRequest(url: BackendHealth.api(path, device: device), cachePolicy: .reloadIgnoringLocalCacheData)
         URLSession.shared.dataTask(with: request) { data, response, error in
             let result = Self.decode(data: data, response: response, error: error)
             DispatchQueue.main.async { completion(result) }
         }.resume()
     }
 
-    static func post(_ path: String, _ body: [String: Any], completion: @escaping (Result<[String: Any], ToolError>) -> Void) {
-        var request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!)
+    static func post(_ path: String, _ body: [String: Any], device: String?, completion: @escaping (Result<[String: Any], ToolError>) -> Void) {
+        var request = URLRequest(url: BackendHealth.api(path, device: device))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(BackendHealth.origin, forHTTPHeaderField: "Origin")
@@ -51,16 +51,19 @@ enum ToolsAPI {
     }
 
     /// The current session guards every write carries.
-    static func state(_ completion: @escaping (Result<[String: Any], ToolError>) -> Void) { get("state", completion: completion) }
+    static func state(device: String?, _ completion: @escaping (Result<[String: Any], ToolError>) -> Void) {
+        get("state", device: device, completion: completion)
+    }
 
     /// One system setting by its index, with the guards `/api/change` needs.
-    static func change(state: [String: Any], name: String, index: Int, completion: @escaping (Result<[String: Any], ToolError>) -> Void) {
+    static func change(state: [String: Any], name: String, index: Int, device: String?,
+                       completion: @escaping (Result<[String: Any], ToolError>) -> Void) {
         guard let system = state["system"] as? [String: Any], let fields = system["fields"] as? [String: Any], let field = fields[name] else {
             return completion(.failure(ToolError("\(name) is not available")))
         }
         post("change", ["scope": "System", "name": name, "index": index, "expected": field, "requested": NSNull(),
                         "expected_host": state["host"] ?? "", "expected_session": state["session_id"] ?? "",
-                        "expected_preset": NSNull()], completion: completion)
+                        "expected_preset": NSNull()], device: device, completion: completion)
     }
 }
 
@@ -71,8 +74,11 @@ class ToolWindowController: NSWindowController, NSWindowDelegate {
     var state: [String: Any] = [:]
     private var observer: NSObjectProtocol?
     private var lastRevision: Int?
+    /// The processor this window reads and writes: one window per processor.
+    let deviceID: String?
 
-    init(title: String, size: NSSize) {
+    init(title: String, size: NSSize, deviceID: String?) {
+        self.deviceID = deviceID
         let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.titled, .closable, .miniaturizable, .resizable],
                               backing: .buffered, defer: false)
         window.title = title
@@ -119,7 +125,7 @@ class ToolWindowController: NSWindowController, NSWindowDelegate {
         window.contentView = root
         observer = NotificationCenter.default.addObserver(forName: .deviceSessionChanged, object: nil, queue: .main) { [weak self] _ in
             guard let self, self.window?.isVisible == true else { return }
-            let revision = DeviceSessionStore.shared.session?.revision
+            let revision = DeviceSessionStore.shared.session(for: self.deviceID)?.revision
             if revision != self.lastRevision { self.lastRevision = revision; self.refreshState() }
         }
     }
@@ -144,7 +150,7 @@ class ToolWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func refreshState() {
-        ToolsAPI.state { [weak self] result in
+        ToolsAPI.state(device: deviceID) { [weak self] result in
             guard let self, case let .success(state) = result else { return }
             self.state = state
             if let host = state["host"] as? String, !host.isEmpty, let title = self.window?.title.components(separatedBy: " – ").first {
@@ -241,8 +247,8 @@ final class SecurityWindowController: ToolWindowController, NSTableViewDataSourc
     private let revertButton = NSButton(title: "Revert", target: nil, action: nil)
     private var addRemove: NSSegmentedControl!
 
-    init() {
-        super.init(title: "Security", size: NSSize(width: 560, height: 560))
+    init(deviceID: String?) {
+        super.init(title: "Security", size: NSSize(width: 560, height: 560), deviceID: deviceID)
         card.addArrangedSubview(section("Passcodes and Security Levels"))
         let (scroll, table) = table(columns: [("code", "Passcode", 180), ("level", "Authorized to", 300)], height: 170)
         tableView = table
@@ -280,7 +286,7 @@ final class SecurityWindowController: ToolWindowController, NSTableViewDataSourc
 
     override func reload() {
         setStatus("Reading the processor's passcodes…")
-        ToolsAPI.get("security") { [weak self] result in
+        ToolsAPI.get("security", device: deviceID) { [weak self] result in
             guard let self else { return }
             switch result {
             case let .success(data):
@@ -378,7 +384,7 @@ final class SecurityWindowController: ToolWindowController, NSTableViewDataSourc
         saveButton.isEnabled = false
         var body = guards
         body["passcodes"] = passcodes.map { ["code": $0.code, "level": $0.level] }
-        ToolsAPI.post("security", body) { [weak self] result in
+        ToolsAPI.post("security", body, device: deviceID) { [weak self] result in
             switch result {
             case .success: self?.reload(); self?.setStatus("Saved on the processor and read back.")
             case let .failure(error): self?.setStatus(error.message); self?.updateControls()
@@ -390,7 +396,7 @@ final class SecurityWindowController: ToolWindowController, NSTableViewDataSourc
     @objc private func viewMetersToggled() { writeSetting("VIEW METERS", viewMeters.state == .on ? 1 : 0) }
 
     private func writeSetting(_ name: String, _ index: Int) {
-        ToolsAPI.change(state: state, name: name, index: index) { [weak self] result in
+        ToolsAPI.change(state: state, name: name, index: index, device: deviceID) { [weak self] result in
             if case let .failure(error) = result { self?.setStatus(error.message) }
             self?.refreshState()
         }
@@ -442,8 +448,8 @@ final class AutomationWindowController: ToolWindowController, NSTableViewDataSou
     private let revertButton = NSButton(title: "Revert", target: nil, action: nil)
     private let calendar: Calendar = { var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone(identifier: "UTC")!; return c }()
 
-    init() {
-        super.init(title: "Automation", size: NSSize(width: 620, height: 600))
+    init(deviceID: String?) {
+        super.init(title: "Automation", size: NSSize(width: 620, height: 600), deviceID: deviceID)
         enabled.target = self
         enabled.action = #selector(enabledToggled)
         card.addArrangedSubview(enabled)
@@ -490,7 +496,7 @@ final class AutomationWindowController: ToolWindowController, NSTableViewDataSou
 
     override func reload() {
         setStatus("Reading the processor's automation…")
-        ToolsAPI.get("automation") { [weak self] result in
+        ToolsAPI.get("automation", device: deviceID) { [weak self] result in
             guard let self else { return }
             switch result {
             case let .success(data):
@@ -632,7 +638,7 @@ final class AutomationWindowController: ToolWindowController, NSTableViewDataSou
         saveButton.isEnabled = false
         var body = guards
         body["events"] = events.map(payload)
-        ToolsAPI.post("automation", body) { [weak self] result in
+        ToolsAPI.post("automation", body, device: deviceID) { [weak self] result in
             switch result {
             case .success: self?.reload(); self?.setStatus("Saved on the processor and read back.")
             case let .failure(error): self?.setStatus(error.message); self?.updateControls()
@@ -641,7 +647,7 @@ final class AutomationWindowController: ToolWindowController, NSTableViewDataSou
     }
 
     @objc private func enabledToggled() {
-        ToolsAPI.change(state: state, name: "AUTOMATION ENABLED", index: enabled.state == .on ? 1 : 0) { [weak self] result in
+        ToolsAPI.change(state: state, name: "AUTOMATION ENABLED", index: enabled.state == .on ? 1 : 0, device: deviceID) { [weak self] result in
             if case let .failure(error) = result { self?.setStatus(error.message) }
             self?.refreshState()
         }
@@ -672,7 +678,7 @@ enum SetupPresetsPanel {
     static func available(_ adapterID: String?) -> Bool { adapterID?.hasPrefix("pc-remote-5500i-") == true }
 
     static func open() {
-        ToolsAPI.get("setup-presets") { result in
+        ToolsAPI.get("setup-presets", device: DeviceSessionStore.shared.selectedID) { result in
             switch result {
             case let .failure(error): report("Open Setup", error.message)
             case let .success(data):
@@ -708,12 +714,14 @@ enum SetupPresetsPanel {
 
     /// Also the test hook (`setup open|saveas NAME`), without the panels.
     static func perform(_ action: String, _ name: String) {
-        guard let session = DeviceSessionStore.shared.session, let id = session.sessionID else {
+        // The selected processor; its session guards the write.
+        let device = DeviceSessionStore.shared.selectedID
+        guard let session = DeviceSessionStore.shared.session(for: device), let id = session.sessionID else {
             return report(action == "open" ? "Open Setup" : "Save Setup As", "Not connected.")
         }
         let body: [String: Any] = ["action": action, "name": name, "confirmed": true,
                                    "expected_host": session.host, "expected_session": id]
-        ToolsAPI.post("setup-presets", body) { result in
+        ToolsAPI.post("setup-presets", body, device: device) { result in
             let title = action == "open" ? "Open Setup" : "Save Setup As"
             switch result {
             case .success: lastResult = action == "open" ? "Setup \(name) is in force" : "Saved setup \(name)"

@@ -4,8 +4,11 @@ import AppKit
 /// as the original client's Diagnostics dialog shows it.
 final class DiagnosticsWindowController: NSWindowController {
     private let textView = NSTextView()
+    /// The processor whose status text this shows: one window per processor.
+    let deviceID: String?
 
-    init() {
+    init(deviceID: String?) {
+        self.deviceID = deviceID
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 300),
                               styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         window.title = "Diagnostics"
@@ -34,7 +37,7 @@ final class DiagnosticsWindowController: NSWindowController {
 
     private func reload() {
         textView.string = "Reading…"
-        let request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/state")!, cachePolicy: .reloadIgnoringLocalCacheData)
+        let request = URLRequest(url: BackendHealth.api("state", device: deviceID), cachePolicy: .reloadIgnoringLocalCacheData)
         URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
             let state = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
             let text: String

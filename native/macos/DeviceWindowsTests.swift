@@ -59,9 +59,19 @@ struct DeviceWindowsTests {
         }
         precondition(device(nil, .auto).modelLabel == "Optimod")
 
-        // Window positions are kept per processor and kind.
-        precondition(DeviceWebWindowController.autosaveName(kind: .meters, deviceID: "d1") == "OpenOptimod.meters.d1")
-        precondition(DeviceWebWindowController.autosaveName(kind: .processing, deviceID: nil) == "OpenOptimod.processing.none")
+        // Meters and Processing keep their place when another processor tab is chosen.
+        precondition(DeviceWebWindowController.autosaveName(kind: .meters) == "OpenOptimod.meters.tabs")
+        precondition(DeviceWebWindowController.autosaveName(kind: .processing) == "OpenOptimod.processing.tabs")
+        // Every session in one read: key, connection and reconnect state.
+        let sessions = Data("""
+        {"key":"d2","connected":false,"host":"","firmware":"","device_id":null,"session_id":null,"adapter_id":null,
+         "model":"auto","capabilities":null,"revision":0,"reconnect":{"attempt":1,"attempts":6,"next_attempt_at_ms":1,
+         "in_progress":false,"reason":"lost"},"error":"lost"}
+        """.utf8)
+        let lost = try JSONDecoder().decode(DeviceSessionPayload.self, from: sessions)
+        precondition(lost.key == "d2" && !lost.connected && lost.reconnect?.attempts == 6)
+        // With no processor open, no tab and nothing selected.
+        precondition(DeviceSessionStore.shared.tabs.isEmpty && DeviceSessionStore.shared.device == nil)
         precondition(DeviceWindowKind.processing.defaultSize == NSSize(width: 1133, height: 500))
         // The Figma Meters frame; a narrower window scrolls the meters.
         precondition(DeviceWindowKind.meters.defaultSize == NSSize(width: 1133, height: 370))

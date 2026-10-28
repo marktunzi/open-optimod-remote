@@ -77,6 +77,7 @@ done
   native/macos/ConnectionsWindow.swift \
   native/macos/PresetsAPI.swift \
   native/macos/PresetsWindow.swift \
+  native/macos/DeviceTabs.swift \
   native/macos/DeviceWindows.swift \
   native/macos/OpenOptimodApp.swift \
   -o "$stage_app/Contents/MacOS/Open Optimod Remote"

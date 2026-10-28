@@ -22,7 +22,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
     private let detailAddress = NSTextField(labelWithString: "")
     private let detailCode = NSTextField(labelWithString: "")
     private let progress = NSProgressIndicator()
-    private var context = ConnectionsContext(devices: [], connected: false, activeID: nil)
+    private var context = ConnectionsContext(devices: [])
     private var visibleDevices: [SavedConnection] = []
     private var selectedID: String?
     private var busy = false
@@ -37,7 +37,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
     private var connectionEditor: ConnectionEditorWindowController?
     private var statusTimer: Timer?
     private var statusRefreshInFlight = false
-    var onConnected: (() -> Void)?
+    var onConnected: ((String) -> Void)?
 
     init() {
         let window = NSWindow(
@@ -94,10 +94,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
             guard let self else { return }
             self.statusRefreshInFlight = false
             guard case let .success(updated) = result else { return }
-            guard updated.connected != self.context.connected
-                    || updated.activeID != self.context.activeID
-                    || updated.devices != self.context.devices
-            else { return }
+            guard updated.connectedIDs != self.context.connectedIDs || updated.devices != self.context.devices else { return }
             self.context = updated
             if let selectedID = self.selectedID,
                !updated.devices.contains(where: { $0.id == selectedID }) {
@@ -420,7 +417,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         detailName.stringValue = selected.name
         detailAddress.stringValue = "\(selected.processorModel.label) · \(selected.host):\(selected.port) · Status port \(selected.terminalPort)"
         detailCode.stringValue = selected.hasCode ? "Access code  ••••••••" : "Access code not saved"
-        let active = context.connected && context.activeID == selected.id
+        let active = context.isConnected(selected.id)
         let network = selected.id.hasPrefix("network:")
         connectButton.title = network ? "Add…" : active ? "Disconnect" : "Connect"
         connectButton.isEnabled = !busy && (network || selected.hasCode || active)
@@ -456,7 +453,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         labels.alignment = .leading
         labels.spacing = 2
 
-        let active = context.connected && context.activeID == device.id
+        let active = context.isConnected(device.id)
         let network = device.id.hasPrefix("network:")
         let status = NSTextField(labelWithString: network ? "Discovered on Network" : active ? "Connected" : device.hasCode ? "Disconnected" : "Access code required")
         status.font = .systemFont(ofSize: 13, weight: active ? .medium : .regular)
@@ -627,14 +624,15 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
                     self.finishMutation(result, selectedID: nil, success: "Group removed")
                 }
             }
-            if self.context.connected, members.contains(where: { $0.id == self.context.activeID }) {
+            let connected = members.map(\.id).filter(self.context.isConnected)
+            if connected.isEmpty {
+                remove()
+            } else {
                 self.setBusy(true, subtitle: "Disconnecting…")
-                self.api.disconnect { result in
+                self.disconnectAll(connected) { result in
                     if case let .failure(error) = result { self.finishMutation(.failure(error), selectedID: nil, success: "") }
                     else { remove() }
                 }
-            } else {
-                remove()
             }
         }
     }
@@ -788,27 +786,27 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
 
     @objc private func connectSelected() {
         guard let selected, !busy else { return }
-        let active = context.connected && context.activeID == selected.id
-        if active {
+        if context.isConnected(selected.id) {
             setBusy(true, subtitle: "Disconnecting…")
-            api.disconnect { [weak self] result in self?.finishMutation(result, selectedID: selected.id, success: "Disconnected") }
+            api.disconnect(id: selected.id) { [weak self] result in
+                self?.finishMutation(result, selectedID: selected.id, success: "Disconnected")
+            }
             return
         }
         if !selected.hasCode {
             presentEditor(connection: selected, connectAfterSave: true)
             return
         }
-        if context.connected {
-            setBusy(true, subtitle: "Switching processor…")
-            api.disconnect { [weak self] result in
-                guard let self else { return }
-                switch result {
-                case let .failure(error): self.finishMutation(.failure(error), selectedID: selected.id, success: "")
-                case .success: self.performConnect(selected)
-                }
-            }
-        } else {
-            performConnect(selected)
+        // Every processor has its own session: the others stay connected.
+        performConnect(selected)
+    }
+
+    /// Disconnects each of these processors, one after the other.
+    private func disconnectAll(_ ids: [String], completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let id = ids.first else { return completion(.success(())) }
+        api.disconnect(id: id) { [weak self] result in
+            if case .failure = result { return completion(result) }
+            self?.disconnectAll(Array(ids.dropFirst()), completion: completion)
         }
     }
 
@@ -823,7 +821,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
                 self.reload(select: device.id, message: "Not connected")
             case .success:
                 self.setBusy(false, subtitle: "Connected to \(device.name)")
-                self.onConnected?()
+                self.onConnected?(device.id)
                 self.reload(select: device.id, message: "Connected to \(device.name)")
             }
         }
@@ -840,9 +838,9 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn, let self else { return }
             let next = ConnectionSelection.next(afterDeleting: selected.id, from: self.context.devices)
-            if ConnectionSelection.mustDisconnect(connected: self.context.connected, activeID: self.context.activeID, deletingID: selected.id) {
+            if ConnectionSelection.mustDisconnect(connectedIDs: self.context.connectedIDs, deletingID: selected.id) {
                 self.setBusy(true, subtitle: "Disconnecting…")
-                self.api.disconnect { result in
+                self.api.disconnect(id: selected.id) { result in
                     switch result {
                     case let .failure(error): self.finishMutation(.failure(error), selectedID: selected.id, success: "")
                     case .success: self.performDelete(selected, nextID: next)

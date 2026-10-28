@@ -4,8 +4,9 @@ import UniformTypeIdentifiers
 import WebKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, DeviceWindowBridgeDelegate {
-    /// Meters, Processing Settings, System Settings and Presets: one native
-    /// window each, all on the one processor session the service owns.
+    /// Meters and Processing Settings show the selected processor tab;
+    /// System Settings, Presets and the Tools windows are one per processor.
+    /// Each processor has its own session in the service.
     private let windows = DeviceWindowManager()
     private var backend: Process?
     private var startedBackend = false
@@ -27,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
     func applicationDidFinishLaunching(_ notification: Notification) {
         windows.appDelegate = self
         windows.onPresetsChanged = { [weak self] in self?.connectionsWindowController?.refreshStatusNow() }
+        windows.onDisconnect = { [weak self] id in self?.disconnect(id) }
         configureApplicationMenu()
         NSApp.activate(ignoringOtherApps: true)
         showStatus(title: "Starting Open Optimod Remote", detail: "Preparing the local control service…")
@@ -49,7 +51,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         terminationRequested = true
         windows.prepareForTermination()
 
-        var request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/disconnect")!)
+        // Every processor session ends, each on its own.
+        var request = URLRequest(url: BackendHealth.api("disconnect-all"))
         request.httpMethod = "POST"
         request.setValue(BackendHealth.origin, forHTTPHeaderField: "Origin")
         session.dataTask(with: request) { [weak self] _, _, _ in
@@ -134,6 +137,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
             item.representedObject = kind.rawValue
             item.target = self
         }
+        windowMenu.addItem(.separator())
+        // The processor tabs, as Show Next Tab in other Mac apps.
+        let next = windowMenu.addItem(withTitle: "Show Next Processor", action: #selector(showNextProcessor(_:)), keyEquivalent: "\t")
+        next.keyEquivalentModifierMask = [.control]
+        next.target = self
+        let previous = windowMenu.addItem(withTitle: "Show Previous Processor", action: #selector(showPreviousProcessor(_:)), keyEquivalent: "\t")
+        previous.keyEquivalentModifierMask = [.control, .shift]
+        previous.target = self
         windowMenu.addItem(.separator())
         windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
         windowMenu.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
@@ -333,16 +344,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         }
     }
 
-    private var diagnosticsWindowController: DiagnosticsWindowController?
-    private lazy var automationWindowController = AutomationWindowController()
-    private lazy var securityWindowController = SecurityWindowController()
+    /// The Tools windows, one per processor (keyed by its id).
+    private var diagnosticsWindows: [String: DiagnosticsWindowController] = [:]
+    private var automationWindows: [String: AutomationWindowController] = [:]
+    private var securityWindows: [String: SecurityWindowController] = [:]
+    private var selectedKey: String { DeviceSessionStore.shared.selectedID ?? "" }
+    private var selectedID: String? { DeviceSessionStore.shared.selectedID }
+
+    private var automationWindowController: AutomationWindowController {
+        let controller = automationWindows[selectedKey] ?? AutomationWindowController(deviceID: selectedID)
+        automationWindows[selectedKey] = controller
+        return controller
+    }
+
+    private var securityWindowController: SecurityWindowController {
+        let controller = securityWindows[selectedKey] ?? SecurityWindowController(deviceID: selectedID)
+        securityWindows[selectedKey] = controller
+        return controller
+    }
 
     @objc private func showAutomation(_ sender: Any?) { automationWindowController.show() }
     @objc private func showSecurity(_ sender: Any?) { securityWindowController.show() }
 
     @objc private func showDiagnostics(_ sender: Any?) {
-        if diagnosticsWindowController == nil { diagnosticsWindowController = DiagnosticsWindowController() }
-        diagnosticsWindowController?.show()
+        let controller = diagnosticsWindows[selectedKey] ?? DiagnosticsWindowController(deviceID: selectedID)
+        diagnosticsWindows[selectedKey] = controller
+        controller.show()
+    }
+
+    @objc private func showNextProcessor(_ sender: Any?) { stepProcessor(1) }
+    @objc private func showPreviousProcessor(_ sender: Any?) { stepProcessor(-1) }
+
+    private func stepProcessor(_ step: Int) {
+        let store = DeviceSessionStore.shared
+        guard !store.tabs.isEmpty else { return }
+        let index = store.tabs.firstIndex { $0.id == store.selectedID } ?? 0
+        store.select(store.tabs[(index + step + store.tabs.count) % store.tabs.count].id)
+    }
+
+    /// A tab's close button on a connected processor: only that processor's
+    /// session ends; its tab closes once the service reports it disconnected.
+    private func disconnect(_ id: String) {
+        var request = URLRequest(url: BackendHealth.api("disconnect", device: id))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(BackendHealth.origin, forHTTPHeaderField: "Origin")
+        request.httpBody = Data("{}".utf8)
+        URLSession.shared.dataTask(with: request) { data, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
+            let message = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["error"] as? String
+            DispatchQueue.main.async {
+                if ok {
+                    DeviceSessionStore.shared.close(id)
+                    DeviceSessionStore.shared.refresh()
+                } else {
+                    ErrorLogStore.shared.record(source: "Disconnect", message: message ?? "The processor could not be disconnected.")
+                }
+                self.connectionsWindowController?.refreshStatusNow()
+            }
+        }.resume()
     }
 
     /// Command-, opens the System Settings of the connected processor's model.
@@ -360,6 +420,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         }
         if menuItem.action == #selector(showSystemSettings(_:)) {
             return loadedInterface && DeviceSessionStore.shared.device != nil
+        }
+        if menuItem.action == #selector(showNextProcessor(_:)) || menuItem.action == #selector(showPreviousProcessor(_:)) {
+            return DeviceSessionStore.shared.tabs.count > 1
         }
         return true
     }
@@ -408,8 +471,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
     @objc private func showConnections(_ sender: Any?) {
         if connectionsWindowController == nil {
             let controller = ConnectionsWindowController()
-            controller.onConnected = { [weak self] in
-                self?.windows.deviceConnected()
+            controller.onConnected = { [weak self] id in
+                self?.windows.deviceConnected(id)
             }
             connectionsWindowController = controller
         }

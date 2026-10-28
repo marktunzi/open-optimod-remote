@@ -37,9 +37,11 @@ enum DeviceWindowKind: String, CaseIterable, Sendable {
     static let startup: [DeviceWindowKind] = [.meters, .processing]
 }
 
-/// The parts of the service state that tell the windows which processor they
+/// The parts of a session's state that tell the windows which processor they
 /// show. The documents themselves are read by each window's own view.
 struct DeviceSessionPayload: Decodable, Equatable, Sendable {
+    /// The session's key in the service: the saved connection it belongs to.
+    let key: String?
     let connected: Bool
     let host: String
     let firmware: String
@@ -51,17 +53,34 @@ struct DeviceSessionPayload: Decodable, Equatable, Sendable {
     /// Bumped by the service whenever a document changes (a write here, the
     /// front panel, another client): windows reload their view on a change.
     let revision: Int?
+    /// Set while the session waits to reconnect after an unexpected loss.
+    let reconnect: ReconnectPayload?
+    let error: String?
+
+    struct ReconnectPayload: Decodable, Equatable, Sendable {
+        let attempt: Int
+        let attempts: Int
+        let inProgress: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case attempt, attempts
+            case inProgress = "in_progress"
+        }
+    }
 
     enum CodingKeys: String, CodingKey {
-        case connected, host, firmware, model, capabilities, revision
+        case key, connected, host, firmware, model, capabilities, revision, reconnect, error
         case deviceID = "device_id"
         case sessionID = "session_id"
         case adapterID = "adapter_id"
     }
 }
 
-/// One processor as the windows name it. Phase 6 keeps one session per
-/// `id`; until then the app has at most one connected processor.
+private struct SessionsResponse: Decodable {
+    let sessions: [DeviceSessionPayload]
+}
+
+/// One processor as the windows name it: one independent session per `id`.
 struct DeviceRef: Equatable, Sendable {
     /// The saved connection, or the address of a connection made without one.
     /// Never a port: a processor keeps its identity when a port changes.
@@ -95,19 +114,39 @@ struct DeviceRef: Equatable, Sendable {
     }
 }
 
+/// A processor tab: one open processor session, connected or not.
+struct DeviceTab: Equatable, Sendable {
+    enum Status: Equatable, Sendable { case connected, reconnecting, lost }
+
+    let id: String
+    let title: String
+    let detail: String
+    let status: Status
+}
+
 extension Notification.Name {
     static let deviceSessionChanged = Notification.Name("OpenOptimodDeviceSessionChanged")
 }
 
-/// The app's one reader of the service state for its native windows. The
-/// service owns the only processor session; this store only follows it.
+/// The app's one reader of the service's sessions for its native windows:
+/// one request a second for every processor, however many windows are open.
+/// The service owns each processor's session; this store only follows them
+/// and remembers which processor tab is selected.
 final class DeviceSessionStore {
     static let shared = DeviceSessionStore()
 
-    private(set) var session: DeviceSessionPayload?
-    /// The connected processor, nil while none is connected.
-    private(set) var device: DeviceRef?
+    /// Every session the service runs, by processor.
+    private(set) var sessions: [String: DeviceSessionPayload] = [:]
+    /// The open processor tabs, in the order they were opened.
+    private(set) var tabs: [DeviceTab] = []
+    /// The processor of the selected tab: the one Meters and Processing
+    /// Settings show and the menus act on.
+    private(set) var selectedID: String?
     private var names: [String: String] = [:]
+    /// Processors that were connected in this app: their tab stays after a
+    /// lost connection until it is closed.
+    private var opened: [String] = []
+    private var lastDevices: [String: DeviceRef] = [:]
     private var timer: Timer?
     private var inFlight = false
 
@@ -118,51 +157,127 @@ final class DeviceSessionStore {
         return URLSession(configuration: configuration)
     }()
 
+    /// The selected processor while it is connected.
+    var device: DeviceRef? { device(for: selectedID) }
+    /// The selected processor's session.
+    var session: DeviceSessionPayload? { session(for: selectedID) }
+
+    func session(for id: String?) -> DeviceSessionPayload? {
+        id.flatMap { sessions[$0] }
+    }
+
+    /// The processor `id` while its session is connected.
+    func device(for id: String?) -> DeviceRef? {
+        guard let id, let state = sessions[id], state.connected else { return nil }
+        return makeRef(id: id, state: state)
+    }
+
+    /// The processor `id` as last seen connected (for an offline window's title).
+    func lastKnown(_ id: String?) -> DeviceRef? {
+        id.flatMap { lastDevices[$0] }
+    }
+
     func start() {
         guard timer == nil else { return }
         refresh()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.refresh() }
     }
 
-    func refresh() {
-        guard !inFlight else { return }
-        inFlight = true
-        fetch("state", as: DeviceSessionPayload.self) { [weak self] state in
-            guard let self else { return }
-            self.inFlight = false
-            guard let state else { return }
-            let identity = DeviceRef.identity(deviceID: state.deviceID, host: state.host)
-            if let deviceID = state.deviceID, self.names[deviceID] == nil {
-                self.fetch("devices", as: ConnectionsResponse.self) { [weak self] response in
-                    guard let self, let response else { return }
-                    for device in response.devices { self.names[device.id] = device.name }
-                    self.publish(state, identity: identity, force: true)
-                }
-            }
-            self.publish(state, identity: identity, force: false)
-        }
-    }
-
-    private func publish(_ state: DeviceSessionPayload, identity: String?, force: Bool) {
-        let device: DeviceRef? = state.connected ? identity.map {
-            DeviceRef(
-                id: $0,
-                name: state.deviceID.flatMap { names[$0] },
-                model: state.model.flatMap(ProcessorModel.init(rawValue:)),
-                host: state.host,
-                firmware: state.firmware,
-                adapterID: state.adapterID,
-                capabilities: state.capabilities
-            )
-        } : nil
-        guard force || state != session || device != self.device else { return }
-        session = state
-        self.device = device
+    /// Selects a processor tab; nothing is connected or disconnected.
+    func select(_ id: String?) {
+        guard id != selectedID, id == nil || opened.contains(id!) else { return }
+        selectedID = id
         NotificationCenter.default.post(name: .deviceSessionChanged, object: self)
     }
 
+    /// A processor that was just connected opens (or selects) its tab.
+    func open(_ id: String) {
+        if !opened.contains(id) { opened.append(id) }
+        selectedID = id
+        rebuildTabs()
+        NotificationCenter.default.post(name: .deviceSessionChanged, object: self)
+        refresh()
+    }
+
+    /// Closes a tab whose session is no longer connected.
+    func close(_ id: String) {
+        opened.removeAll { $0 == id }
+        if selectedID == id { selectedID = opened.last }
+        rebuildTabs()
+        NotificationCenter.default.post(name: .deviceSessionChanged, object: self)
+    }
+
+    func refresh() {
+        guard !inFlight else { return }
+        inFlight = true
+        fetch("sessions", as: SessionsResponse.self) { [weak self] response in
+            guard let self else { return }
+            self.inFlight = false
+            guard let response else { return }
+            var updated: [String: DeviceSessionPayload] = [:]
+            for state in response.sessions {
+                guard let key = state.key ?? DeviceRef.identity(deviceID: state.deviceID, host: state.host) else { continue }
+                updated[key] = state
+            }
+            let unknown = updated.keys.filter { self.names[$0] == nil && !$0.hasPrefix("host:") }
+            if !unknown.isEmpty {
+                self.fetch("devices", as: ConnectionsResponse.self) { [weak self] devices in
+                    guard let self, let devices else { return }
+                    for device in devices.devices { self.names[device.id] = device.name }
+                    self.publish(updated, force: true)
+                }
+            }
+            self.publish(updated, force: false)
+        }
+    }
+
+    private func makeRef(id: String, state: DeviceSessionPayload) -> DeviceRef {
+        DeviceRef(
+            id: id,
+            name: names[id],
+            model: state.model.flatMap(ProcessorModel.init(rawValue:)),
+            host: state.host,
+            firmware: state.firmware,
+            adapterID: state.adapterID,
+            capabilities: state.capabilities
+        )
+    }
+
+    private func publish(_ updated: [String: DeviceSessionPayload], force: Bool) {
+        let changed = updated != sessions
+        sessions = updated
+        for (id, state) in updated where state.connected {
+            lastDevices[id] = makeRef(id: id, state: state)
+            if !opened.contains(id) {
+                // Connected elsewhere in the app (or before it started): it gets a tab.
+                opened.append(id)
+                if selectedID == nil { selectedID = id }
+            }
+        }
+        // A tab of a processor that was disconnected on purpose closes; one
+        // that lost its connection stays, showing why.
+        opened.removeAll { id in
+            guard let state = updated[id] else { return false }
+            return !state.connected && state.reconnect == nil && (state.error ?? "").isEmpty
+        }
+        if let selectedID, !opened.contains(selectedID) { self.selectedID = opened.last }
+        let before = tabs
+        rebuildTabs()
+        guard force || changed || tabs != before else { return }
+        NotificationCenter.default.post(name: .deviceSessionChanged, object: self)
+    }
+
+    private func rebuildTabs() {
+        tabs = opened.map { id in
+            let state = sessions[id]
+            let ref = lastDevices[id]
+            let status: DeviceTab.Status = state?.connected == true ? .connected : state?.reconnect != nil ? .reconnecting : .lost
+            return DeviceTab(id: id, title: names[id] ?? ref?.host ?? id, detail: ref?.modelLabel ?? "Optimod", status: status)
+        }
+    }
+
     private func fetch<T: Decodable>(_ path: String, as type: T.Type, completion: @escaping (T?) -> Void) {
-        let request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!, cachePolicy: .reloadIgnoringLocalCacheData)
+        let request = URLRequest(url: BackendHealth.api(path), cachePolicy: .reloadIgnoringLocalCacheData)
         urlSession.dataTask(with: request) { data, response, _ in
             let ok = (response as? HTTPURLResponse)?.statusCode == 200
             let value = ok ? data.flatMap { try? JSONDecoder().decode(T.self, from: $0) } : nil
@@ -225,9 +340,11 @@ enum FilePanelTestHook {
 
 final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate {
     let kind: DeviceWindowKind
-    /// The processor this window belongs to; nil until one is connected.
+    /// The processor this window shows: the selected tab's; nil until one is open.
     private(set) var deviceID: String?
     let webView: WKWebView
+    /// The processor tabs above the page.
+    let tabBar = DeviceTabBar(frame: NSRect(x: 0, y: 0, width: 800, height: DeviceTabBar.height))
     var onClose: ((DeviceWebWindowController) -> Void)?
     private var loadedPage = false
 
@@ -246,12 +363,17 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
         window.minSize = kind.minimumSize
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
-        // The Figma design is dark from edge to edge; the title bar follows it.
+        // The Figma design is dark from edge to edge; the title bar takes the
+        // colour of the processor tabs below it.
         window.appearance = NSAppearance(named: .darkAqua)
         window.titlebarAppearsTransparent = true
-        window.backgroundColor = NSColor(srgbRed: 0x4c / 255, green: 0x4c / 255, blue: 0x4c / 255, alpha: 1)
+        window.backgroundColor = DeviceTabBar.background
         window.contentView = webView
         window.identifier = NSUserInterfaceItemIdentifier("OpenOptimod.\(kind.rawValue)")
+        let tabs = NSTitlebarAccessoryViewController()
+        tabs.view = tabBar
+        tabs.layoutAttribute = .bottom
+        window.addTitlebarAccessoryViewController(tabs)
         super.init(window: window)
         window.delegate = self
         webView.navigationDelegate = self
@@ -262,11 +384,11 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
     @available(*, unavailable)
     required init?(coder: NSCoder) { nil }
 
-    /// Each processor keeps its own window positions. A window for a processor
-    /// that has none yet takes the last position of its kind.
+    /// The window keeps its place when another processor tab is chosen; a
+    /// first window takes the last position of its kind.
     private func restoreFrame() {
         guard let window else { return }
-        let name = Self.autosaveName(kind: kind, deviceID: deviceID)
+        let name = Self.autosaveName(kind: kind)
         if !window.setFrameUsingName(name) {
             if !window.setFrameUsingName(Self.lastFrameName(kind)) { placeFirstTime(window) }
         }
@@ -327,8 +449,8 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
         window.setFrame(frame, display: false)
     }
 
-    static func autosaveName(kind: DeviceWindowKind, deviceID: String?) -> String {
-        "OpenOptimod.\(kind.rawValue).\(deviceID ?? "none")"
+    static func autosaveName(kind: DeviceWindowKind) -> String {
+        "OpenOptimod.\(kind.rawValue).tabs"
     }
 
     private static func lastFrameName(_ kind: DeviceWindowKind) -> String {
@@ -351,25 +473,25 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
         webView.loadHTMLString(html, baseURL: nil)
     }
 
-    /// Binds a window that was opened before any processor was connected.
-    func adopt(deviceID: String) {
-        guard self.deviceID == nil, let window else { return }
+    /// Shows another processor (a tab was chosen). Its page reads only that
+    /// processor's session; the other sessions are not touched.
+    func bind(deviceID: String?) {
+        guard deviceID != self.deviceID else { return }
         self.deviceID = deviceID
-        window.setFrameAutosaveName(Self.autosaveName(kind: kind, deviceID: deviceID))
-        enforceOpeningSize()
         if loadedPage { loadPage() }
     }
 
-    func update(device: DeviceRef?, connectedDevice: DeviceRef?) {
+    func update(store: DeviceSessionStore) {
         guard let window else { return }
-        if let device {
-            window.subtitle = connectedDevice?.id == device.id ? device.subtitle : "\(device.subtitle) · Offline"
-        } else if let connectedDevice, deviceID == nil {
-            window.subtitle = connectedDevice.subtitle
+        if let device = store.device(for: deviceID) {
+            window.subtitle = device.subtitle
+        } else if let known = store.lastKnown(deviceID) {
+            window.subtitle = "\(known.subtitle) · \(store.session(for: deviceID)?.reconnect != nil ? "Reconnecting" : "Offline")"
         } else {
             window.subtitle = "Not connected"
         }
         window.title = kind.title
+        tabBar.update(tabs: store.tabs, selected: store.selectedID)
     }
 
     func show() {
@@ -452,27 +574,24 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
     }
 }
 
-/// Opens and keeps the windows of each processor. Windows are keyed by kind
-/// and processor, so a processor's windows never show another one's data.
+/// Opens and keeps the app's windows. Meters and Processing Settings show
+/// the processor of the selected tab; Presets and System Settings are one
+/// window per processor. A window never shows another processor's data.
 final class DeviceWindowManager: DeviceWindowBridgeDelegate {
-    private struct Key: Hashable {
-        let kind: DeviceWindowKind
-        let deviceID: String?
-    }
-
     private static let openKindsDefault = "OpenOptimodOpenWindows"
     private static let presetsKind = "presets"
 
-    private var windows: [Key: DeviceWebWindowController] = [:]
+    private var windows: [DeviceWindowKind: DeviceWebWindowController] = [:]
     private var nativeSettings: [String: SystemSettingsWindowController] = [:]
     /// Presets is a native window per processor, like System Settings.
     private var presets: [String: PresetsWindowController] = [:]
     var onPresetsChanged: (() -> Void)?
+    /// A tab's close button on a connected processor: the app disconnects it.
+    var onDisconnect: ((String) -> Void)?
     private let bridge = DeviceWindowBridge()
     private let dataStore = WKWebsiteDataStore.nonPersistent()
     private var interfaceReady = false
     private var terminating = false
-    private var lastDevice: DeviceRef?
     weak var appDelegate: DeviceWindowBridgeDelegate?
 
     init() {
@@ -484,8 +603,8 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
 
     private var store: DeviceSessionStore { .shared }
 
-    /// The processor new windows belong to: the connected one, else the last one.
-    private var currentDeviceID: String? { store.device?.id ?? lastDevice?.id }
+    /// The processor new windows belong to: the selected tab's.
+    private var currentDeviceID: String? { store.selectedID }
 
     private func makeConfiguration() -> WKWebViewConfiguration {
         let configuration = WKWebViewConfiguration()
@@ -498,22 +617,25 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         return configuration
     }
 
-    /// Shows a window of this kind for the current processor, opening it if needed.
+    /// Shows a window of this kind for the selected processor, opening it if needed.
     @discardableResult
     func show(_ kind: DeviceWindowKind) -> DeviceWebWindowController {
-        let key = Key(kind: kind, deviceID: currentDeviceID)
-        let controller = windows[key] ?? makeWindow(key)
+        let controller = windows[kind] ?? makeWindow(kind)
+        controller.bind(deviceID: currentDeviceID)
         if interfaceReady && !controller.hasPage { controller.loadPage() }
-        controller.update(device: device(for: key.deviceID), connectedDevice: store.device)
+        controller.update(store: store)
         controller.show()
         rememberOpenKinds()
         return controller
     }
 
-    private func makeWindow(_ key: Key) -> DeviceWebWindowController {
-        let controller = DeviceWebWindowController(kind: key.kind, deviceID: key.deviceID, configuration: makeConfiguration())
+    private func makeWindow(_ kind: DeviceWindowKind) -> DeviceWebWindowController {
+        let controller = DeviceWebWindowController(kind: kind, deviceID: currentDeviceID, configuration: makeConfiguration())
         controller.onClose = { [weak self] closed in self?.closed(closed) }
-        windows[key] = controller
+        controller.tabBar.onSelect = { [weak self] id in self?.store.select(id) }
+        controller.tabBar.onClose = { [weak self, weak controller] id in self?.closeTab(id, from: controller?.window) }
+        controller.tabBar.onAdd = { [weak self] in self?.appDelegate?.deviceWindow(nil, didRequest: "openConnections", body: [:]) }
+        windows[kind] = controller
         return controller
     }
 
@@ -526,8 +648,28 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         windows.values.first { $0.webView === webView }
     }
 
+    /// A tab's close button: a processor that is still connected (or
+    /// reconnecting) is disconnected after a confirmation; a lost one's tab closes.
+    func closeTab(_ id: String, from window: NSWindow?) {
+        let tab = store.tabs.first { $0.id == id }
+        guard let tab, tab.status != .lost else {
+            store.close(id)
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = "Disconnect \(tab.title)?"
+        alert.informativeText = "The other processors stay connected."
+        alert.addButton(withTitle: "Disconnect")
+        alert.addButton(withTitle: "Cancel")
+        let disconnect = { [weak self] (response: NSApplication.ModalResponse) in
+            guard response == .alertFirstButtonReturn else { return }
+            self?.onDisconnect?(id)
+        }
+        if let window { alert.beginSheetModal(for: window, completionHandler: disconnect) } else { disconnect(alert.runModal()) }
+    }
+
     /// System Settings is always a native window: the 5700i worksheet, or
-    /// the System fields of the connected model's own profile.
+    /// the System fields of the selected processor's own profile.
     func showSystemSettings() {
         guard let device = store.device else { return }
         let controller = nativeSettings[device.id] ?? SystemSettingsWindowController(device: device)
@@ -535,7 +677,7 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         controller.show()
     }
 
-    /// The Presets window of the current processor.
+    /// The Presets window of the selected processor.
     func showPresets() {
         let key = currentDeviceID ?? ""
         let controller = presets[key] ?? {
@@ -568,9 +710,9 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         if UserDefaults.standard.stringArray(forKey: Self.openKindsDefault)?.contains(Self.presetsKind) == true { showPresets() }
     }
 
-    /// After a connection, the processor's main windows come forward.
-    func deviceConnected() {
-        store.refresh()
+    /// After a connection, the processor gets its tab and the main windows come forward.
+    func deviceConnected(_ id: String) {
+        store.open(id)
         for kind in [DeviceWindowKind.processing, .meters] { show(kind) }
     }
 
@@ -586,47 +728,21 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
     private func rememberOpenKinds() {
         // The startup window shows progress only; it is not a choice to keep.
         guard interfaceReady else { return }
-        let kinds = DeviceWindowKind.allCases.filter { kind in windows.keys.contains { $0.kind == kind } }
+        let kinds = DeviceWindowKind.allCases.filter { windows[$0] != nil }
         UserDefaults.standard.set(kinds.map(\.rawValue) + (presets.isEmpty ? [] : [Self.presetsKind]), forKey: Self.openKindsDefault)
     }
 
-    private func device(for id: String?) -> DeviceRef? {
-        guard let id else { return nil }
-        if store.device?.id == id { return store.device }
-        return lastDevice?.id == id ? lastDevice : nil
-    }
-
-    /// One processor at a time until Phase 6: windows of a processor that is
-    /// no longer the connected one close, and the same kinds open for the new
-    /// one. A disconnect alone keeps every window, so it comes back on reconnect.
+    /// Meters and Processing Settings follow the selected tab; a Presets
+    /// window opened before any processor belongs to the first one.
     private func sessionChanged() {
-        let connected = store.device
-        if let connected {
-            for (key, controller) in windows where key.deviceID == nil {
-                windows[key] = nil
-                controller.adopt(deviceID: connected.id)
-                windows[Key(kind: key.kind, deviceID: connected.id)] = controller
-            }
-            if let unbound = presets[""] {
-                presets[""] = nil
-                unbound.adopt(deviceID: connected.id)
-                presets[connected.id] = unbound
-            }
-            if let previous = lastDevice, previous.id != connected.id {
-                let kinds = windows.keys.filter { $0.deviceID == previous.id }.map(\.kind)
-                for key in windows.keys where key.deviceID == previous.id { windows[key]?.close() }
-                nativeSettings[previous.id]?.close()
-                nativeSettings[previous.id] = nil
-                let hadPresets = presets[previous.id] != nil
-                presets[previous.id]?.close()
-                lastDevice = connected
-                for kind in DeviceWindowKind.allCases where kinds.contains(kind) { show(kind) }
-                if hadPresets { showPresets() }
-            }
-            lastDevice = connected
+        if let selected = store.selectedID, let unbound = presets[""] {
+            presets[""] = nil
+            unbound.adopt(deviceID: selected)
+            presets[selected] = unbound
         }
-        for (key, controller) in windows {
-            controller.update(device: device(for: key.deviceID), connectedDevice: connected)
+        for controller in windows.values {
+            controller.bind(deviceID: store.selectedID)
+            controller.update(store: store)
         }
     }
 
@@ -641,8 +757,20 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         let parts = line.split(separator: " ").map(String.init)
         guard let verb = parts.first else { return }
         let kind = parts.count > 1 ? DeviceWindowKind(rawValue: parts[1]) : nil
-        let controller = kind.flatMap { kind in windows.first { $0.key.kind == kind }?.value }
+        let controller = kind.flatMap { windows[$0] }
         switch verb {
+        // Test hook: `tab-select N|ID` chooses a processor tab as a click does,
+        // `tab-close N|ID` presses its close button (`confirm` answers the sheet).
+        case "tab-select" where parts.count > 1:
+            store.select(tabID(parts[1]))
+        case "tab-close" where parts.count > 1:
+            if let id = tabID(parts[1]) {
+                if parts.count > 2 && parts[2] == "confirm", store.tabs.first(where: { $0.id == id })?.status != .lost {
+                    onDisconnect?(id)
+                } else {
+                    closeTab(id, from: windows[.meters]?.window)
+                }
+            }
         case "show" where parts.count > 1 && parts[1] == Self.presetsKind: showPresets()
         case "close" where parts.count > 1 && parts[1] == Self.presetsKind: presets.values.forEach { $0.close() }
         case Self.presetsKind: presets.values.forEach { $0.perform(Array(parts.dropFirst())) }
@@ -690,13 +818,20 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         }
     }
 
-    /// The open windows, for the test hook.
+    private func tabID(_ word: String) -> String? {
+        if let index = Int(word) { return store.tabs.indices.contains(index) ? store.tabs[index].id : nil }
+        return store.tabs.contains { $0.id == word } ? word : nil
+    }
+
+    /// The open windows and the processor tabs, for the test hook.
     var windowList: [[String: Any]] {
-        windows.map { key, controller in
+        [["kind": "tabs", "selected": store.selectedID ?? "",
+          "tabs": store.tabs.map { ["id": $0.id, "title": $0.title, "detail": $0.detail, "status": "\($0.status)"] }]]
+        + windows.map { kind, controller in
             let frame = controller.window?.frame ?? .zero
             return [
-                "kind": key.kind.rawValue,
-                "device": key.deviceID ?? "",
+                "kind": kind.rawValue,
+                "device": controller.deviceID ?? "",
                 "visible": controller.window?.isVisible ?? false,
                 "minimized": controller.window?.isMiniaturized ?? false,
                 "subtitle": controller.window?.subtitle ?? "",

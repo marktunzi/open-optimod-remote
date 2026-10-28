@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate {
-    private let api = SystemSettingsAPI()
+    private let api: SystemSettingsAPI
     private let rootViewController = NSViewController()
     private var tabController = NSTabViewController()
     private var context: SystemSettingsContext?
@@ -10,15 +10,15 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
     private var statusText = "Loading settings…"
     private var detailText = ""
     private var selectedSections: [String: String] = [:]
-    /// The processor this window belongs to. Phase 6 keeps one window per
-    /// processor next to the others; until then another connected processor
-    /// shows this window offline, never its own data.
+    /// The processor this window belongs to: one window per processor, each
+    /// reading and writing only that processor's session.
     let device: DeviceRef
     private var lastRevision: Int?
     private var observer: NSObjectProtocol?
 
     init(device: DeviceRef) {
         self.device = device
+        api = SystemSettingsAPI(deviceID: device.id)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1180, height: 820),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -46,10 +46,10 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
         if let observer { NotificationCenter.default.removeObserver(observer) }
     }
 
-    private var isCurrentDevice: Bool { DeviceSessionStore.shared.device?.id == device.id }
+    private var isCurrentDevice: Bool { DeviceSessionStore.shared.device(for: device.id) != nil }
 
     private func sessionChanged() {
-        let session = DeviceSessionStore.shared.session
+        let session = DeviceSessionStore.shared.session(for: device.id)
         guard isCurrentDevice else {
             if context != nil {
                 context = nil

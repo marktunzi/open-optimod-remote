@@ -305,8 +305,11 @@ final class SystemSettingsAPI {
     private let encoder = JSONEncoder()
     private var cachedProfile: DeviceProfilePayload?
     private var cachedAdapterID: String?
+    /// The processor whose session this reads and writes.
+    let deviceID: String?
 
-    init() {
+    init(deviceID: String?) {
+        self.deviceID = deviceID
         let configuration = URLSessionConfiguration.ephemeral
         // A change waits up to 4 s for its response boundary and may then read
         // the document back (4 s). Checked by an orban-web test.
@@ -385,7 +388,7 @@ final class SystemSettingsAPI {
     }
 
     private func get<T: Decodable & Sendable>(path: String, as type: T.Type, completion: @escaping (Result<T, Error>) -> Void) {
-        let request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!, cachePolicy: .reloadIgnoringLocalCacheData)
+        let request = URLRequest(url: BackendHealth.api(path, device: deviceID), cachePolicy: .reloadIgnoringLocalCacheData)
         session.dataTask(with: request) { [decoder] data, response, error in
             if let error { completion(.failure(error)); return }
             guard let response = response as? HTTPURLResponse, response.statusCode == 200, let data else {
@@ -398,7 +401,7 @@ final class SystemSettingsAPI {
 
     private func post<T: Encodable>(path: String, body: T, completion: @escaping (Result<Void, Error>) -> Void) {
         do {
-            var request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!)
+            var request = URLRequest(url: BackendHealth.api(path, device: deviceID))
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue(BackendHealth.origin, forHTTPHeaderField: "Origin")

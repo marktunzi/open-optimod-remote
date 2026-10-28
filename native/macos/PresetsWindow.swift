@@ -10,7 +10,7 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
     NSSearchFieldDelegate, NSToolbarDelegate, NSMenuDelegate, NSTextFieldDelegate {
     /// The processor this window belongs to; nil until one is connected.
     private(set) var deviceID: String?
-    private let api = PresetsAPI()
+    private var api: PresetsAPI
     private let tableView = PresetTableView()
     private let splitViewController = NSSplitViewController()
     private var searchField = NSSearchField()
@@ -42,6 +42,7 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
 
     init(deviceID: String?) {
         self.deviceID = deviceID
+        api = PresetsAPI(deviceID: deviceID)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: PresetPresentation.defaultSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -86,22 +87,20 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
     func adopt(deviceID: String) {
         guard self.deviceID == nil, let window else { return }
         self.deviceID = deviceID
+        api = PresetsAPI(deviceID: deviceID)
         window.setFrameAutosaveName(Self.autosaveName(deviceID))
     }
 
     func windowWillClose(_ notification: Notification) { onClose?(self) }
 
     private var store: DeviceSessionStore { .shared }
-    /// The window shows its own processor only; another connected one leaves it offline.
-    private var isOwnDeviceConnected: Bool {
-        guard let device = store.device else { return false }
-        return deviceID == nil || device.id == deviceID
-    }
+    /// The window shows its own processor only, while it is connected.
+    private var isOwnDeviceConnected: Bool { store.device(for: deviceID) != nil }
 
     private func sessionChanged() {
         updateSubtitle()
         guard window?.isVisible == true else { return }
-        let revision = store.session?.revision
+        let revision = store.session(for: deviceID)?.revision
         if revision != lastRevision || isOwnDeviceConnected != (context?.snapshot.connected == true) {
             lastRevision = revision
             if !busy { reload() }
@@ -110,7 +109,7 @@ final class PresetsWindowController: NSWindowController, NSWindowDelegate, NSTab
 
     private func updateSubtitle() {
         guard let window else { return }
-        if let device = store.device, isOwnDeviceConnected {
+        if let device = store.device(for: deviceID) {
             window.subtitle = device.subtitle
             knownSubtitle = device.subtitle
         } else {
