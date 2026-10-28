@@ -107,7 +107,9 @@ export function Presets({ snapshot, busy, action }: { snapshot: Snapshot; busy: 
       <p>On air: <strong>{current || '—'}</strong></p>
       {pending ? <div className="recall-confirmation" role="alert">
         {pending.kind === 'recall' && <p>Replace <strong>{pending.expected_name}</strong> with <strong>{pending.name}</strong>? This changes the on-air sound.</p>}
-        {pending.kind === 'save' && <p>Save the on-air processing as the user preset <strong>{pending.name}</strong> on the processor?</p>}
+        {pending.kind === 'save' && (pending.name === manage.replace
+          ? <p>Replace the user preset <strong>{pending.name}</strong> on the processor with the on-air processing?</p>
+          : <p>Save the on-air processing as the user preset <strong>{pending.name}</strong> on the processor?</p>)}
         {pending.kind === 'rename' && <p>Rename the user preset <strong>{pending.name}</strong> to <strong>{pending.new_name}</strong>? The app saves it under the new name, then deletes the old one.</p>}
         {pending.kind === 'delete' && <p>Delete the user preset <strong>{pending.name}</strong> from the processor? This cannot be undone.</p>}
         {pending.kind === 'apply-file' && <p>Apply <strong>{pending.file}</strong> to <strong>{pending.expected_name}</strong>? Every processing value in the file is written and verified. This changes the on-air sound.</p>}
@@ -126,6 +128,7 @@ export function Presets({ snapshot, busy, action }: { snapshot: Snapshot; busy: 
         <label className="preset-name">New name <input name="preset-name" autoComplete="off" maxLength={maxLength} value={newName} onChange={e => setNewName(e.target.value)} /></label>
         {newName && nameProblem && <p className="muted" role="status">{nameProblem}</p>}
         <div className="preset-actions">
+          {manage.replace !== null && <button disabled={!!pending} onClick={() => setPending({ kind: 'save', name: manage.replace!, expected_name: current })}>Save {manage.replace}…</button>}
           <button disabled={!manage.save || !!nameProblem || !!pending} onClick={() => setPending({ kind: 'save', name: newName, expected_name: current })}>Save on-air as…</button>
           <button disabled={!manage.rename || !!nameProblem || !!pending} title="Only the selected user preset, on air without changes" onClick={() => setPending({ kind: 'rename', name: selected, new_name: newName, expected_name: current })}>Rename selected…</button>
           <button disabled={!manage.delete || !!pending} title="Only a user preset that is not on air" onClick={() => setPending({ kind: 'delete', name: selected, expected_name: current })}>Delete selected…</button>

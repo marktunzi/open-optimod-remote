@@ -861,6 +861,15 @@ async fn reload_processing(app: &App, device: &mut Device) -> Result<(), String>
 /// cuts every frame longer than 4096 bytes, this archive too; with meters
 /// off (223) it arrives whole (virtual 5700i, original firmware, 5 of 5).
 async fn read_on_air_archive(app: &App, device: &mut Device) -> Result<Document, String> {
+    let plain = read_on_air_file(app, device).await?;
+    if device.session.adapter().wire.file_sync {
+        return file_document(&plain, device.session.info.model);
+    }
+    Document::parse_for_model(&plain, device.session.info.model)
+}
+
+/// The decrypted on-air file (opcode 229) the unit sends for its on-air request.
+async fn read_on_air_file(app: &App, device: &mut Device) -> Result<Zeroizing<Vec<u8>>, String> {
     device.archive = None;
     device.archive_requested = true;
     let meters = device.session.info.capabilities.live_meters;
@@ -885,11 +894,7 @@ async fn read_on_air_archive(app: &App, device: &mut Device) -> Result<Document,
         .archive
         .take()
         .ok_or("The processor did not send its on-air document")?;
-    let plain = Zeroizing::new(device.session.decrypt_file(&data)?);
-    if device.session.adapter().wire.file_sync {
-        return file_document(&plain, device.session.info.model);
-    }
-    Document::parse_for_model(&plain, device.session.info.model)
+    Ok(Zeroizing::new(device.session.decrypt_file(&data)?))
 }
 
 /// A file of a file-sync model as a document. The 8700HD saves a preset
@@ -1052,6 +1057,30 @@ async fn read_preset_files(app: &App, device: &mut Device) -> Result<Vec<Preset>
             kind,
         });
         device.user_presets.insert(listed, plain);
+    }
+    Ok(presets)
+}
+
+/// The terminal list of a model whose `LP` lists user presets among the
+/// factory presets (5700i): the unit's user preset files mark them as user
+/// presets, and its `modif` working copies as unsaved.
+async fn with_user_preset_files(
+    app: &App,
+    device: &mut Device,
+    mut presets: Vec<Preset>,
+) -> Result<Vec<Preset>, String> {
+    if device.session.adapter().wire.user_presets_request.is_none() {
+        return Ok(presets);
+    }
+    for user in read_preset_files(app, device).await? {
+        // `LP` writes the firmware's working copies in capitals (`MODIF ...`).
+        match presets
+            .iter_mut()
+            .find(|p| p.name.eq_ignore_ascii_case(&user.name))
+        {
+            Some(listed) => *listed = user,
+            None => presets.push(user),
+        }
     }
     Ok(presets)
 }
@@ -1527,6 +1556,7 @@ async fn refresh_presets(app: &App, device: &mut Device) -> Result<(), String> {
         ),
     )
     .await?;
+    let presets = with_user_preset_files(app, device, presets).await?;
     let mut state = app.state.write().await;
     let previous_name = state
         .processing
@@ -1703,7 +1733,9 @@ async fn preset_file_step(
     let address = device.terminal;
     let code = device.code.clone();
     let model = device.session.info.model;
-    let sent = if store {
+    let sent = if let Some(delete) = device.session.adapter().wire.preset_file_delete {
+        preset_file_message(app, device, name, store, delete).await
+    } else if store {
         orban_protocol::terminal::store_preset_for_model(
             address,
             &code,
@@ -1712,6 +1744,7 @@ async fn preset_file_step(
             model,
         )
         .await
+        .map(|_| ())
     } else {
         orban_protocol::terminal::delete_preset_for_model(
             address,
@@ -1721,17 +1754,22 @@ async fn preset_file_step(
             model,
         )
         .await
+        .map(|_| ())
     };
     let _ = device.session.send(222, b"").await;
     // Read the list even after an error: the command may have taken effect.
     let listed = refresh_presets(app, device).await;
-    let present = app
-        .state
-        .read()
-        .await
+    let state = app.state.read().await;
+    let mut present = state
         .presets
         .iter()
         .any(|p| p.name == name && p.kind == orban_protocol::presets::PresetKind::User);
+    // A file upload also puts the saved preset on air without changes; a
+    // Save that replaces a listed preset is confirmed by that alone.
+    if store && device.session.adapter().wire.preset_file_delete.is_some() {
+        present &= state.processing.as_ref().is_some_and(|d| d.name == name);
+    }
+    drop(state);
     let verb = if store { "save" } else { "delete" };
     match (sent, listed) {
         (Ok(_), Ok(())) if present == store => Ok(()),
@@ -1748,6 +1786,103 @@ async fn preset_file_step(
             "The result of {verb} {name} could not be confirmed. Refresh the preset list. {e}"
         ))),
     }
+}
+
+/// The original PC Remote's Save / Save As (store) or Delete over the PC
+/// Remote session: the on-air file with `Preset Name` and `Preset File Name`
+/// set to `name`, uploaded as opcode 229 without a file name, or opcode
+/// `delete` with the preset's file name and a newline.
+async fn preset_file_message(
+    app: &App,
+    device: &mut Device,
+    name: &str,
+    store: bool,
+    delete: u16,
+) -> Result<(), String> {
+    let extension = device.session.adapter().wire.user_extension;
+    if !store {
+        device
+            .session
+            .send(delete, format!("{name}{extension}\n").as_bytes())
+            .await?;
+        return Ok(());
+    }
+    // The terminal `AP` document, not the on-air file: the unit writes that
+    // file a few seconds after a change, so a Save right after a change
+    // would store the previous value (seen 28 October 2026).
+    let address = device.terminal;
+    let code = device.code.clone();
+    let model = device.session.info.model;
+    let text = with_meter_polling(
+        device,
+        app,
+        orban_protocol::terminal::read_processing_text_for_model(
+            address,
+            &code,
+            SYSTEM_READ_DEADLINE,
+            model,
+        ),
+    )
+    .await?;
+    let on_air = Document::parse_for_model(text.as_bytes(), model)?;
+    let shown = app.state.read().await.processing.clone();
+    let changed = match &shown {
+        None => Some("the on-air preset".to_owned()),
+        // Right after a write `AP` still gives the name without `modif `.
+        Some(shown)
+            if shown.name.strip_prefix("modif ").unwrap_or(&shown.name)
+                != on_air.name.strip_prefix("modif ").unwrap_or(&on_air.name) =>
+        {
+            Some(format!("the name ({})", on_air.name))
+        }
+        Some(shown) => on_air
+            .fields
+            .iter()
+            .find(|(field, value)| shown.fields.get(*field) != Some(value))
+            .map(|(field, _)| field.clone()),
+    };
+    if let Some(changed) = changed {
+        return Err(format!(
+            "The on-air processing changed elsewhere ({changed}). Review it first"
+        ));
+    }
+    let document = Zeroizing::new(renamed_preset_file(&text, name, extension)?);
+    let iv = *uuid::Uuid::new_v4().as_bytes();
+    let sealed = orban_protocol::archive::encrypt(document.as_bytes(), &device.code, iv)?;
+    let mut body = format!("0\n0\n\n{}\n", sealed.len()).into_bytes();
+    body.extend(sealed);
+    device.session.send(229, &body).await?;
+    // The unit answers the upload with a boundary answer (FBh) of its own.
+    device.boundaries.sent();
+    Ok(())
+}
+
+/// An on-air file as the original 5700i PC Remote saves it under `name`: LF
+/// line ends, `Preset Name=<name>` (keeping the size after it) and
+/// `Preset File Name= <name + extension>`; every other line is unchanged.
+fn renamed_preset_file(text: &str, name: &str, extension: &str) -> Result<String, String> {
+    let mut named = false;
+    let mut filed = false;
+    let lines: Vec<String> = text
+        .replace("\r\n", "\n")
+        .split('\n')
+        .map(|line| {
+            if !named && let Some(rest) = line.strip_prefix("Preset Name=<") {
+                named = true;
+                let after = rest.split_once('>').map_or("", |(_, after)| after);
+                format!("Preset Name=<{name}>{after}")
+            } else if !filed && line.starts_with("Preset File Name=") {
+                filed = true;
+                format!("Preset File Name= <{name}{extension}>")
+            } else {
+                line.to_owned()
+            }
+        })
+        .collect();
+    if !named || !filed {
+        return Err("The on-air document has no preset name".into());
+    }
+    Ok(lines.join("\n"))
 }
 
 async fn manage_preset(
@@ -1802,7 +1937,13 @@ async fn manage_preset(
             }
             PresetFileAction::Delete { .. } => None,
         };
-        if let Some(name) = new_name {
+        // The original 5700i client's Save stores the on-air preset under
+        // its own name again, replacing that user preset.
+        let saves_on_air = matches!(&body.action, PresetFileAction::Save { name }
+            if device.session.adapter().wire.preset_file_delete.is_some()
+                && kind(name) == Some(PresetKind::User)
+                && on_air.is_some_and(|n| n == name || n.strip_prefix("modif ") == Some(name)));
+        if let Some(name) = new_name.filter(|_| !saves_on_air) {
             validate_store_name(name, max_store_name_length(model))
                 .map_err(OperationError::safe)?;
             match kind(name) {
@@ -2793,6 +2934,21 @@ fn ensure_session(state: &Snapshot, expected: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The upload the original 5700i client sent for Save As "OOR SAVEAS 1"
+    /// (28 October 2026): the on-air file with LF line ends and only the two
+    /// name lines changed.
+    #[test]
+    fn a_5700i_save_renames_the_on_air_file_as_the_original_client() {
+        let on_air = "OptimodVersion=<5700.51>\r\nPreset Name=<modif UFBS 15 09 2022> size=306\r\nFactory Preset Name=<LOUD-BIG>\r\nPreset Type= <MULTIBAND PRESET>\r\nPreset File Name= <modif UFBS 15 09 2022.orb57user>\r\nC:<AGC>String:<On>;D:1;\r\nEnd Preset<end>\r\n";
+        assert_eq!(
+            super::renamed_preset_file(on_air, "OOR SAVEAS 1", ".orb57user").unwrap(),
+            "OptimodVersion=<5700.51>\nPreset Name=<OOR SAVEAS 1> size=306\nFactory Preset Name=<LOUD-BIG>\nPreset Type= <MULTIBAND PRESET>\nPreset File Name= <OOR SAVEAS 1.orb57user>\nC:<AGC>String:<On>;D:1;\nEnd Preset<end>\n"
+        );
+        assert!(
+            super::renamed_preset_file("C:<AGC>String:<On>;D:1;\n", "X", ".orb57user").is_err()
+        );
+    }
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tower::ServiceExt;
@@ -3715,7 +3871,7 @@ mod tests {
             .unwrap();
         let first = app.state.read().await.session_id.clone().unwrap();
         // Let the unit take the first session's 222 before the link drops.
-        assert!(unit_counted(&unit, |c| &c.subscriptions, 1).await);
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 2).await);
         unit.drop_sessions();
         let lost = tokio::time::Instant::now();
         assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
@@ -3743,7 +3899,7 @@ mod tests {
         assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
         assert_eq!(state.presets.len(), 2);
         // The unit counts the new session's 222 as it arrives.
-        assert!(unit_counted(&unit, |c| &c.subscriptions, 2).await);
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 4).await);
         let polls = unit.count(|c| &c.polls);
         sleep(Duration::from_millis(300)).await;
         assert!(unit.count(|c| &c.polls) > polls && app.meters.borrow()["live"] == true);
@@ -3826,7 +3982,7 @@ mod tests {
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
             .unwrap();
-        assert!(unit_counted(&unit, |c| &c.subscriptions, 1).await);
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 2).await);
         unit.drop_sessions();
         assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
         assert!(wait_until(&app, Duration::from_secs(3), |s| s.connected).await);
@@ -3834,7 +3990,7 @@ mod tests {
             command(&app, Command::CancelReconnect).await.unwrap_err(),
             "No reconnection is pending"
         );
-        assert!(unit_counted(&unit, |c| &c.subscriptions, 2).await);
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 4).await);
         unit.drop_sessions();
         assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
         assert!(wait_until(&app, Duration::from_secs(3), |s| s.connected).await);
@@ -3868,7 +4024,7 @@ mod tests {
         command(&app, |r| Command::Connect(connect, r))
             .await
             .unwrap();
-        assert!(unit_counted(&unit, |c| &c.subscriptions, 1).await);
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 2).await);
         unit.drop_sessions();
         assert!(wait_until(&app, Duration::from_secs(1), |s| s.reconnect.is_some()).await);
         app.book.lock().unwrap().set_code(&id, None).unwrap();
@@ -3913,8 +4069,8 @@ mod tests {
         // Read on the PC Remote session: no terminal session was opened for
         // it, with meters off during the read and on again afterwards.
         assert_eq!(unit.count(|c| &c.terminal_sessions), terminal_sessions);
-        assert_eq!(unit.count(|c| &c.unsubscriptions), 1);
-        assert!(unit_counted(&unit, |c| &c.subscriptions, 2).await);
+        assert_eq!(unit.count(|c| &c.unsubscriptions), 2);
+        assert!(unit_counted(&unit, |c| &c.subscriptions, 3).await);
         // A write still addressed to the old preset is refused.
         let error = command(&app, |r| Command::Change(change_request(&session), r))
             .await
@@ -3940,7 +4096,7 @@ mod tests {
         assert_eq!(state.revision, revision);
         drop(state);
         sleep(ARCHIVE_RETRY + Duration::from_millis(500)).await;
-        assert_eq!(unit.count(|c| &c.unsubscriptions), 0);
+        assert_eq!(unit.count(|c| &c.unsubscriptions), 1);
     }
 
     /// The unit saves the archive file a moment after the change: an archive
@@ -3965,7 +4121,7 @@ mod tests {
                 .is_some_and(|d| d.name == "TARGET"))
             .await
         );
-        assert_eq!(unit.count(|c| &c.unsubscriptions), 3);
+        assert_eq!(unit.count(|c| &c.unsubscriptions), 4);
     }
 
     /// If the new document cannot be read, the old one is not kept as if it
@@ -4209,7 +4365,7 @@ mod tests {
         }
         sleep(Duration::from_millis(100)).await;
         assert_eq!(unit.count(|c| &c.logins), 100);
-        assert_eq!(unit.count(|c| &c.subscriptions), 100);
+        assert_eq!(unit.count(|c| &c.subscriptions), 200);
         assert_eq!(unit.count(|c| &c.disconnects), 100);
         assert_eq!(unit.count(|c| &c.writes), 0);
     }
@@ -6259,10 +6415,10 @@ mod tests {
 
     #[tokio::test]
     async fn models_without_a_documented_save_command_refuse_preset_changes() {
-        for (banner, terminal_banner) in [
-            ("5700i V 3.0.1.20", "Orban Optimod 5700i test"),
-            ("8700HD V 1.0.2.161", "Orban Optimod 8700HD V 1.0.2.161"),
-        ] {
+        // The 5700i saves and deletes with its client's file messages.
+        for (banner, terminal_banner) in
+            [("8700HD V 1.0.2.161", "Orban Optimod 8700HD V 1.0.2.161")]
+        {
             let outcome = simulated_preset_file(PresetFileCase {
                 banner,
                 terminal_banner,

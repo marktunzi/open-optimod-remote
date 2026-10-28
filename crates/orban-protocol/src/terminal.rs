@@ -113,6 +113,23 @@ pub async fn read_snapshot_for_model(
         model,
     )
 }
+/// The on-air processing document as the terminal's `AP` prints it, for a
+/// model that saves presets by uploading that document (5700i).
+pub async fn read_processing_text_for_model(
+    address: SocketAddr,
+    code: &str,
+    deadline: Duration,
+    model: DeviceModel,
+) -> Result<Zeroizing<String>, String> {
+    let _ = Zeroizing::new(crate::auth::login_request(code)?);
+    let command = Zeroizing::new(format!("AP [{}]??\r\n", code.to_ascii_uppercase()));
+    let text = Zeroizing::new(exchange(address, command, deadline, model).await?);
+    let start = text
+        .find("OptimodVersion=<")
+        .ok_or("Missing processing document")?;
+    Document::parse_for_model(&text.as_bytes()[start..], model)?;
+    Ok(Zeroizing::new(text[start..].to_owned()))
+}
 pub async fn read_presets(
     address: SocketAddr,
     code: &str,

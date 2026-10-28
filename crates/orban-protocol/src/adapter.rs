@@ -216,10 +216,14 @@ pub struct Wire {
     pub file_names: bool,
     /// A factory preset can be recalled with the terminal's `RP`.
     pub factory_recall: bool,
+    /// Presets are saved as an opcode-229 upload of the on-air file under a
+    /// new name and deleted with this opcode and the file name, as the
+    /// original PC Remote does. `None` where this was not captured.
+    pub preset_file_delete: Option<u16>,
 }
 
-/// 5700i 3.0.1.20 (reference unit and virtual 5700i).
-pub const WIRE_5700I: Wire = Wire {
+/// The PC Remote generation of the 5700i, where nothing else was captured.
+pub const WIRE_PC_REMOTE: Wire = Wire {
     boundary: (250, 251),
     on_air_request: 239,
     setup_request: None,
@@ -231,6 +235,23 @@ pub const WIRE_5700I: Wire = Wire {
     login_seed: true,
     file_names: true,
     factory_recall: true,
+    preset_file_delete: None,
+};
+
+/// 5700i 3.0.1.20 (reference unit and virtual 5700i).
+///
+/// The terminal `LP` lists user presets among the factory presets; F3h is
+/// answered by the unit's preset files (E7h), which tell them apart. The
+/// original PC Remote 3.0.1.20 saves (Save and Save As) by uploading the
+/// on-air file with its `Preset Name` and `Preset File Name` replaced, as
+/// opcode 229 without a file name: the unit stores it and puts it on air.
+/// Delete sends EDh with `NAME.orb57user` and a newline; the unit does not
+/// answer (captures, 28 October 2026).
+pub const WIRE_5700I: Wire = Wire {
+    user_presets_request: Some((243, 231)),
+    user_extension: ".orb57user",
+    preset_file_delete: Some(237),
+    ..WIRE_PC_REMOTE
 };
 
 /// 8700HD 1.0.2.161: captured from the original PC Remote 1.0.2.161 and the
@@ -253,6 +274,7 @@ pub const WIRE_8700HD: Wire = Wire {
     login_seed: true,
     file_names: true,
     factory_recall: true,
+    preset_file_delete: None,
 };
 
 /// 5500i 3.1.0.2: captured from the original PC Remote 3.1.0.2 and the
@@ -272,6 +294,7 @@ pub const WIRE_5500I: Wire = Wire {
     login_seed: true,
     file_names: true,
     factory_recall: true,
+    preset_file_delete: None,
 };
 
 /// Preset names of the factory `.orb55f50` files of PC Remote 3.1.0.2.
@@ -321,6 +344,7 @@ pub const WIRE_6300: Wire = Wire {
     login_seed: true,
     file_names: true,
     factory_recall: true,
+    preset_file_delete: None,
 };
 
 /// Preset names of the factory `.orb63f` files of PC Remote 4.1.1.19.
@@ -415,6 +439,7 @@ pub const WIRE_2300: Wire = Wire {
     login_seed: false,
     file_names: false,
     factory_recall: false,
+    preset_file_delete: None,
 };
 
 /// Preset names of the factory `.orb23f75` files of PC Remote 2.0.3.85.
@@ -598,10 +623,10 @@ const VERIFIED_5700I: AdapterDescriptor = AdapterDescriptor {
         live_meters: true,
         preset_catalog: true,
         preset_recall: true,
-        // The 5700i firmware has no terminal save or delete command; PC Remote
-        // syncs a local folder through file messages whose effect is unverified.
-        preset_store: false,
-        preset_delete: false,
+        // No terminal save or delete command: presets are saved and deleted
+        // with the original PC Remote's file messages (see WIRE_5700I).
+        preset_store: true,
+        preset_delete: true,
     },
     meter_profile: Some(MeterProfile {
         banks: &[1, 2],
@@ -665,7 +690,7 @@ const EXACT: [(&str, AdapterDescriptor); 8] = [
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
             on_air_archive: false,
-            wire: WIRE_5700I,
+            wire: WIRE_PC_REMOTE,
             evidence: Evidence::Static,
         },
     ),
@@ -795,7 +820,7 @@ const PC_8400: AdapterDescriptor = AdapterDescriptor {
 const WIRE_8400: Wire = Wire {
     file_sync: true,
     factory_recall: false,
-    ..WIRE_5700I
+    ..WIRE_PC_REMOTE
 };
 
 const ADAPTERS: [AdapterDescriptor; 14] = [
@@ -812,7 +837,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -828,7 +853,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -844,7 +869,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -860,7 +885,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -876,7 +901,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -892,7 +917,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -924,7 +949,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
     // Other 8400 software: identification only. The 8400 PC Remote 3.0
@@ -958,7 +983,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -974,7 +999,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -1006,7 +1031,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
     AdapterDescriptor {
@@ -1022,7 +1047,7 @@ const ADAPTERS: [AdapterDescriptor; 14] = [
         meter_profile: None,
         frame_cut: None,
         on_air_archive: false,
-        wire: WIRE_5700I,
+        wire: WIRE_PC_REMOTE,
         evidence: Evidence::None,
     },
 ];

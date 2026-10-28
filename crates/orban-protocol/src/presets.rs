@@ -77,6 +77,10 @@ pub fn validate_store_name(name: &str, max: usize) -> Result<(), String> {
     if name.len() > max {
         return Err(format!("A preset name can have at most {max} characters"));
     }
+    // A user preset is a file on the processor named after the preset.
+    if name.contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|']) {
+        return Err("A preset name cannot contain \\ / : * ? \" < > or |".into());
+    }
     if name.trim() != name {
         return Err("A preset name cannot start or end with a space".into());
     }

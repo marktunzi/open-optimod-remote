@@ -23,13 +23,14 @@ export function presetNameProblem(name: string, presets: Preset[], max: number):
   if (name.length > max) return `Use at most ${max} characters.`;
   if (name.trim() !== name) return 'Remove leading and trailing spaces.';
   if (/[\[\]]/.test(name) || /[^\x20-\x7e]/.test(name)) return 'Use plain letters, digits and punctuation without brackets.';
+  if (/[\\/:*?"<>|]/.test(name)) return 'A name cannot contain \\ / : * ? " < > or |.';
   if (name.toLowerCase().startsWith('modif ')) return 'A name cannot start with "modif ".';
   const existing = presets.find(p => p.name === name);
   if (existing) return existing.kind === 'Factory' ? 'A factory preset has this name.' : 'A preset with this name already exists.';
   return null;
 }
 
-export type PresetManagement = { save: boolean; rename: boolean; delete: boolean };
+export type PresetManagement = { save: boolean; rename: boolean; delete: boolean; replace: string | null };
 
 /**
  * Which on-device preset actions apply. Save stores the on-air processing;
@@ -47,6 +48,7 @@ export function presetManagement(snapshot: Snapshot, selected: string, busy: boo
     save: store && onAir !== '',
     rename: store && remove && user && onAir === selected,
     delete: remove && user && !selectedOnAir,
+    replace: store && replacesOnAir(snapshot.adapter_id) ? onAirUserPreset(snapshot) : null,
   };
 }
 
@@ -76,4 +78,16 @@ export function parseBackup(text: string, adapterId: string | null | undefined):
     throw new Error(`This backup was made on ${data.model || 'another processor'} (${data.adapter_id || 'unknown firmware'}). Restore it on the same model and firmware.`);
   }
   return data as Backup;
+}
+
+/** Models whose own PC Remote saves the on-air user preset under its own name (5700i Save). */
+export function replacesOnAir(adapterId: string | null | undefined): boolean {
+  return !!adapterId?.startsWith('pc-remote-5700i-');
+}
+
+/** The user preset on air, with or without changes. */
+export function onAirUserPreset(snapshot: Snapshot): string | null {
+  const onAir = snapshot.processing?.name || '';
+  const base = onAir.startsWith('modif ') ? onAir.slice(6) : onAir;
+  return snapshot.presets.some(p => p.name === base && p.kind === 'User') ? base : null;
 }

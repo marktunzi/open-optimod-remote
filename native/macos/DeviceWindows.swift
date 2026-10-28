@@ -580,6 +580,16 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         case "path" where parts.count > 2 && ["FM", "HD"].contains(parts[2]):
             controller?.webView.evaluateJavaScript(
                 "[...document.querySelectorAll('.processing-path-selector button')].find(b => b.textContent === '\(parts[2])')?.click()")
+        case "click" where parts.count > 2:
+            // Test hook: the first button whose label starts with TEXT.
+            let text = parts.dropFirst(2).joined(separator: " ").replacingOccurrences(of: "'", with: "\\'")
+            controller?.webView.evaluateJavaScript(
+                "[...document.querySelectorAll('button')].find(b => b.textContent.trim().startsWith('\(text)') && !b.disabled)?.click()")
+        case "type" where parts.count > 3:
+            // Test hook: TEXT into the input named FIELD, as typing does for React.
+            let text = parts.dropFirst(3).joined(separator: " ").replacingOccurrences(of: "'", with: "\\'")
+            controller?.webView.evaluateJavaScript(
+                "(() => { const i = document.querySelector('input[name=\"\(parts[2])\"]'); if (!i) return; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, '\(text)'); i.dispatchEvent(new Event('input', {bubbles: true})); })()")
         case "settings-tab" where parts.count > 1:
             nativeSettings.values.forEach { $0.selectTab(at: Int(parts[1]) ?? 0) }
         case "frame":

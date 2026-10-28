@@ -201,14 +201,17 @@ fn the_8700hd_is_its_own_model_and_is_found_by_its_terminal_banner() {
 }
 
 #[test]
-fn only_the_5500_has_documented_terminal_save_and_delete() {
-    for (banner, expected) in [
-        ("5500 V 1.2.8.24", true),
-        ("5700i V 3.0.1.20", false),
-        ("8700HD V 1.0.2.161", false),
+fn preset_save_and_delete_only_where_the_command_is_known() {
+    // The 5500 documents terminal SP/DP; the 5700i's own PC Remote saves and
+    // deletes with file messages (captured 28 October 2026).
+    for (banner, expected, files) in [
+        ("5500 V 1.2.8.24", true, None),
+        ("5700i V 3.0.1.20", true, Some(237)),
+        ("8700HD V 1.0.2.161", false, None),
     ] {
         let adapter = AdapterRegistry::identify_banner(banner).unwrap();
         assert_eq!(adapter.capabilities.preset_store, expected, "{banner}");
         assert_eq!(adapter.capabilities.preset_delete, expected, "{banner}");
+        assert_eq!(adapter.wire.preset_file_delete, files, "{banner}");
     }
 }

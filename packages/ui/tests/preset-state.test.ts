@@ -25,14 +25,19 @@ test('on-device preset actions follow the capabilities and the on-air preset', a
     write_enabled: true, modified_fields: [], adapter_id: 'pc-remote-5500-1.2.8.24',
     capabilities: { connect: true, parameter_reads: true, parameter_writes: true, live_meters: true, preset_catalog: true, preset_recall: true, preset_store: true, preset_delete: true },
   };
-  assert.deepEqual(presetManagement(base, 'MORNING', false), { save: true, rename: true, delete: false });
-  assert.deepEqual(presetManagement(base, 'EVENING', false), { save: true, rename: false, delete: true });
-  assert.deepEqual(presetManagement(base, 'ROCK', false), { save: true, rename: false, delete: false });
+  assert.deepEqual(presetManagement(base, 'MORNING', false), { save: true, rename: true, delete: false, replace: null });
+  assert.deepEqual(presetManagement(base, 'EVENING', false), { save: true, rename: false, delete: true, replace: null });
+  assert.deepEqual(presetManagement(base, 'ROCK', false), { save: true, rename: false, delete: false, replace: null });
   const modified = { ...base, processing: { name: 'modif MORNING', fields: {} } };
-  assert.deepEqual(presetManagement(modified, 'MORNING', false), { save: true, rename: false, delete: false });
-  const verified5700i = { ...base, capabilities: { ...base.capabilities, preset_store: false, preset_delete: false } };
-  assert.deepEqual(presetManagement(verified5700i, 'EVENING', false), { save: false, rename: false, delete: false });
-  assert.deepEqual(presetManagement(base, 'EVENING', true), { save: false, rename: false, delete: false });
+  assert.deepEqual(presetManagement(modified, 'MORNING', false), { save: true, rename: false, delete: false, replace: null });
+  // The 5700i client's Save replaces the on-air user preset, changed or not.
+  const m5700i = { ...modified, adapter_id: 'pc-remote-5700i-3.0.1.20' };
+  assert.deepEqual(presetManagement(m5700i, 'EVENING', false), { save: true, rename: false, delete: true, replace: 'MORNING' });
+  assert.equal(presetManagement({ ...m5700i, processing: { name: 'ROCK', fields: {} } }, 'ROCK', false).replace, null);
+  const noStore = { ...base, capabilities: { ...base.capabilities, preset_store: false, preset_delete: false } };
+  assert.deepEqual(presetManagement(noStore, 'EVENING', false), { save: false, rename: false, delete: false, replace: null });
+  assert.deepEqual(presetManagement(base, 'EVENING', true), { save: false, rename: false, delete: false, replace: null });
+  assert.match(presetNameProblem('A/B', base.presets, 20)!, /cannot contain/);
 
   assert.equal(maxPresetNameLength('pc-remote-5500-1.2.8.24'), 18);
   assert.equal(maxPresetNameLength('pc-remote-5700i-3.0.1.20'), 20);

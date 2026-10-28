@@ -50,10 +50,10 @@ Original client: `5700iPC.exe` (SHA-256 `63def9bb…`), menus from its own resou
 
 | Windows function | Mac app | Status | Evidence |
 |---|---|---|---|
-| Recall Preset (factory and user) | Recall | PASS | [Recall keeps the session](2026-10-20-recall-session.md) |
-| Save Preset | — | UNTESTED (not implemented) | |
-| Save Preset As | — | UNTESTED (not implemented) | |
-| Delete Preset | — | UNTESTED (not implemented) | |
+| Recall Preset (factory and user) | Recall | PASS | [Recall keeps the session](2026-10-20-recall-session.md), user presets told apart in [M1C](2026-10-28-m1c-preset-save-delete.md) |
+| Save Preset | Presets › Save NAME… (replaces the on-air user preset) | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md) |
+| Save Preset As | Presets › Save on-air as… | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md) |
+| Delete Preset | Presets › Delete selected… | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md) |
 | Backup to PC | app backup (AS + AP + names, not the client's format) | UNTESTED against the client | |
 | Restore from PC | setup restore | UNTESTED against the client | |
 
