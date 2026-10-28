@@ -28,7 +28,13 @@ impl Document {
         bytes: &[u8],
         model: crate::adapter::DeviceModel,
     ) -> Result<Self, String> {
-        Self::parse_with_prefix(bytes, Self::version_prefix(model)?)
+        let prefix = Self::version_prefix(model)?;
+        match Self::older_family(model) {
+            Some(older) if bytes.starts_with(older.as_bytes()) => {
+                Self::parse_with_prefix(bytes, older)
+            }
+            _ => Self::parse_with_prefix(bytes, prefix),
+        }
     }
 
     /// `parse_prefix` for the document family of `model`.
@@ -36,7 +42,18 @@ impl Document {
         bytes: &[u8],
         model: crate::adapter::DeviceModel,
     ) -> Result<Self, String> {
-        Self::parse_prefix(bytes, Self::version_prefix(model)?)
+        let prefix = Self::version_prefix(model)?;
+        match Self::older_family(model) {
+            Some(older) if bytes.starts_with(older.as_bytes()) => Self::parse_prefix(bytes, older),
+            _ => Self::parse_prefix(bytes, prefix),
+        }
+    }
+
+    /// A second family the model's files can carry: the 5500's installer
+    /// keeps its factory presets as 8300.10 documents, while its firmware
+    /// 1.2.8.24 writes 5500.50 (the only version string in `_optimod.exe`).
+    fn older_family(model: crate::adapter::DeviceModel) -> Option<&'static str> {
+        (model == crate::adapter::DeviceModel::Optimod5500).then_some("OptimodVersion=<8300.")
     }
 
     fn version_prefix(model: crate::adapter::DeviceModel) -> Result<&'static str, String> {
@@ -44,9 +61,9 @@ impl Document {
             crate::adapter::DeviceModel::Optimod5700i
             | crate::adapter::DeviceModel::Optimod5700Fm
             | crate::adapter::DeviceModel::Optimod5700Hd => "OptimodVersion=<5700.",
-            // The 5500i 3.1.0.2 firmware writes 5500.50 documents.
-            crate::adapter::DeviceModel::Optimod5500i => "OptimodVersion=<5500.",
-            crate::adapter::DeviceModel::Optimod5500 => "OptimodVersion=<8300.",
+            // The 5500i 3.1.0.2 and 5500 1.2.8.24 firmware write 5500.50 documents.
+            crate::adapter::DeviceModel::Optimod5500i
+            | crate::adapter::DeviceModel::Optimod5500 => "OptimodVersion=<5500.",
             crate::adapter::DeviceModel::Optimod8500 => "OptimodVersion=<8500.",
             crate::adapter::DeviceModel::Optimod6300 => "OptimodVersion=<6300.",
             crate::adapter::DeviceModel::Optimod2300 => "OptimodVersion=<2300.",
