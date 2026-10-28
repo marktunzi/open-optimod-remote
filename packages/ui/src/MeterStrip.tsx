@@ -97,11 +97,9 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
     element.width=Math.round(width*ratio);element.height=Math.round(height*ratio);
    }
    context.setTransform(ratio,0,0,ratio,0,0);context.clearRect(0,0,width,height);
-   // The Figma window draws the meters at their real size, never scaled: a
-   // narrower window scrolls, a wider one spreads the groups apart.
-   let spread=0;
+   // The Figma window draws the meters at their real size and spacing, never
+   // scaled or spread apart: a narrower window scrolls.
    if(theme==='figma'){
-    spread=groups.length?Math.max(0,width-minimumCanvasWidth)/groups.length:0;
     context.fillStyle=palette.panelTop;context.fillRect(0,0,width,height);
    }else{
     context.setTransform(ratio*width/minimumCanvasWidth,0,0,ratio*height/REFERENCE_HEIGHT,0,0);
@@ -112,7 +110,6 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
    context.imageSmoothingEnabled=false;
    let x=0;
    groups.forEach((group,index)=>{
-    x+=spread/2;
     const groupWidth=meterGroupWidth(group),top=46.096,bottom=214.096,meterHeight=bottom-top;
     context.font=theme==='figma'?'500 10.5px -apple-system, "SF Pro Text", sans-serif':'600 10px "SF Compact Text", -apple-system, sans-serif';
     context.textAlign='center';context.fillStyle=palette.label;
@@ -187,11 +184,11 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
     const unit=unitFor(group);
     if(unit)context.fillText(unit,x+groupWidth/2,232.5);
     if(index<groups.length-1){
-     const divider=x+groupWidth+spread/2;
+     const divider=x+groupWidth;
      context.fillStyle=palette.separator;context.fillRect(divider-1,0,1,REFERENCE_HEIGHT);
      context.fillStyle=palette.separatorHighlight;context.fillRect(divider,0,1,REFERENCE_HEIGHT);
     }
-    x+=groupWidth+spread/2;
+    x+=groupWidth;
    });
    animation=requestAnimationFrame(draw);
   };
