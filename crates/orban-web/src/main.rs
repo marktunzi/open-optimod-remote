@@ -2063,6 +2063,9 @@ fn renamed_preset_file(text: &str, name: &str, extension: &str) -> Result<String
 /// The files the original PC Remote's Backup saves: the setup file (240)
 /// and every file the unit sends for its user presets (243), decrypted.
 async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>, String> {
+    if device.session.info.access_level != 0 {
+        return Err("Backup is not available for this access level".into());
+    }
     let wire = device.session.adapter().wire;
     let Some((presets, preset_reply)) = wire.user_presets_request else {
         return Err(format!(
@@ -2104,6 +2107,10 @@ async fn read_unit_file_from(
             "Not available for {}",
             device.session.info.model.label()
         ));
+    }
+    // The passcodes are for a full-access session only, as their write is.
+    if request == 241 && device.session.info.access_level != 0 {
+        return Err("Security is not available for this access level".into());
     }
     let reply = match request {
         242 => 235,
