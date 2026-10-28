@@ -28,8 +28,31 @@ struct DeviceWindowsTests {
         precondition(ProfileSystemSettings.group(of: "RDS PROGRAM NAME") == "RDS")
         precondition(ProfileSystemSettings.section(of: "AI REF LEVEL", in: ProfileSystemSettings.group(of: "AI REF LEVEL")) == "Analog Input")
         precondition(ProfileSystemSettings.label("AI REF LEVEL") == "Analog Input Reference Level")
-        if case .unavailable = ProfileSystemSettings.item(for: "ACTUAL A OR D", definition: nil).writePolicy {} else { preconditionFailure() }
-        if case .unavailable = ProfileSystemSettings.item(for: "SOME FIELD", definition: nil).writePolicy {} else { preconditionFailure() }
+        let text = DeviceFieldPayload(index: 0, value: .text("STATION"))
+        let address = DeviceFieldPayload(index: 0, value: .text("192.168.1.10"))
+        if case .unavailable = ProfileSystemSettings.item(for: "ACTUAL A OR D", label: nil, field: text, definition: nil)?.writePolicy {} else { preconditionFailure() }
+        // A choice the profile cannot name is not shown; a text value is typed and read back.
+        precondition(ProfileSystemSettings.item(for: "SOME FIELD", label: nil,
+                                                field: DeviceFieldPayload(index: 3, value: DeviceValuePayload(type: "Int", value: .integer(3))),
+                                                definition: nil) == nil)
+        precondition(ProfileSystemSettings.item(for: "STATION ID", label: nil, field: text, definition: nil)?.writePolicy == .typedText)
+        precondition(ProfileSystemSettings.item(for: "NETWORK IP", label: nil, field: address, definition: nil)?.control
+                     == .text(maxLength: 255, validation: .ipAddress))
+        // The client's own label wins, without its trailing colon.
+        precondition(ProfileSystemSettings.item(for: "RDS PROGRAM NAME", label: "Program Service Name(PS):", field: text, definition: nil)?.label
+                     == "Program Service Name(PS)")
+        // Client pages read column by column; named group boxes become sections.
+        let page = SystemLayoutPage(title: "Input", controls: [
+            SystemLayoutControl(kind: "slider", name: "B", label: "B", x: 182, y: 16, options: []),
+            SystemLayoutControl(kind: "slider", name: "A", label: "A", x: 13, y: 46, options: []),
+        ], groups: [SystemLayoutGroup(x: 170, y: 0, w: 150, h: 100, text: " DIGITAL")])
+        let fields = ["A": text, "B": text]
+        let snapshot = try! JSONDecoder().decode(DeviceSnapshotPayload.self, from: Data("""
+        {"connected":true,"firmware":"x","host":"h","system":{"name":"s","fields":{"A":{"index":0,"value":{"type":"Text","value":"1"}},"B":{"index":0,"value":{"type":"Text","value":"2"}}}},"processing":null,"error":null,"write_enabled":true,"session_id":"s","presets":[],"adapter_id":"a"}
+        """.utf8))
+        let context = SystemSettingsContext(snapshot: snapshot, definitions: [:], pages: [page])
+        precondition(ProfileSystemSettings.clientSections(page, fields: fields, context: context).map(\.title) == ["Input", "Digital"])
+        precondition(ProfileSystemSettings.tabs(context: context).first?.title == "Input")
         precondition(device("pc-remote-5700i-3.0.1.20", .optimod5700i).usesNative5700iSettings)
         for adapter in ["pc-remote-8700hd-1.0.2.161", "pc-remote-5500-1.2.8.24", "pc-remote-5500i-3.1.0.2", nil] {
             precondition(!device(adapter, nil).usesNative5700iSettings)

@@ -10,8 +10,15 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
     private var statusText = "Loading settings…"
     private var detailText = ""
     private var selectedSections: [String: String] = [:]
+    /// The processor this window belongs to. Phase 6 keeps one window per
+    /// processor next to the others; until then another connected processor
+    /// shows this window offline, never its own data.
+    let device: DeviceRef
+    private var lastRevision: Int?
+    private var observer: NSObjectProtocol?
 
-    init() {
+    init(device: DeviceRef) {
+        self.device = device
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1180, height: 820),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -26,8 +33,33 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
         super.init(window: window)
         window.delegate = self
         configureRoot()
-        window.setFrameAutosaveName("OpenOptimodRemoteSystemSettingsWindow")
         window.center()
+        window.setFrameAutosaveName("OpenOptimodRemoteSystemSettingsWindow.\(device.id)")
+        // The app's one reader of the service state tells every window about a
+        // change; this window adds no polling and no connection of its own.
+        observer = NotificationCenter.default.addObserver(
+            forName: .deviceSessionChanged, object: nil, queue: .main
+        ) { [weak self] _ in self?.sessionChanged() }
+    }
+
+    deinit {
+        if let observer { NotificationCenter.default.removeObserver(observer) }
+    }
+
+    private var isCurrentDevice: Bool { DeviceSessionStore.shared.device?.id == device.id }
+
+    private func sessionChanged() {
+        let session = DeviceSessionStore.shared.session
+        guard isCurrentDevice else {
+            if context != nil {
+                context = nil
+                setBusy(false, status: "Offline")
+                setDetail("")
+                renderTabs(selectedTitle: selectedTabTitle)
+            }
+            return
+        }
+        if context == nil || session?.revision != lastRevision { reload() }
     }
 
     @available(*, unavailable)
@@ -68,10 +100,18 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
         api.load { [weak self] result in
             guard let self else { return }
             switch result {
+            case let .success(context) where !self.isCurrentDevice || DeviceRef.identity(
+                deviceID: context.snapshot.deviceID, host: context.snapshot.host) != self.device.id:
+                // Another processor answered; this window shows none of its data.
+                self.context = nil
+                self.setBusy(false, status: "Offline")
+                self.setDetail("")
+                self.renderTabs(selectedTitle: self.selectedTabTitle)
             case let .success(context):
+                self.lastRevision = context.snapshot.revision
                 self.context = context
                 self.setBusy(false, status: context.snapshot.connected ? (context.snapshot.writeEnabled ? "Connected · Changes enabled" : "Connected · Read only") : "Not connected")
-                self.setDetail(context.snapshot.connected ? "\(context.snapshot.firmware) · \(context.snapshot.host)" : (context.snapshot.error ?? "Connect in Connections."))
+                self.setDetail(context.snapshot.connected ? context.snapshot.firmware : (context.snapshot.error ?? "Connect in Connections."))
                 self.renderTabs(selectedTitle: self.selectedTabTitle)
             case let .failure(error):
                 self.setBusy(false, status: "Settings unavailable")
@@ -100,7 +140,7 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
     }
 
     private func updateWindowSubtitle() {
-        window?.subtitle = [statusText, detailText].filter { !$0.isEmpty }.joined(separator: " · ")
+        window?.subtitle = [device.subtitle, statusText, detailText].filter { !$0.isEmpty }.joined(separator: " · ")
     }
 
     private func renderTabs(selectedTitle: String?) {

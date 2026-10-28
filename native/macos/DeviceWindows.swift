@@ -68,9 +68,12 @@ struct DeviceSessionPayload: Decodable, Equatable, Sendable {
     let adapterID: String?
     let model: String?
     let capabilities: DeviceCapabilitiesPayload?
+    /// Bumped by the service whenever a document changes (a write here, the
+    /// front panel, another client): windows reload their view on a change.
+    let revision: Int?
 
     enum CodingKeys: String, CodingKey {
-        case connected, host, firmware, model, capabilities
+        case connected, host, firmware, model, capabilities, revision
         case deviceID = "device_id"
         case sessionID = "session_id"
         case adapterID = "adapter_id"
@@ -478,7 +481,7 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
     /// the System fields of the connected model's own profile.
     func showSystemSettings() {
         guard let device = store.device else { return }
-        let controller = nativeSettings[device.id] ?? SystemSettingsWindowController()
+        let controller = nativeSettings[device.id] ?? SystemSettingsWindowController(device: device)
         nativeSettings[device.id] = controller
         controller.show()
     }

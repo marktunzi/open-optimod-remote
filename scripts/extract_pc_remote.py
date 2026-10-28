@@ -669,6 +669,44 @@ def title_case(name: str) -> str:
     return " ".join(words)
 
 
+def dialog_controls(dialog, binds, by_id, names):
+    """The controls one dialog binds to fields in `names`, with the dialog's own labels."""
+    items = {i["id"]: i for i in dialog["items"]}
+    controls = []
+    for _, kind, args in sorted(binds):
+        name = by_id.get(args[0])
+        if not name or name not in names:
+            continue
+        if kind == "slider":
+            edit, label, track, _ = args[1:5]
+            item = items.get(track) or items.get(edit)
+            if not item:
+                continue
+            text = items.get(label, {}).get("text", "").strip() or title_case(name)
+            controls.append(dict(kind="slider", name=name, label=text.replace("&", ""), x=item["x"], y=item["y"], w=item["w"],
+                                 id=item["id"], reference_id=args[0], options=[]))
+        elif kind == "radio":
+            # Only real radio buttons are options; another control in the
+            # binder arguments is the caption of the group.
+            referenced = [items[c] for c in args[1:] if c and c in items]
+            buttons = [i for i in referenced if i["cls"] == "Button" and i["style"] & 0xF in (4, 9)]
+            captions = [i["text"].replace("&", "").strip() for i in referenced if i not in buttons and i["text"].strip()]
+            if not buttons:
+                continue
+            x, y = min(b["x"] for b in buttons), min(b["y"] for b in buttons)
+            boxes = sorted((g for g in dialog["items"] if g["cls"] == "Button" and g["style"] & 0xF == 7 and g["text"].strip()
+                            and g["x"] <= x <= g["x"] + g["w"] and g["y"] <= y <= g["y"] + g["h"]), key=lambda g: g["w"] * g["h"])
+            label = captions[0] if captions else boxes[0]["text"].replace("&", "").strip() if boxes else title_case(name)
+            controls.append(dict(kind="radio", name=name, label=label, x=x, y=y, w=max(b["x"] + b["w"] for b in buttons) - x,
+                                 id=buttons[0]["id"], reference_id=args[0], options=[b["text"].replace("&", "").strip() for b in buttons]))
+        else:
+            item = items.get(args[1]) or items.get(args[2])
+            if item:
+                controls.append(dict(kind="slider", name=name, label=title_case(name), x=item["x"], y=item["y"], w=item["w"],
+                                     id=item["id"], reference_id=args[0], options=[]))
+    return controls
+
+
 def build_layouts(image: Image, config: dict, profile_fields, raw):
     resources = dialogs(image)
     names = {f["name"] for f in profile_fields if f["scope"] == "Processing"}
@@ -684,39 +722,7 @@ def build_layouts(image: Image, config: dict, profile_fields, raw):
         if not best or best[1] not in config["processing_dialogs"]:
             continue
         dialog = resources[best[1]]
-        items = {i["id"]: i for i in dialog["items"]}
-        controls = []
-        for _, kind, args in sorted(binds):
-            name = by_id.get(args[0])
-            if not name or name not in names:
-                continue
-            if kind == "slider":
-                edit, label, track, _ = args[1:5]
-                item = items.get(track) or items.get(edit)
-                if not item:
-                    continue
-                text = items.get(label, {}).get("text", "").strip() or title_case(name)
-                controls.append(dict(kind="slider", name=name, label=text.replace("&", ""), x=item["x"], y=item["y"], w=item["w"],
-                                     id=item["id"], reference_id=args[0], options=[]))
-            elif kind == "radio":
-                # Only real radio buttons are options; another control in the
-                # binder arguments is the caption of the group.
-                referenced = [items[c] for c in args[1:] if c and c in items]
-                buttons = [i for i in referenced if i["cls"] == "Button" and i["style"] & 0xF in (4, 9)]
-                captions = [i["text"].replace("&", "").strip() for i in referenced if i not in buttons and i["text"].strip()]
-                if not buttons:
-                    continue
-                x, y = min(b["x"] for b in buttons), min(b["y"] for b in buttons)
-                boxes = sorted((g for g in dialog["items"] if g["cls"] == "Button" and g["style"] & 0xF == 7 and g["text"].strip()
-                                and g["x"] <= x <= g["x"] + g["w"] and g["y"] <= y <= g["y"] + g["h"]), key=lambda g: g["w"] * g["h"])
-                label = captions[0] if captions else boxes[0]["text"].replace("&", "").strip() if boxes else title_case(name)
-                controls.append(dict(kind="radio", name=name, label=label, x=x, y=y, w=max(b["x"] + b["w"] for b in buttons) - x,
-                                     id=buttons[0]["id"], reference_id=args[0], options=[b["text"].replace("&", "").strip() for b in buttons]))
-            else:
-                item = items.get(args[1]) or items.get(args[2])
-                if item:
-                    controls.append(dict(kind="slider", name=name, label=title_case(name), x=item["x"], y=item["y"], w=item["w"],
-                                         id=item["id"], reference_id=args[0], options=[]))
+        controls = dialog_controls(dialog, binds, by_id, names)
         if not controls:
             continue
         hd = sum(c["name"].startswith(("HD ", "IBOC")) for c in controls)
@@ -756,6 +762,56 @@ def build_layouts(image: Image, config: dict, profile_fields, raw):
         path_rank = {"Shared": 0, "FM": 1}.get(page["path"], 2)
         order = next((i for i, t in enumerate(PAGE_ORDER) if page["title"].startswith(t) or page["title"].endswith(t)), 99)
         return path_rank, order, page["title"]
+
+    return sorted(kept, key=rank)
+
+
+# The order of the original clients' Setup pages (their property sheet).
+SYSTEM_ORDER = ["Input", "AES67 Input", "Output", "Output 1", "Output 2", "AES67 Output", "Analog Output", "Digital Output",
+                "Stereo Encoder", "Digital MPX", "HD Digital Radio", "Utility", "Test", "Remote Interface", "Network", "RDS",
+                "RDS Alternate Frequencies"]
+
+
+def build_system_layouts(image: Image, config: dict, profile_fields, raw):
+    """The original client's System Setup pages: every dialog outside the
+    processing and meter dialogs whose binders reach System fields, with the
+    dialog's own title, labels and group boxes. A page that only repeats a
+    subset of another page with its title is a variant for other hardware."""
+    resources = dialogs(image)
+    names = {f["name"] for f in profile_fields if f["scope"] == "System"}
+    by_id = {r["id"]: r["name"] for r in raw}
+    skip = set(config["processing_dialogs"]) | set(config["meter"].get("dialogs", []))
+    pages = {}
+    for function, binds in binder_calls(image, config["binders"]).items():
+        controls_used = {c for _, _, args in binds for c in args[1:] if c}
+        best = None
+        for dialog_id, dialog in resources.items():
+            overlap = len(controls_used & {i["id"] for i in dialog["items"]})
+            if overlap and (best is None or overlap > best[0] or (overlap == best[0] and len(dialog["items"]) < best[2])):
+                best = (overlap, dialog_id, len(dialog["items"]))
+        if not best or best[1] in skip:
+            continue
+        dialog = resources[best[1]]
+        controls = dialog_controls(dialog, binds, by_id, names)
+        if not controls:
+            continue
+        page = pages.setdefault(best[1], dict(title=dialog["title"].strip() or "Setup", width=dialog["w"], height=dialog["h"],
+                                              reference_dialog=best[1], controls=[], groups=[
+                                                  dict(x=g["x"], y=g["y"], w=g["w"], h=g["h"], text=g["text"].replace("&", ""))
+                                                  for g in dialog["items"] if g["cls"] == "Button" and g["style"] & 0xF == 7]))
+        known = {c["name"] for c in page["controls"]}
+        page["controls"] += [c for c in controls if c["name"] not in known]
+    kept = []
+    for page in pages.values():
+        here = {c["name"] for c in page["controls"]}
+        if any(other is not page and other["title"] == page["title"] and here < {c["name"] for c in other["controls"]}
+               for other in pages.values()):
+            continue
+        kept.append(page)
+
+    def rank(page):
+        order = next((i for i, t in enumerate(SYSTEM_ORDER) if page["title"].startswith(t)), len(SYSTEM_ORDER))
+        return order, page["reference_dialog"]
 
     return sorted(kept, key=rank)
 
@@ -1139,6 +1195,8 @@ def main():
             "fields": fields}, indent=2) + "\n")
         layouts = build_layouts(image, config, fields, raw)
         (args.output / f"{prefix}layouts.json").write_text(json.dumps(layouts, indent=2) + "\n")
+        system_layouts = build_system_layouts(image, config, fields, raw)
+        (args.output / f"{prefix}system-layouts.json").write_text(json.dumps(system_layouts, indent=2) + "\n")
         meters = build_meters(image, config["meter"], raw)
         (args.output / f"{prefix}meters.json").write_text(json.dumps({**header, **meters}, indent=1) + "\n")
         (args.output / f"{prefix}report.json").write_text(json.dumps({

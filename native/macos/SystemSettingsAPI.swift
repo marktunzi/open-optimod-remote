@@ -99,9 +99,12 @@ struct DeviceSnapshotPayload: Codable, Sendable {
     let sessionID: String?
     let presets: [DevicePresetPayload]
     let adapterID: String?
+    let deviceID: String?
+    let revision: Int?
 
     enum CodingKeys: String, CodingKey {
-        case connected, firmware, host, system, processing, error, presets
+        case connected, firmware, host, system, processing, error, presets, revision
+        case deviceID = "device_id"
         case writeEnabled = "write_enabled"
         case sessionID = "session_id"
         case adapterID = "adapter_id"
@@ -191,15 +194,47 @@ private extension Optional {
     }
 }
 
+/// One control of an original client's System Setup page (profile `system_layouts`).
+struct SystemLayoutControl: Codable, Equatable, Sendable {
+    let kind: String
+    let name: String
+    let label: String
+    let x: Double
+    let y: Double
+    let options: [String]
+}
+
+struct SystemLayoutGroup: Codable, Equatable, Sendable {
+    let x: Double
+    let y: Double
+    let w: Double
+    let h: Double
+    let text: String
+}
+
+struct SystemLayoutPage: Codable, Equatable, Sendable {
+    let title: String
+    let controls: [SystemLayoutControl]
+    let groups: [SystemLayoutGroup]
+}
+
 struct DeviceProfilePayload: Codable, Sendable {
     let model: String
     let firmware: String
     let fields: [DeviceDefinitionPayload]
+    let systemLayouts: [SystemLayoutPage]?
+
+    enum CodingKeys: String, CodingKey {
+        case model, firmware, fields
+        case systemLayouts = "system_layouts"
+    }
 }
 
 struct SystemSettingsContext: Sendable {
     let snapshot: DeviceSnapshotPayload
     let definitions: [String: DeviceDefinitionPayload]
+    /// The original client's Setup pages for this model, where extracted.
+    var pages: [SystemLayoutPage] = []
 
     var editable: Bool {
         snapshot.connected && snapshot.writeEnabled && snapshot.sessionID != nil
@@ -251,7 +286,8 @@ final class SystemSettingsAPI {
                     let systemDefinitions = Dictionary(uniqueKeysWithValues: profile.fields
                         .filter { $0.scope == "System" }
                         .map { ($0.name, $0) })
-                    self.finish(.success(SystemSettingsContext(snapshot: snapshot, definitions: systemDefinitions)), completion: completion)
+                    self.finish(.success(SystemSettingsContext(snapshot: snapshot, definitions: systemDefinitions,
+                                                               pages: profile.systemLayouts ?? [])), completion: completion)
                     return
                 }
                 self.get(path: "profile", as: DeviceProfilePayload.self) { profileResult in
@@ -263,7 +299,8 @@ final class SystemSettingsAPI {
                         let systemDefinitions = Dictionary(uniqueKeysWithValues: profile.fields
                             .filter { $0.scope == "System" }
                             .map { ($0.name, $0) })
-                        self.finish(.success(SystemSettingsContext(snapshot: snapshot, definitions: systemDefinitions)), completion: completion)
+                        self.finish(.success(SystemSettingsContext(snapshot: snapshot, definitions: systemDefinitions,
+                                                                   pages: profile.systemLayouts ?? [])), completion: completion)
                     }
                 }
             }

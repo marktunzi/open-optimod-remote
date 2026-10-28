@@ -42,6 +42,10 @@ pub struct Profile {
     /// adds those its built-in set lacks, such as other processing structures.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub supplement_layouts: Option<serde_json::Value>,
+    /// The original client's System Setup pages, where they could be
+    /// extracted. Absent: System Settings groups the System fields itself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system_layouts: Option<serde_json::Value>,
 }
 
 /// One embedded model profile: adapter id, parameters, optional pages and meters.
@@ -54,6 +58,7 @@ struct Embedded {
     /// that already exists in `parameters` is never replaced.
     supplement: Option<&'static str>,
     supplement_layouts: Option<&'static str>,
+    system_layouts: Option<&'static str>,
 }
 
 /// Every profile the app can write with. A new model adds one entry here and
@@ -70,6 +75,7 @@ const EMBEDDED: [Embedded; 8] = [
         supplement_layouts: Some(include_str!(
             "../../../profiles/5700i/3.0.1.20/static-layouts.json"
         )),
+        system_layouts: None,
     },
     Embedded {
         adapter_id: "pc-remote-5500-1.2.8.24",
@@ -78,6 +84,7 @@ const EMBEDDED: [Embedded; 8] = [
         meters: Some(include_str!("../../../profiles/5500/1.2.8.24/meters.json")),
         supplement: None,
         supplement_layouts: None,
+        system_layouts: None,
     },
     Embedded {
         adapter_id: "pc-remote-5500i-3.1.0.2",
@@ -86,6 +93,7 @@ const EMBEDDED: [Embedded; 8] = [
         meters: Some(include_str!("../../../profiles/5500i/3.1.0.2/meters.json")),
         supplement: None,
         supplement_layouts: None,
+        system_layouts: None,
     },
     Embedded {
         adapter_id: "pc-remote-6300-4.1.1.19",
@@ -94,6 +102,7 @@ const EMBEDDED: [Embedded; 8] = [
         meters: Some(include_str!("../../../profiles/6300/4.1.1.19/meters.json")),
         supplement: None,
         supplement_layouts: None,
+        system_layouts: None,
     },
     Embedded {
         adapter_id: "pc-remote-2300-2.0.3.85",
@@ -102,6 +111,9 @@ const EMBEDDED: [Embedded; 8] = [
         meters: Some(include_str!("../../../profiles/2300/2.0.3.85/meters.json")),
         supplement: None,
         supplement_layouts: None,
+        system_layouts: Some(include_str!(
+            "../../../profiles/2300/2.0.3.85/system-layouts.json"
+        )),
     },
     Embedded {
         adapter_id: "pc-remote-8700i-1.5.1.11",
@@ -112,6 +124,7 @@ const EMBEDDED: [Embedded; 8] = [
         meters: Some(include_str!("../../../profiles/8700i/1.5.1.11/meters.json")),
         supplement: None,
         supplement_layouts: None,
+        system_layouts: None,
     },
     Embedded {
         adapter_id: "pc-remote-8400-3.0.5.7",
@@ -120,6 +133,7 @@ const EMBEDDED: [Embedded; 8] = [
         meters: Some(include_str!("../../../profiles/8400/3.0.5.7/meters.json")),
         supplement: None,
         supplement_layouts: None,
+        system_layouts: None,
     },
     Embedded {
         adapter_id: "pc-remote-8700hd-1.0.2.161",
@@ -132,6 +146,9 @@ const EMBEDDED: [Embedded; 8] = [
         )),
         supplement: None,
         supplement_layouts: None,
+        system_layouts: Some(include_str!(
+            "../../../profiles/8700hd/1.0.2.161/system-layouts.json"
+        )),
     },
 ];
 
@@ -170,6 +187,7 @@ impl Profile {
         profile.layouts = parse(entry.layouts)?;
         profile.meters = parse(entry.meters)?;
         profile.supplement_layouts = parse(entry.supplement_layouts)?;
+        profile.system_layouts = parse(entry.system_layouts)?;
         Ok(Some(profile))
     }
 

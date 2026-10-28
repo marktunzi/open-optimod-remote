@@ -34,36 +34,118 @@ enum ProfileSystemSettings {
               sections: ["Station & Hardware", "Kantar", "Ratings Encoder"]),
     ]
 
+    /// The tabs of a model without a hand-made worksheet. The original client's
+    /// own Setup pages come first, with its titles, labels and group boxes;
+    /// every other System field the processor reports follows in the groups
+    /// below. Only fields the processor reports are shown, and only those with
+    /// a value the app can show exactly.
     static func tabs(context: SystemSettingsContext?) -> [SettingsTab] {
-        guard let context else { return [] }
-        let names = Set(context.snapshot.system?.fields.keys.map { $0 } ?? Array(context.definitions.keys))
-        var placed: [String: [String: [String]]] = [:]
-        for name in names {
+        guard let context, let fields = context.snapshot.system?.fields else { return [] }
+        var placed = Set<String>()
+        var tabs: [SettingsTab] = context.pages.compactMap { page in
+            let sections = clientSections(page, fields: fields, context: context)
+            guard !sections.isEmpty else { return nil }
+            sections.forEach { $0.items.forEach { if let name = $0.deviceField { placed.insert(name) } } }
+            return SettingsTab(title: page.title, symbolName: symbol(for: page.title), sections: sections)
+        }
+        var rest: [String: [String: [SettingsItem]]] = [:]
+        for name in fields.keys where !placed.contains(name) {
+            guard let item = item(for: name, label: nil, field: fields[name], definition: context.definitions[name]) else { continue }
             let group = group(of: name)
-            placed[group, default: [:]][section(of: name, in: group), default: []].append(name)
+            rest[group, default: [:]][section(of: name, in: group), default: []].append(item)
         }
-        return groups.compactMap { group in
-            guard let bySection = placed[group.title] else { return nil }
+        for group in groups {
+            guard let bySection = rest[group.title] else { continue }
             let sections = group.sections.compactMap { title -> SettingsSection? in
-                guard let fields = bySection[title], !fields.isEmpty else { return nil }
-                let items = fields
-                    .sorted { label($0).localizedStandardCompare(label($1)) == .orderedAscending }
-                    .map { item(for: $0, definition: context.definitions[$0]) }
-                return SettingsSection(title: title, items: items)
+                guard let items = bySection[title], !items.isEmpty else { return nil }
+                return SettingsSection(title: title, items: items.sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending })
             }
-            return sections.isEmpty ? nil : SettingsTab(title: group.title, symbolName: group.symbol, sections: sections)
+            guard !sections.isEmpty else { continue }
+            if let index = tabs.firstIndex(where: { $0.title == group.title }) {
+                let tab = tabs[index]
+                tabs[index] = SettingsTab(title: tab.title, symbolName: tab.symbolName, sections: tab.sections + sections)
+            } else {
+                tabs.append(SettingsTab(title: group.title, symbolName: group.symbol, sections: sections))
+            }
         }
+        return tabs
     }
 
-    static func item(for name: String, definition: DeviceDefinitionPayload?) -> SettingsItem {
-        let title = label(name)
+    /// A client page's controls in the order of its dialog (column by column),
+    /// one section per named group box; controls outside a named box form a
+    /// section with the page's title.
+    static func clientSections(_ page: SystemLayoutPage, fields: [String: DeviceFieldPayload],
+                               context: SystemSettingsContext) -> [SettingsSection] {
+        let present = page.controls.filter { fields[$0.name] != nil }
+        let ordered = readingOrder(present)
+        let boxes = page.groups.filter { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }
+            .sorted { ($0.x, $0.y) < ($1.x, $1.y) }
+        var sections: [(title: String, items: [SettingsItem])] = boxes.map { (titleCase($0.text), []) }
+        var loose: [SettingsItem] = []
+        for control in ordered {
+            guard let item = item(for: control.name, label: control.label, field: fields[control.name],
+                                  definition: context.definitions[control.name]) else { continue }
+            if let box = boxes.firstIndex(where: { contains($0, control) }) {
+                sections[box].items.append(item)
+            } else {
+                loose.append(item)
+            }
+        }
+        let named = sections.filter { !$0.items.isEmpty }.map { SettingsSection(title: $0.title, items: $0.items) }
+        return (loose.isEmpty ? [] : [SettingsSection(title: page.title, items: loose)]) + named
+    }
+
+    static func readingOrder(_ controls: [SystemLayoutControl]) -> [SystemLayoutControl] {
+        var columns: [[SystemLayoutControl]] = []
+        for control in controls.sorted(by: { ($0.x, $0.y) < ($1.x, $1.y) }) {
+            if let first = columns.last?.first, control.x - first.x <= 40 {
+                columns[columns.count - 1].append(control)
+            } else {
+                columns.append([control])
+            }
+        }
+        return columns.flatMap { $0.sorted { $0.y < $1.y } }
+    }
+
+    private static func contains(_ box: SystemLayoutGroup, _ control: SystemLayoutControl) -> Bool {
+        control.x >= box.x && control.x <= box.x + box.w && control.y >= box.y && control.y <= box.y + box.h
+    }
+
+    private static let acronyms: Set<String> = ["AES", "AES67", "HD", "FM", "RDS", "MPX", "SCA", "IP", "AF", "PS", "RT", "LF", "HF"]
+
+    static func titleCase(_ text: String) -> String {
+        text.trimmingCharacters(in: .whitespaces).split(separator: " ").map { word in
+            acronyms.contains(word.uppercased()) ? word.uppercased() : word.lowercased().capitalized
+        }.joined(separator: " ")
+    }
+
+    private static func symbol(for title: String) -> String {
+        let table: [(String, String)] = [
+            ("AES67", "network"), ("Input", "arrow.down.circle"), ("Output", "arrow.up.circle"),
+            ("Stereo Encoder", "dot.radiowaves.left.and.right"), ("Digital MPX", "waveform"), ("HD", "hifispeaker.2"),
+            ("Utility", "wrench.and.screwdriver"), ("Test", "checkmark.seal"), ("Remote", "switch.2"),
+            ("Network", "network"), ("RDS", "antenna.radiowaves.left.and.right"),
+        ]
+        return table.first { title.hasPrefix($0.0) }?.1 ?? "gearshape"
+    }
+
+    /// One field's native control, from this model's own definition. A
+    /// device status is read only; a text value is typed and confirmed by
+    /// reading the processor back; a field whose values the profile cannot
+    /// name exactly is not shown.
+    static func item(for name: String, label clientLabel: String?, field: DeviceFieldPayload?,
+                     definition: DeviceDefinitionPayload?) -> SettingsItem? {
+        let title = clientLabel.map { $0.trimmingCharacters(in: CharacterSet(charactersIn: " :")) }.flatMap { $0.isEmpty ? nil : $0 }
+            ?? label(name)
         if name.hasPrefix("ACTUAL ") {
-            return SettingsItem(title, field: name, control: .picker(options: [], includesDevicePresets: false),
-                                writePolicy: .unavailable("Device status, read only."))
+            return SettingsItem(title, field: name, control: .text(maxLength: nil, validation: .plain),
+                                writePolicy: .unavailable("Status reported by the processor."))
         }
         guard let definition, !definition.values.isEmpty else {
-            return SettingsItem(title, field: name, control: .picker(options: [], includesDevicePresets: false),
-                                writePolicy: .unavailable("The values of this setting are not verified for this firmware."))
+            guard field?.value.type == "Text" else { return nil }
+            let control = SettingsControlKind.text(maxLength: 255, validation: textValidation(field?.value.value.text))
+            if let reason = readOnlyText(name) { return SettingsItem(title, field: name, control: control, writePolicy: .unavailable(reason)) }
+            return SettingsItem(title, field: name, control: control, writePolicy: .typedText)
         }
         let numbers = definition.values.compactMap(\.numeric)
         if numbers.count == definition.values.count, let low = numbers.min(), let high = numbers.max() {
@@ -82,8 +164,24 @@ enum ProfileSystemSettings {
             }
             return SettingsItem(title, field: name, control: .picker(options: options, includesDevicePresets: false))
         }
-        return SettingsItem(title, field: name, control: .text(maxLength: nil, validation: .plain),
-                            writePolicy: .unavailable("Text entry is not verified on this model yet; shown read-only."))
+        // Mixed values (a number range with an Off choice) as a picker of the exact values.
+        return SettingsItem(title, field: name, control: .picker(options: definition.values.map { SettingsOption($0.displayText) },
+                                                                 includesDevicePresets: false))
+    }
+
+    /// Text the remote session must not retype: the connected unit's own
+    /// address (a change ends this session; set it on the front panel), and
+    /// remote-contact functions, which name one of the unit's own functions.
+    static func readOnlyText(_ name: String) -> String? {
+        if name.hasPrefix("NETWORK ") { return "Set on the processor's front panel; changing it ends this connection." }
+        if name.hasPrefix("REMOTE CONTACT") { return "One of the processor's own functions; set it on the front panel." }
+        return nil
+    }
+
+    /// An address field holds a dotted IPv4 address on the processor.
+    private static func textValidation(_ current: String?) -> SettingsTextValidation {
+        guard let current, current.range(of: #"^\d{1,3}(\.\d{1,3}){3}$"#, options: .regularExpression) != nil else { return .plain }
+        return .ipAddress
     }
 
     private static let offWords: Set<String> = ["Off", "OFF", "No", "NO", "Disabled", "Disable", "DISABLED"]
