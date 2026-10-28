@@ -14,11 +14,11 @@ test('profile meters build their own groups and accept variable record lengths',
   assert.deepEqual(m5500.groups.find(g => g.name === 'Gain Reduction')!.channels.map(c => c.ids), [[5], [6], [7], [8], [9]]);
   const motion = new MeterMotion(m5500);
   motion.push(Array(79).fill(50), 0);
-  assert.ok(motion.sample(0, true));
+  assert.ok(motion.sample(0));
   // The reference 5700i model still requires its exact 112-value records.
   const reference = new MeterMotion(REFERENCE_METERS);
   reference.push(Array(79).fill(50), 0);
-  assert.equal(reference.sample(0, true), null);
+  assert.equal(reference.sample(0), null);
   // Curves come from the profile; channels without one are linear.
   assert.ok(m5500.percent(1, 100) > 90);
   assert.equal(m5500.percent(5, 40), 40);

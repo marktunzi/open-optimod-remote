@@ -1,40 +1,49 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { METER_BAR_WIDTH, METER_MONO_WELL_WIDTH, METER_PALETTE, METER_WELL_WIDTH, MeterMotion, groups, meterCanvasWidth, meterChannelLayout, meterGroupWidth, meterPercent, visibleGroups, conditionHolds } from '../src/meters.ts';
-test('meter movement is monotonic, bounded and expires when data stops',()=>{
+test('meters show each firmware record at once and expire when data stops',()=>{
  const m=new MeterMotion();assert.equal(m.sample(0),null);
- m.push(Array(112).fill(0),100);m.sample(100);
- m.push(Array(112).fill(100),200);const a=m.sample(216)![1];const b=m.sample(232)![1];
- assert(a>0&&a<100);assert(b>a&&b<100);
+ m.push(Array(112).fill(0),100);assert.equal(m.sample(100)![1],0);
+ m.push(Array(112).fill(100),200);
+ assert.equal(m.sample(201)![1],meterPercent(1,100),'the original client sets the bar to the record, no smoothing');
  assert.equal(m.sample(1401),null);
- m.push(Array(112).fill(20),1500);assert(m.sample(1516)![1]<=meterPercent(1,20),'old device values must not survive a stale interval');
+ m.push(Array(112).fill(20),1500);assert.equal(m.sample(1516)![1],meterPercent(1,20));
  m.clear();assert.equal(m.sample(1517),null);
 });
-test('meter ballistics bridge device packets without a visible first-frame jump',()=>{
+test('peak markers are the firmware peak hold (bank 2) when the record has one',()=>{
  const m=new MeterMotion();
- m.push(Array(112).fill(0),0);m.sample(0);
- m.sample(16);m.sample(32);m.sample(48);
- m.push(Array(112).fill(100),50);
- const a=m.sample(66)![1],b=m.sample(82)![1],c=m.sample(98)![1];
- assert(a>0&&a<45,`first rendered step was ${a}`);
- assert(b>a&&c>b&&c>55);
- assert(Math.max(a,b-a,c-b)<45,'motion must be distributed across animation frames');
+ const values=Array(112).fill(0).map((v,i)=>i===1?40:i===5?10:v);
+ const peaks=Array(112).fill(0).map((v,i)=>i===1?60:i===5?30:v);
+ m.push(values,0,peaks);m.sample(0);
+ assert.equal(m.peakValues()[1],meterPercent(1,60));
+ assert.equal(m.peakValues()[5],30);
+ m.push(values,50,Array(112).fill(0));m.sample(50);
+ assert.equal(m.peakValues()[1],meterPercent(1,40),'a peak never sits below its bar');
+ m.push(values,100,[1,2]);m.sample(100);
+ assert.equal(m.peakValues()[5],10,'a malformed peak record falls back to the lane hold');
 });
-test('invalid or nonfinite frames clear meters, reduced motion uses actual values',()=>{
- const m=new MeterMotion();m.push(Array(112).fill(24),10);assert.equal(m.sample(20,true)![1],meterPercent(1,24));
+test('gate lamps light for any value above 0, as the client two-step lamp',()=>{
+ const gates=Object.fromEntries(groups.filter(g=>g.gate).map(g=>[g.name,g.gate!.id]));
+ assert.deepEqual(gates,{'AGC':62,'FM Gain Reduction':63,'FM 2-Band Gain Reduction':63,'FM Loudness':111,'HD Gain Reduction':38,'HD 2-Band Gain Reduction':38});
+ const m=new MeterMotion();m.push(Array(112).fill(0).map((v,i)=>i===62?127:v),0);
+ assert.equal(m.gated(62),true);assert.equal(m.gated(63),false);
+ m.clear();assert.equal(m.gated(62),false);
+});
+test('invalid or nonfinite frames clear meters',()=>{
+ const m=new MeterMotion();m.push(Array(112).fill(24),10);assert.equal(m.sample(20)![1],meterPercent(1,24));
  m.push([1,2],30);assert.equal(m.sample(31),null);
  m.push(Array(112).fill(NaN),40);assert.equal(m.sample(41),null);
 });
 test('each meter lane holds and releases its own peak marker',()=>{
  const m=new MeterMotion();
- m.push(Array(112).fill(0).map((value,index)=>index===5?90:index===14?60:value),0);m.sample(0,true);
+ m.push(Array(112).fill(0).map((value,index)=>index===5?90:index===14?60:value),0);m.sample(0);
  assert.equal(m.peakValues()[5],90);
  assert.equal(m.peakValues()[14],60);
- m.push(Array(112).fill(0).map((value,index)=>index===5?20:index===14?80:value),500);m.sample(500,true);
+ m.push(Array(112).fill(0).map((value,index)=>index===5?20:index===14?80:value),500);m.sample(500);
  assert.equal(m.peakValues()[5],90,'peak must hold above the falling meter');
  assert.equal(m.peakValues()[14],80,'a separate lane must capture its own later peak');
- m.sample(1000,true);assert.equal(m.peakValues()[14],80,'the later lane peak must retain its own hold time');
- m.sample(1100,true);assert(m.peakValues()[5]<90&&m.peakValues()[5]>=20,'peak must release toward the current level');
+ m.sample(1000);assert.equal(m.peakValues()[14],80,'the later lane peak must retain its own hold time');
+ m.sample(1100);assert(m.peakValues()[5]<90&&m.peakValues()[5]>=20,'peak must release toward the current level');
  assert.equal(m.peakValues()[14],80,'the later peak must still be held independently');
  m.clear();assert.deepEqual(m.peakValues(),[]);
 });

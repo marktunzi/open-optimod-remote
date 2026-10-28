@@ -43,6 +43,23 @@ function unitFor(group: MeterGroup): string {
   return '';
 }
 
+/**
+ * The original client's loudness bar (bitmap 397, 16 x 181) is amber in its
+ * top 33 rows and green below, drawn over a 162-pixel control: the top 33/162
+ * of the travel is amber. Its value table is the 'loudness' curve.
+ */
+const LOUDNESS_AMBER_FROM_TOP=33/162;
+
+const GATE_LED_OFF='#4A2224';
+
+function drawGateLed(context:CanvasRenderingContext2D,x:number,y:number,lit:boolean,palette:MeterPalette){
+ context.save();
+ if(lit){context.shadowColor=palette.red;context.shadowBlur=5;}
+ context.fillStyle=lit?palette.red:GATE_LED_OFF;
+ context.beginPath();context.arc(x,y,2.5,0,Math.PI*2);context.fill();
+ context.restore();
+}
+
 function levelColor(percent:number,palette:MeterPalette=METER_PALETTE): string {
   if(percent>=92)return palette.red;
   if(percent>=78)return palette.amber;
@@ -78,17 +95,16 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
   motion.current.clear();onLiveChange?.(false);
   if(!connected)return;
   const source=new EventSource('/api/meters');
-  source.onmessage=event=>{try{const meter=JSON.parse(event.data);if(meter.live)motion.current.push(meter.values,performance.now());else motion.current.clear();}catch{motion.current.clear();}};
+  source.onmessage=event=>{try{const meter=JSON.parse(event.data);if(meter.live)motion.current.push(meter.values,performance.now(),meter.peaks);else motion.current.clear();}catch{motion.current.clear();}};
   source.onerror=()=>motion.current.clear();
   return()=>{source.close();motion.current.clear();onLiveChange?.(false);};
  },[connected,identity,onLiveChange]);
  useEffect(()=>{
   let animation=0,lastLive=false;
-  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const draw=(now:number)=>{
    const element=canvas.current,context=element?.getContext('2d');
    if(!element||!context)return;
-   const values=connected?motion.current.sample(now,reduced.matches):null;
+   const values=connected?motion.current.sample(now):null;
    const peaks=motion.current.peakValues();
    const active=!!values;
    if(active!==lastLive){lastLive=active;onLiveChange?.(active);}
@@ -160,6 +176,13 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
         gradient.addColorStop(.07363,'#F8D448');gradient.addColorStop(.1853,'#F8D448');
         gradient.addColorStop(.3714,palette.green);gradient.addColorStop(1,palette.green);
         context.fillStyle=gradient;
+       } else if(group.kind==='loudness'){
+        const amberBottom=activeTop+LOUDNESS_AMBER_FROM_TOP*activeHeight;
+        const gradient=context.createLinearGradient(0,activeTop,0,activeBottom);
+        gradient.addColorStop(0,palette.amber);gradient.addColorStop(LOUDNESS_AMBER_FROM_TOP,palette.amber);
+        gradient.addColorStop(LOUDNESS_AMBER_FROM_TOP,palette.green);gradient.addColorStop(1,palette.green);
+        context.fillStyle=gradient;
+        color=activeBottom-peak/100*activeHeight<amberBottom?palette.amber:palette.green;
        } else context.fillStyle=color;
        context.fillRect(laneX,barY,lane.width,barHeight);
        const peakY=reduction?activeTop+peak/100*activeHeight:activeBottom-peak/100*activeHeight;
@@ -176,9 +199,23 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
       context.fillText(channel.label,contentStart+channel.center,224.5);
      }
     });
-    if(group.name==='AGC'&&model.reference){
-     context.font='600 9px "SF Compact Text", -apple-system, sans-serif';context.fillStyle=palette.ticks;context.textAlign='center';
-     ['G','A','T','E','D'].forEach((letter,letterIndex)=>context.fillText(letter,x+54.75,105+letterIndex*12));
+    // Gate lamps: a red LED, lit while the firmware reports the gate (the
+    // original client's lamp). AGC keeps the Figma frame's vertical GATED
+    // under its LED; other groups carry LED and label under their lanes.
+    if(group.gate){
+     const lit=!!values&&motion.current.gated(group.gate.id);
+     context.textAlign='center';context.fillStyle=palette.ticks;
+     if(group.gate.vertical){
+      drawGateLed(context,x+54.75,90,lit,palette);
+      context.font='600 9px "SF Compact Text", -apple-system, sans-serif';
+      [...group.gate.label].forEach((letter,letterIndex)=>context.fillText(letter,x+54.75,108+letterIndex*12));
+     }else{
+      context.font='600 6px "SF Compact Text", -apple-system, sans-serif';
+      const center=contentStart+(channels.at(-1)!.wellLeft+channels.at(-1)!.wellWidth)/2;
+      const textWidth=context.measureText(group.gate.label).width;
+      drawGateLed(context,center-(textWidth+7)/2+2.5,233.9,lit,palette);
+      context.textAlign='left';context.fillText(group.gate.label,center-(textWidth+7)/2+7,236);
+     }
     }
     context.font='500 6px "SF Compact Text", -apple-system, sans-serif';context.fillStyle=palette.ticks;context.textAlign='center';
     const unit=unitFor(group);

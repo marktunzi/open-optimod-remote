@@ -1373,13 +1373,33 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
             Message::Meters { .. } | Message::Truncated { .. } | Message::File { .. }
         );
         match event {
-            Message::Meters { bank, values } => {
-                if bank == 1 {
-                    Activity::count(&app.activity.meter_frames);
-                    app.meters
-                        .send_replace(json!({"live":true,"bank":bank,"values":values}));
-                }
+            // Bank 1 carries the current values, bank 2 the firmware's peak
+            // hold of the same channels; the original 5700i client draws a bar
+            // from the first and its peak marker from the second. A record
+            // keeps the last peaks until its own bank 2 arrives.
+            Message::Meters { bank: 1, values } => {
+                Activity::count(&app.activity.meter_frames);
+                let peaks = app.meters.borrow().get("peaks").cloned().filter(|peaks| {
+                    peaks
+                        .as_array()
+                        .is_some_and(|peaks| peaks.len() == values.len())
+                });
+                app.meters.send_replace(match peaks {
+                    Some(peaks) => json!({"live":true,"bank":1,"values":values,"peaks":peaks}),
+                    None => json!({"live":true,"bank":1,"values":values}),
+                });
             }
+            Message::Meters { bank: 2, values } => {
+                app.meters.send_if_modified(|meter| {
+                    let current = meter.get("values").and_then(|v| v.as_array()).map(Vec::len);
+                    if meter["live"] != true || current != Some(values.len()) {
+                        return false;
+                    }
+                    meter["peaks"] = json!(values);
+                    true
+                });
+            }
+            Message::Meters { .. } => {}
             Message::Other { kind, .. } if kind == answer && device.boundaries.answered() => {
                 return Ok(());
             }
