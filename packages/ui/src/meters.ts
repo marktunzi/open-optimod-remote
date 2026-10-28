@@ -29,16 +29,28 @@ export type MeterChannelLayout = {
 };
 const mono = (label: string, id: number) => ({label,ids:[id]});
 const pair = (label: string, left: number, right: number, laneLabels?: string[]) => ({label,ids:[left,right],laneLabels});
+/**
+ * The processing structure on air, read from the processor's own on-air
+ * document: a 5-band document carries the band fields (`B1 ATTACK`), a 2-band
+ * document the 2-band fields (`2B DRIVE`), never both (every factory preset of
+ * the 5500i, 6300, 5700i, 8700HD and 8700i). HD has its own fields.
+ */
+export const FM_FIVE_BAND: MeterCondition = {field: 'B1 ATTACK', present: true};
+export const FM_TWO_BAND: MeterCondition = {field: '2B DRIVE', present: true};
+export const HD_FIVE_BAND: MeterCondition = {field: 'HD B1 ATTACK', present: true};
+export const HD_TWO_BAND: MeterCondition = {field: 'HD 2B DRIVE', present: true};
 export const groups: MeterGroup[] = [
  {name:'Input',kind:'level',referenceWidth:71.021,contentOffset:31,channels:[pair('',1,2,['L','R'])]},
  {name:'AGC',kind:'reduction',referenceWidth:95.541,contentOffset:24.521,channels:[pair('B',3,10),pair('M',4,11)]},
  {name:'FM HF Enhance',kind:'enhance',referenceWidth:73.042,contentOffset:31.521,channels:[pair('',34,35,['L','R'])]},
- {name:'FM Gain Reduction',kind:'reduction',referenceWidth:169.542,contentOffset:25.021,channels:[pair('1',5,14),pair('2',6,15),pair('3',7,16),pair('4',8,17),pair('5',9,18)]},
+ {name:'FM Gain Reduction',kind:'reduction',referenceWidth:169.542,contentOffset:25.021,channels:[pair('1',5,14),pair('2',6,15),pair('3',7,16),pair('4',8,17),pair('5',9,18)],when:FM_FIVE_BAND},
+ {name:'FM 2-Band Gain Reduction',kind:'reduction',referenceWidth:67,contentOffset:25,channels:[mono('B',64),mono('M',65)],when:FM_TWO_BAND},
  {name:'FM Loudness',kind:'loudness',referenceWidth:66.542,contentOffset:24.521,channels:[pair('',59,58)]},
  {name:'FM Output',kind:'level',referenceWidth:67.041,contentOffset:24.52,channels:[pair('',27,28,['L','R'])]},
  {name:'Composite',kind:'composite',referenceWidth:53.042,contentOffset:24.521,channels:[mono('',29)]},
  {name:'HD HF Enhance',kind:'enhance',referenceWidth:59.541,contentOffset:24.521,channels:[pair('',36,37,['L','R'])]},
- {name:'HD Gain Reduction',kind:'reduction',referenceWidth:169.542,contentOffset:25.521,channels:[pair('1',39,44),pair('2',40,45),pair('3',41,46),pair('4',42,47),pair('5',43,48)]},
+ {name:'HD Gain Reduction',kind:'reduction',referenceWidth:169.542,contentOffset:25.521,channels:[pair('1',39,44),pair('2',40,45),pair('3',41,46),pair('4',42,47),pair('5',43,48)],when:HD_FIVE_BAND},
+ {name:'HD 2-Band Gain Reduction',kind:'reduction',referenceWidth:67,contentOffset:25,channels:[mono('B',49),mono('M',50)],when:HD_TWO_BAND},
  {name:'HD Limiting',kind:'reduction',referenceWidth:72.042,contentOffset:27.521,channels:[pair('',19,20,['L','R'])]},
  {name:'Loudness GR',kind:'reduction',referenceWidth:65.042,contentOffset:27.021,channels:[mono('',57)]},
  {name:'HD Loudness',kind:'loudness',referenceWidth:65.542,contentOffset:24.522,channels:[pair('',56,55)]},
@@ -60,8 +72,11 @@ export type ProfileMeters = {
  groups: {name: string; kind: MeterGroup['kind']; channels: MeterChannel[]; ticks?: [number, string][]; when?: MeterCondition}[];
  curves?: Record<string, number[]>;
 };
-/** A setting a meter group depends on: `value` must match, or `not` must not. */
-export type MeterCondition = {scope?: 'Processing' | 'System'; field: string; value?: string; not?: string};
+/**
+ * A setting a meter group depends on: `value` must match, `not` must not, or
+ * with `present` the field must be (or not be) in the processor's document.
+ */
+export type MeterCondition = {scope?: 'Processing' | 'System'; field: string; value?: string; not?: string; present?: boolean};
 /** Current setting values by `Scope:NAME`, for meter conditions. */
 export type SettingValues = Record<string, string>;
 export function settingValues(processing?: {fields: Record<string, {value: {value: unknown}}>} | null, system?: {fields: Record<string, {value: {value: unknown}}>} | null): SettingValues {
@@ -73,7 +88,13 @@ export function settingValues(processing?: {fields: Record<string, {value: {valu
 /** A group with a condition is shown only once the setting is known and matches. */
 export function conditionHolds(condition: MeterCondition | undefined, values: SettingValues | undefined): boolean {
  if (!condition) return true;
- const value = values?.[`${condition.scope || 'Processing'}:${condition.field}`];
+ const scope = condition.scope || 'Processing';
+ const value = values?.[`${scope}:${condition.field}`];
+ if (condition.present !== undefined) {
+  // Absence only counts once the processor has sent its document.
+  const known = Object.keys(values || {}).some(key => key.startsWith(`${scope}:`));
+  return known && (value !== undefined) === condition.present;
+ }
  if (value === undefined) return false;
  return condition.value !== undefined ? value === condition.value : value !== condition.not;
 }

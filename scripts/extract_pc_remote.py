@@ -1019,6 +1019,48 @@ def _meter_groups(view):
     return result
 
 
+# The processing structure on air, read from the processor's on-air document: a
+# 5-band document carries the band fields, a 2-band document the 2-band fields,
+# never both (every factory preset of the 5500i, 6300, 5700i, 8700HD and 8700i).
+STRUCTURE = {
+    "FM 5": {"field": "B1 ATTACK", "present": True},
+    "FM 2": {"field": "2B DRIVE", "present": True},
+    "HD 5": {"field": "HD B1 ATTACK", "present": True},
+    "HD 2": {"field": "HD 2B DRIVE", "present": True},
+}
+# Groups the original client draws only in its 2-band meter dialog.
+TWO_BAND_ONLY = ("HF Limiting", "Overshoot Limit")
+
+
+def structure_conditions(groups):
+    """Shows each band group only while its structure is on air.
+
+    A model with both a 5-band and a 2-band gain-reduction group switches
+    between them; one without a 2-band group (the 2300 is 2-band only) is
+    left as it is.
+    """
+    names = {g["name"] for g in groups}
+    for path, prefix in (("FM", ""), ("HD", "HD ")):
+        if f"2-Band {prefix}Gain Reduction" not in names or f"{prefix}Gain Reduction" not in names:
+            continue
+        for group in groups:
+            if group["name"] == f"{prefix}Gain Reduction":
+                group["when"] = dict(STRUCTURE[f"{path} 5"])
+            elif group["name"] == f"2-Band {prefix}Gain Reduction" or (path == "FM" and group["name"] in TWO_BAND_ONLY):
+                group["when"] = dict(STRUCTURE[f"{path} 2"])
+    # The 2-band groups take the place of the 5-band ones.
+    order = [g["name"] for g in groups]
+    for prefix, followers in (("", ("2-Band Gain Reduction",) + TWO_BAND_ONLY), ("HD ", ("2-Band HD Gain Reduction",))):
+        anchor = f"{prefix}Gain Reduction"
+        moving = [g for g in groups if g["name"] in followers and g.get("when")]
+        if anchor not in order or not moving:
+            continue
+        rest = [g for g in groups if g not in moving]
+        at = next(i for i, g in enumerate(rest) if g["name"] == anchor) + 1
+        groups[:] = rest[:at] + moving + rest[at:]
+    return groups
+
+
 def build_meters(image: Image, meter: dict, raw=None):
     views = extract_meter_bars(image, meter, raw)
     primary = _meter_groups(views[meter["primary"]])
@@ -1034,7 +1076,7 @@ def build_meters(image: Image, meter: dict, raw=None):
                 name = group["name"] if group["name"] not in taken else ("2-Band " + group["name"] if group["name"].endswith("Gain Reduction") else group["name"] + " (alt)")
                 extra.append(dict(group, name=name))
                 seen |= ids
-    groups, orientation, curves = primary + extra, {}, {}
+    groups, orientation, curves = structure_conditions(primary + extra), {}, {}
     for group in groups:
         for channel in group["channels"]:
             for bar in channel.pop("bars"):

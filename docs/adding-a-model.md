@@ -31,6 +31,7 @@ Read `report.json`:
 
 - Every excluded field must be understood.
 - `transform x100` fields need a plausible reason. The runtime check refuses a write if the processor reports the other unit.
+- In `meters.json`, a model with both a 5-band and a 2-band gain-reduction group gets a `when` condition on each band group (`structure_conditions` in the extractor): the 5-band groups show while the on-air document has `B1 ATTACK`, the 2-band groups while it has `2B DRIVE` (`HD B1 ATTACK` and `HD 2B DRIVE` for HD). Check this against the model's factory presets: every `TWOBAND PRESET` must carry the 2-band field and no 5-band field.
 - `preset_families` must match the model's own document family. Presets from another model, such as the 8600 presets in the 8700HD package, make the cross-check weaker; say so in the documentation.
 
 ## 3. Register the model

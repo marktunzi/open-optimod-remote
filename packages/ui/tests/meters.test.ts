@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { METER_BAR_WIDTH, METER_MONO_WELL_WIDTH, METER_PALETTE, METER_WELL_WIDTH, MeterMotion, groups, meterCanvasWidth, meterChannelLayout, meterGroupWidth, meterPercent, visibleGroups } from '../src/meters.ts';
+import { METER_BAR_WIDTH, METER_MONO_WELL_WIDTH, METER_PALETTE, METER_WELL_WIDTH, MeterMotion, groups, meterCanvasWidth, meterChannelLayout, meterGroupWidth, meterPercent, visibleGroups, conditionHolds } from '../src/meters.ts';
 test('meter movement is monotonic, bounded and expires when data stops',()=>{
  const m=new MeterMotion();assert.equal(m.sample(0),null);
  m.push(Array(112).fill(0),100);m.sample(100);
@@ -81,9 +81,28 @@ test('approved SVG fixes meter geometry and palette exactly',()=>{
   ticks:'#656565',label:'#9F9F9F',blue:'#0088FF',amber:'#FFCC00',
   red:'#FF383C',green:'#76D672',live:'#34C759',magenta:'#A62E9C',lcdTop:'#101A24',lcdBottom:'#182431',lcdText:'#7E95B1',
  });
- assert.deepEqual(groups.map(group=>group.referenceWidth),[71.021,95.541,73.042,169.542,66.542,67.041,53.042,59.541,169.542,72.042,65.042,65.542,72.52]);
- assert(Math.abs(meterCanvasWidth(groups)-1100)<1e-9);
+ const fiveBand=groups.filter(group=>!group.name.includes('2-Band'));
+ assert.deepEqual(fiveBand.map(group=>group.referenceWidth),[71.021,95.541,73.042,169.542,66.542,67.041,53.042,59.541,169.542,72.042,65.042,65.542,72.52]);
+ assert(Math.abs(meterCanvasWidth(fiveBand)-1100)<1e-9);
  const paired=meterChannelLayout(groups.find(group=>group.name==='FM Gain Reduction')!)[0];
  assert.equal(paired.lanes.length,2);
  assert(paired.lanes.every(lane=>lane.width===METER_BAR_WIDTH));
+});
+
+test('5700i band meters follow the structure in the on-air document, never both',()=>{
+ const names=(values?:Record<string,string>)=>visibleGroups('Both',undefined,values).map(g=>g.name);
+ const fiveBand={'Processing:B1 ATTACK':'20','Processing:HD B1 ATTACK':'20','Processing:AGC':'On'};
+ const twoBand={'Processing:2B DRIVE':'0','Processing:HD 2B DRIVE':'0','Processing:AGC':'On'};
+ assert(!names().some(n=>n.includes('Gain Reduction')),'no band meters before the document arrives');
+ assert.deepEqual(names(fiveBand).filter(n=>n.includes('Gain Reduction')),['FM Gain Reduction','HD Gain Reduction']);
+ assert.deepEqual(names(twoBand).filter(n=>n.includes('Gain Reduction')),['FM 2-Band Gain Reduction','HD 2-Band Gain Reduction']);
+ assert.deepEqual(visibleGroups('Both',undefined,twoBand).find(g=>g.name==='FM 2-Band Gain Reduction')!.channels.map(c=>c.ids),[[64],[65]]);
+ assert(Math.abs(meterCanvasWidth(visibleGroups('Both',undefined,fiveBand))-1100)<1e-9);
+});
+test('a presence condition needs the document of its own scope',()=>{
+ const condition={field:'B1 ATTACK',present:false};
+ assert.equal(conditionHolds(condition,{}),false);
+ assert.equal(conditionHolds(condition,{'System:B1 ATTACK':'1'}),false);
+ assert.equal(conditionHolds(condition,{'Processing:AGC':'On'}),true);
+ assert.equal(conditionHolds({...condition,present:true},{'Processing:B1 ATTACK':'20'}),true);
 });

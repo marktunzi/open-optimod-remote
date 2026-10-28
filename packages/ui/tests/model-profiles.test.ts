@@ -74,6 +74,27 @@ test('statically derived pages appear only when the processor reports their fiel
   assert.equal(livePages(supplement, undefined).length, supplement.length);
 });
 
+test('2-band and 5-band meter groups follow the on-air document of every model', () => {
+  const fm5 = { 'Processing:B1 ATTACK': '20', 'Processing:HD B1 ATTACK': '20' };
+  const fm2 = { 'Processing:2B DRIVE': '0', 'Processing:HD 2B DRIVE': '0' };
+  const expected: Record<string, [string[], string[]]> = {
+    '5500i/3.1.0.2': [['Gain Reduction'], ['2-Band Gain Reduction', 'HF Limiting', 'Overshoot Limit']],
+    '6300/4.1.1.19': [['Gain Reduction'], ['2-Band Gain Reduction']],
+    '8700hd/1.0.2.161': [['Gain Reduction', 'HD Gain Reduction'], ['2-Band Gain Reduction', 'HF Limiting', '2-Band HD Gain Reduction']],
+    '8700i/1.5.1.11': [['Gain Reduction', 'HD Gain Reduction'], ['2-Band Gain Reduction', 'HF Limiting', '2-Band HD Gain Reduction']],
+  };
+  for (const [version, [five, two]] of Object.entries(expected)) {
+    const model = meterModelFromProfile(profile(`${version}/meters.json`));
+    const shown = (values: Record<string, string>) => visibleGroups('Both', model, values).map(g => g.name);
+    for (const name of two) assert.ok(!shown(fm5).includes(name), `${version} 5-band shows ${name}`);
+    for (const name of five) assert.ok(shown(fm5).includes(name), `${version} 5-band hides ${name}`);
+    for (const name of five) assert.ok(!shown(fm2).includes(name), `${version} 2-band shows ${name}`);
+    for (const name of two) assert.ok(shown(fm2).includes(name), `${version} 2-band hides ${name}`);
+    // The 2-band groups take the place of the 5-band ones.
+    assert.equal(shown(fm2).indexOf(two[0]), shown(fm5).indexOf(five[0]), version);
+  }
+});
+
 test('the 8400 meters use the unit\'s own bar heights and scales', () => {
   const model = meterModelFromProfile(profile('8400/3.0.5.7/meters.json'));
   assert.deepEqual(model.groups.map(g => g.name), ['Input', 'AGC', 'Multiband', '2 Band', 'HF', 'Out', 'PWR', 'Comp']);

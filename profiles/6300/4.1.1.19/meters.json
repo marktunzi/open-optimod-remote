@@ -104,7 +104,35 @@
       18
      ]
     }
-   ]
+   ],
+   "when": {
+    "field": "B1 ATTACK",
+    "present": true
+   }
+  },
+  {
+   "name": "2-Band Gain Reduction",
+   "kind": "reduction",
+   "channels": [
+    {
+     "label": "B",
+     "ids": [
+      38,
+      39
+     ]
+    },
+    {
+     "label": "M",
+     "ids": [
+      40,
+      41
+     ]
+    }
+   ],
+   "when": {
+    "field": "2B DRIVE",
+    "present": true
+   }
   },
   {
    "name": "Loudness GR",
@@ -203,26 +231,6 @@
      "ids": [
       65,
       67
-     ]
-    }
-   ]
-  },
-  {
-   "name": "2-Band Gain Reduction",
-   "kind": "reduction",
-   "channels": [
-    {
-     "label": "B",
-     "ids": [
-      38,
-      39
-     ]
-    },
-    {
-     "label": "M",
-     "ids": [
-      40,
-      41
      ]
     }
    ]
