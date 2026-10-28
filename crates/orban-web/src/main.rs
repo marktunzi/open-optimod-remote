@@ -174,7 +174,26 @@ enum Command {
     ApplyPreset(ApplyPreset, Reply),
     PresetFile(PresetFile, Reply),
     RestoreSetup(RestoreSetup, Reply),
+    BackupFiles(oneshot::Sender<Result<Vec<BackupFile>, String>>),
+    RestorePresetFiles(RestorePresetFiles, Reply),
     CancelReconnect(Reply),
+}
+/// A file of the original PC Remote's backup: its name on the unit and its
+/// decrypted text, as the client's plain-text backup stores it.
+#[derive(Serialize, Deserialize)]
+struct BackupFile {
+    name: String,
+    document: String,
+    /// Restore only: the file's modification time, milliseconds since 1970.
+    #[serde(default)]
+    modified: Option<u64>,
+}
+#[derive(Deserialize)]
+struct RestorePresetFiles {
+    files: Vec<BackupFile>,
+    confirmed: bool,
+    expected_host: String,
+    expected_session: String,
 }
 #[derive(Deserialize)]
 struct Connect {
@@ -411,6 +430,8 @@ async fn main() {
         .route("/api/backup", get(backup_handler))
         .route("/api/backup/setup-plan", post(setup_plan_handler))
         .route("/api/backup/restore-setup", post(restore_setup_handler))
+        .route("/api/backup/files", get(backup_files_handler))
+        .route("/api/backup/restore-presets", post(restore_preset_files_handler))
         .route("/api/devices", get(devices_list).post(devices_save))
         .route("/api/devices/delete", post(devices_delete))
         .route("/api/devices/code", post(devices_code))
@@ -602,6 +623,28 @@ async fn setup_plan_handler(State(app): State<App>, Json(body): Json<SetupDocume
         "changes": changes.iter().map(|(name, field)| json!({"name": name, "from": current.fields.get(name), "to": field})).collect::<Vec<_>>(),
         "skipped": skipped.iter().map(|(name, reason)| json!({"name": name, "reason": reason})).collect::<Vec<_>>(),
     })))
+}
+/// The original PC Remote's backup (models whose user presets are files on
+/// the unit): the setup file and every user preset file, decrypted.
+async fn backup_files_handler(State(app): State<App>) -> ApiResult {
+    let (tx, rx) = oneshot::channel();
+    app.commands
+        .try_send(Command::BackupFiles(tx))
+        .map_err(|_| api_error("Another command is still in progress"))?;
+    let files = rx.await.map_err(api_error)?.map_err(api_error)?;
+    let state = app.state.read().await;
+    Ok(Json(json!({
+        "model": state.model.label(),
+        "adapter_id": state.adapter_id,
+        "firmware": state.firmware,
+        "files": files,
+    })))
+}
+async fn restore_preset_files_handler(
+    State(app): State<App>,
+    Json(body): Json<RestorePresetFiles>,
+) -> ApiResult {
+    dispatch(app, |r| Command::RestorePresetFiles(body, r)).await
 }
 async fn restore_setup_handler(
     State(app): State<App>,
@@ -1885,6 +1928,130 @@ fn renamed_preset_file(text: &str, name: &str, extension: &str) -> Result<String
     Ok(lines.join("\n"))
 }
 
+/// The files the original PC Remote's Backup saves: the setup file (240)
+/// and every file the unit sends for its user presets (243), decrypted.
+async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>, String> {
+    let wire = device.session.adapter().wire;
+    let Some((presets, preset_reply)) = wire.user_presets_request else {
+        return Err(format!(
+            "The {} keeps no preset files to back up",
+            device.session.info.model.label()
+        ));
+    };
+    let mut files: Vec<BackupFile> = Vec::new();
+    for (request, reply) in [(240, 233), (presets, preset_reply)] {
+        for (name, data) in read_files(app, device, request, reply).await? {
+            let plain = device.session.decrypt_file(&data)?;
+            let document = String::from_utf8(plain).map_err(|_| "Unsupported document encoding")?;
+            file_document(document.as_bytes(), device.session.info.model)?;
+            // The unit sends its working copies twice.
+            if !files.iter().any(|f| f.name.eq_ignore_ascii_case(&name)) {
+                files.push(BackupFile { name, document, modified: None });
+            }
+        }
+    }
+    Ok(files)
+}
+
+/// The original PC Remote's Restore of user preset files: each file as
+/// opcode 231 with its modification time (a Windows FILETIME, low and high
+/// word), its name and the archive sealed with the access code, then 222.
+async fn restore_preset_files(
+    device: &mut Device,
+    app: &App,
+    body: RestorePresetFiles,
+) -> Result<(), OperationError> {
+    let model = device.session.info.model;
+    let extension = device.session.adapter().wire.user_extension;
+    if device.session.adapter().wire.preset_file_delete.is_none() {
+        return Err(OperationError::safe(format!(
+            "Restoring preset files is not available for {}",
+            model.label()
+        )));
+    }
+    if !body.confirmed {
+        return Err(OperationError::safe("Confirm the restore first"));
+    }
+    if device.session.info.access_level != 0 {
+        return Err(OperationError::safe(
+            "Preset changes are not enabled for this access level",
+        ));
+    }
+    {
+        let state = app.state.read().await;
+        ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
+        if state.host != body.expected_host {
+            return Err(OperationError::safe(
+                "The active device changed. Review the connection first",
+            ));
+        }
+    }
+    let mut names = Vec::new();
+    for file in &body.files {
+        let valid_name = file.name.len() > extension.len()
+            && file.name.to_ascii_lowercase().ends_with(extension)
+            && !file.name.contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|'])
+            && file.name.is_ascii();
+        if !valid_name {
+            return Err(OperationError::safe(format!(
+                "{} is not a user preset file of the {}",
+                file.name,
+                model.label()
+            )));
+        }
+        let document = file_document(file.document.as_bytes(), model)
+            .map_err(|e| OperationError::safe(format!("{}: {e}", file.name)))?;
+        names.push(document.name);
+    }
+    for file in &body.files {
+        // FILETIME: 100 ns since 1601.
+        let millis = file.modified.unwrap_or_else(|| {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or_default()
+        });
+        let filetime = millis * 10_000 + 116_444_736_000_000_000;
+        let iv = *uuid::Uuid::new_v4().as_bytes();
+        let sealed = orban_protocol::archive::encrypt(file.document.as_bytes(), &device.code, iv)
+            .map_err(OperationError::safe)?;
+        let mut message = format!(
+            "{}\n{}\n{}\n{}\n",
+            filetime & 0xffff_ffff,
+            filetime >> 32,
+            file.name,
+            sealed.len()
+        )
+        .into_bytes();
+        message.extend(sealed);
+        device
+            .session
+            .send(231, &message)
+            .await
+            .map_err(OperationError::uncertain)?;
+        // The unit answers each upload with a boundary answer (FBh).
+        device.boundaries.sent();
+        let _ = device.session.send(222, b"").await;
+    }
+    let listed = refresh_presets(app, device).await;
+    let state = app.state.read().await;
+    let missing: Vec<&str> = names
+        .iter()
+        .filter(|name| !state.presets.iter().any(|p| &p.name == *name))
+        .map(String::as_str)
+        .collect();
+    match listed {
+        Ok(()) if missing.is_empty() => Ok(()),
+        Ok(()) => Err(OperationError::uncertain(format!(
+            "The processor's preset list does not show {}",
+            missing.join(", ")
+        ))),
+        Err(e) => Err(OperationError::uncertain(format!(
+            "The restore could not be confirmed. Refresh the preset list. {e}"
+        ))),
+    }
+}
+
 async fn manage_preset(
     device: &mut Device,
     app: &App,
@@ -2780,6 +2947,17 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
            Command::RestoreSetup(body,reply)=>{
             Activity::count(&app.activity.device_writes);
             let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{restore_setup(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            let _=reply.send(result.map_err(|e| e.message));
+           }
+           Command::BackupFiles(reply)=>{
+            let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{backup_files(d,&app).await}else{Err("Not connected".to_owned())};
+            tick.reset();
+            let _=reply.send(result);
+           }
+           Command::RestorePresetFiles(body,reply)=>{
+            Activity::count(&app.activity.device_writes);
+            let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{restore_preset_files(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+            tick.reset();
             let _=reply.send(result.map_err(|e| e.message));
            }
            Command::CancelReconnect(reply)=>{

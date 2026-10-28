@@ -54,8 +54,8 @@ Original client: `5700iPC.exe` (SHA-256 `63def9bb…`), menus from its own resou
 | Save Preset | Presets › Save NAME… (replaces the on-air user preset) | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md) |
 | Save Preset As | Presets › Save on-air as… | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md) |
 | Delete Preset | Presets › Delete selected… | PASS | [M1C](2026-10-28-m1c-preset-save-delete.md) |
-| Backup to PC | app backup (AS + AP + names, not the client's format) | UNTESTED against the client | |
-| Restore from PC | setup restore | UNTESTED against the client | |
+| Backup to PC | Presets › Save backup (the client's plain-text files) | PASS | [M1D](2026-10-28-m1d-backup-restore.md) |
+| Restore from PC | Presets › Restore from backup… (preset files as 231, setup field by field) | PASS; encrypted client backups not read | [M1D](2026-10-28-m1d-backup-restore.md) |
 
 ## Tools and Help
 

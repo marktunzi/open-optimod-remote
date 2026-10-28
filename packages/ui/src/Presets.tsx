@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { api } from './api';
 import type { Action, Snapshot } from './model';
-import { maxPresetNameLength, parseBackup, presetFileExtension, presetManagement, presetNameProblem, type Backup } from './preset-state';
+import { backsUpFiles, maxPresetNameLength, parseBackup, presetFileExtension, presetManagement, presetNameProblem, sortBackupFiles, zipFiles, type Backup, type BackupFile } from './preset-state';
 
 type PendingChange =
   | { kind: 'recall'; name: string; expected_name: string }
@@ -9,9 +9,10 @@ type PendingChange =
   | { kind: 'rename'; name: string; new_name: string; expected_name: string }
   | { kind: 'delete'; name: string; expected_name: string }
   | { kind: 'apply-file'; file: string; document: string; expected_name: string }
-  | { kind: 'restore'; backup: Backup; file: string; changes: string[]; skipped: { name: string; reason: string }[] };
+  | { kind: 'restore'; backup: Backup; file: string; changes: string[]; skipped: { name: string; reason: string }[] }
+  | { kind: 'restore-files'; presets: BackupFile[]; setup: string | null; changes: string[]; skipped: { name: string; reason: string }[] };
 
-function download(name: string, text: string, type: string) {
+function download(name: string, text: string | Uint8Array<ArrayBuffer>, type: string) {
   const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement('a');
   link.href = url;
@@ -33,6 +34,7 @@ export function Presets({ snapshot, busy, action }: { snapshot: Snapshot; busy: 
   const [notice, setNotice] = useState('');
   const presetInput = useRef<HTMLInputElement>(null);
   const backupInput = useRef<HTMLInputElement>(null);
+  const backupFilesInput = useRef<HTMLInputElement>(null);
   const available = snapshot.presets.filter(p => p.kind !== 'Unsaved');
   const visible = available.filter(p => (category === 'All' || p.kind === category) && p.name.toLowerCase().includes(query.toLowerCase()));
   const current = snapshot.processing?.name || '';
@@ -55,9 +57,14 @@ export function Presets({ snapshot, busy, action }: { snapshot: Snapshot; busy: 
       case 'delete': done = await action('presets/manage', { action: 'delete', name: pending.name, expected_name: pending.expected_name, ...guards }); break;
       case 'apply-file': done = await action('presets/apply-file', { document: pending.document, expected_name: pending.expected_name, ...guards }); break;
       case 'restore': done = await action('backup/restore-setup', { document: pending.backup.system.document, ...guards }); break;
+      case 'restore-files':
+        done = !pending.presets.length || await action('backup/restore-presets', { files: pending.presets, ...guards });
+        if (done && pending.setup && pending.changes.length) done = await action('backup/restore-setup', { document: pending.setup, ...guards });
+        break;
     }
     if (done) {
-      setNotice(pending.kind === 'restore' ? `Restored ${pending.changes.length} ${pending.changes.length === 1 ? 'setting' : 'settings'} from ${pending.file}.` : '');
+      setNotice(pending.kind === 'restore' ? `Restored ${pending.changes.length} ${pending.changes.length === 1 ? 'setting' : 'settings'} from ${pending.file}.`
+        : pending.kind === 'restore-files' ? `Restored ${pending.presets.length} ${pending.presets.length === 1 ? 'preset' : 'presets'}${pending.setup ? ` and ${pending.changes.length} ${pending.changes.length === 1 ? 'setting' : 'settings'}` : ''}.` : '');
       if (pending.kind === 'delete' || pending.kind === 'rename') setSelected(pending.kind === 'rename' ? pending.new_name : '');
       setNewName('');
       setPending(null);
@@ -71,6 +78,18 @@ export function Presets({ snapshot, busy, action }: { snapshot: Snapshot; busy: 
     } catch (e) { setNotice(e instanceof Error ? e.message : String(e)); }
   };
   const saveBackup = async () => {
+    if (backsUpFiles(snapshot.adapter_id)) {
+      // The original PC Remote's plain-text backup: the unit's setup file and every user preset file.
+      try {
+        const backup: { files: BackupFile[] } = await api('backup/files');
+        const date = new Date().toISOString().slice(0, 10);
+        const folder = `${safeFilename(snapshot.host || 'Optimod')} backup ${date}`;
+        const encoder = new TextEncoder();
+        download(`${folder}.zip`, zipFiles(folder, backup.files.map(f => ({ name: f.name, data: encoder.encode(f.document) }))) as Uint8Array<ArrayBuffer>, 'application/zip');
+        setNotice(`Backup saved: the setup file and ${backup.files.length - 1} preset ${backup.files.length === 2 ? 'file' : 'files'}, as the original PC Remote saves them.`);
+      } catch (e) { setNotice(e instanceof Error ? e.message : String(e)); }
+      return;
+    }
     try {
       const backup: Backup = await api('backup');
       const date = new Date(backup.created * 1000).toISOString().slice(0, 10);
@@ -82,6 +101,15 @@ export function Presets({ snapshot, busy, action }: { snapshot: Snapshot; busy: 
     if (!file) return;
     if (file.size > 65535) { setNotice('This file is too large to be a preset.'); return; }
     setPending({ kind: 'apply-file', file: file.name, document: await file.text(), expected_name: current });
+  };
+  const chooseBackupFiles = async (chosen: FileList | null) => {
+    if (!chosen?.length) return;
+    try {
+      const files = await Promise.all([...chosen].map(async f => ({ name: f.name, document: await f.text(), modified: f.lastModified })));
+      const { setup, presets } = sortBackupFiles(files, snapshot.adapter_id);
+      const plan = setup ? await api('backup/setup-plan', { document: setup.document }) : { changes: [], skipped: [] };
+      setPending({ kind: 'restore-files', presets, setup: setup?.document ?? null, changes: plan.changes.map((c: { name: string }) => c.name), skipped: plan.skipped });
+    } catch (e) { setNotice(e instanceof Error ? e.message : String(e)); }
   };
   const chooseBackup = async (file: File | undefined) => {
     if (!file) return;
@@ -117,8 +145,16 @@ export function Presets({ snapshot, busy, action }: { snapshot: Snapshot; busy: 
           {pending.changes.length > 0 && <p className="muted">{pending.changes.join(', ')}</p>}
           {pending.skipped.length > 0 && <details><summary>{pending.skipped.length} settings are left unchanged</summary>
             <ul>{pending.skipped.map(s => <li key={s.name}><strong>{s.name}</strong>: {s.reason}</li>)}</ul></details>}</>}
+        {pending.kind === 'restore-files' && <>
+          {pending.presets.length > 0 && <p>Restore {pending.presets.length === 1 ? 'the user preset file' : `${pending.presets.length} user preset files`} <strong>{pending.presets.map(p => p.name).join(', ')}</strong> to the processor? A preset with the same name is replaced; the on-air sound does not change.</p>}
+          {pending.setup && (pending.changes.length
+            ? <p>Restore <strong>{pending.changes.length}</strong> system {pending.changes.length === 1 ? 'setting' : 'settings'} from the setup file? Each change is written once and read back.</p>
+            : <p>The setup file matches the processor's system settings; nothing to restore there.</p>)}
+          {pending.changes.length > 0 && <p className="muted">{pending.changes.join(', ')}</p>}
+          {pending.skipped.length > 0 && <details><summary>{pending.skipped.length} settings are left unchanged</summary>
+            <ul>{pending.skipped.map(s => <li key={s.name}><strong>{s.name}</strong>: {s.reason}</li>)}</ul></details>}</>}
         {stale && <p>The on-air preset changed. Review your selection again.</p>}
-        <button disabled={!ready || stale || (pending.kind === 'restore' && !pending.changes.length)} onClick={() => void confirm()}>Confirm</button>
+        <button disabled={!ready || stale || (pending.kind === 'restore' && !pending.changes.length) || (pending.kind === 'restore-files' && !pending.presets.length && !pending.changes.length)} onClick={() => void confirm()}>Confirm</button>
         <button disabled={busy} onClick={() => setPending(null)}>Cancel</button></div>
         : <button disabled={!canRecall} onClick={() => setPending({ kind: 'recall', name: selected, expected_name: current })}>Recall preset…</button>}
       <p className="muted">FM and HD use the processing settings stored in this preset. Output routing is controlled separately.</p>
@@ -140,12 +176,17 @@ export function Presets({ snapshot, busy, action }: { snapshot: Snapshot; busy: 
         <button disabled={!snapshot.connected || busy} onClick={() => void savePresetFile()}>Save on-air preset as file</button>
         <button disabled={!ready || !!pending} onClick={() => presetInput.current?.click()}>Apply preset file…</button>
         <button disabled={!snapshot.connected || busy} onClick={() => void saveBackup()}>Save backup</button>
-        <button disabled={!ready || !!pending} onClick={() => backupInput.current?.click()}>Restore system settings…</button>
+        {backsUpFiles(snapshot.adapter_id)
+          ? <button disabled={!ready || !!pending} onClick={() => backupFilesInput.current?.click()}>Restore from backup…</button>
+          : <button disabled={!ready || !!pending} onClick={() => backupInput.current?.click()}>Restore system settings…</button>}
       </div>
       <input ref={presetInput} type="file" hidden accept={`.${presetFileExtension(snapshot.adapter_id)},.orb,.txt`} onChange={e => { void choosePresetFile(e.target.files?.[0]); e.target.value = ''; }} />
       <input ref={backupInput} type="file" hidden accept=".json,application/json" onChange={e => { void chooseBackup(e.target.files?.[0]); e.target.value = ''; }} />
+      <input ref={backupFilesInput} type="file" hidden multiple accept={`.${presetFileExtension(snapshot.adapter_id)},.orb57setup`} onChange={e => { void chooseBackupFiles(e.target.files); e.target.value = ''; }} />
       {notice && <p className="muted" role="status">{notice}</p>}
-      <p className="muted">A backup holds the system settings, the on-air preset and the names of all presets. The contents of other user presets can only be read by recalling them, so they are not in the backup. A restore never changes network settings or the clock.</p>
+      <p className="muted">{backsUpFiles(snapshot.adapter_id)
+        ? 'A backup holds the setup file and every user preset file of the processor, as the original PC Remote saves them in plain text. To restore, choose the setup file and any preset files, from this app\'s backup or the original PC Remote\'s backup folder. A restore never changes network settings or the clock.'
+        : 'A backup holds the system settings, the on-air preset and the names of all presets. The contents of other user presets can only be read by recalling them, so they are not in the backup. A restore never changes network settings or the clock.'}</p>
     </aside></div>
   </section>;
 }

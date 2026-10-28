@@ -204,6 +204,12 @@ enum BackendNavigation {
             decisionHandler(.cancel)
             return
         }
+        // A file the page saves (backup, preset file) is a download the
+        // window asks where to put.
+        if action.shouldPerformDownload || url.scheme == "blob" {
+            decisionHandler(.download)
+            return
+        }
         if allows(url) {
             decisionHandler(.allow)
             return
@@ -230,7 +236,14 @@ final class DeviceWindowBridge: NSObject, WKScriptMessageHandler {
 }
 
 /// A window that shows one page of the interface for one processor.
-final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKNavigationDelegate {
+/// Test hook (OPEN_OPTIMOD_WINDOW_CONTROL): files for the next open panel and
+/// the folder for the next save, so a test needs no mouse on the panels.
+enum FilePanelTestHook {
+    static var nextOpen: [URL]?
+    static var nextSaveFolder: URL?
+}
+
+final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate {
     let kind: DeviceWindowKind
     /// The processor this window belongs to; nil until one is connected.
     private(set) var deviceID: String?
@@ -262,6 +275,7 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
         super.init(window: window)
         window.delegate = self
         webView.navigationDelegate = self
+        webView.uiDelegate = self
         restoreFrame()
     }
 
@@ -404,6 +418,57 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
         decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
     ) {
         BackendNavigation.decide(navigationAction, decisionHandler)
+    }
+
+    func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
+        download.delegate = self
+    }
+
+    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        download.delegate = self
+    }
+
+    /// The page's file inputs (Apply preset file, Restore) open a native panel.
+    func webView(
+        _ webView: WKWebView,
+        runOpenPanelWith parameters: WKOpenPanelParameters,
+        initiatedByFrame frame: WKFrameInfo,
+        completionHandler: @escaping ([URL]?) -> Void
+    ) {
+        if let files = FilePanelTestHook.nextOpen {
+            FilePanelTestHook.nextOpen = nil
+            completionHandler(files)
+            return
+        }
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+        panel.canChooseDirectories = false
+        guard let window else { return completionHandler(nil) }
+        panel.beginSheetModal(for: window) { response in
+            completionHandler(response == .OK ? panel.urls : nil)
+        }
+    }
+
+    func download(
+        _ download: WKDownload,
+        decideDestinationUsing response: URLResponse,
+        suggestedFilename: String,
+        completionHandler: @escaping (URL?) -> Void
+    ) {
+        if let folder = FilePanelTestHook.nextSaveFolder {
+            FilePanelTestHook.nextSaveFolder = nil
+            completionHandler(folder.appendingPathComponent(suggestedFilename))
+            return
+        }
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = suggestedFilename
+        guard let window else { return completionHandler(nil) }
+        panel.beginSheetModal(for: window) { response in
+            guard response == .OK, let url = panel.url else { return completionHandler(nil) }
+            // WebKit does not replace a file; the panel already asked.
+            try? FileManager.default.removeItem(at: url)
+            completionHandler(url)
+        }
     }
 }
 
@@ -590,6 +655,12 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
             let text = parts.dropFirst(3).joined(separator: " ").replacingOccurrences(of: "'", with: "\\'")
             controller?.webView.evaluateJavaScript(
                 "(() => { const i = document.querySelector('input[name=\"\(parts[2])\"]'); if (!i) return; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, '\(text)'); i.dispatchEvent(new Event('input', {bubbles: true})); })()")
+        case "files" where parts.count > 1:
+            // Test hook: `files PATH|PATH…` answers the next open panel.
+            FilePanelTestHook.nextOpen = parts.dropFirst().joined(separator: " ")
+                .split(separator: "|").map { URL(fileURLWithPath: String($0)) }
+        case "saveto" where parts.count > 1:
+            FilePanelTestHook.nextSaveFolder = URL(fileURLWithPath: parts.dropFirst().joined(separator: " "))
         case "settings-tab" where parts.count > 1:
             nativeSettings.values.forEach { $0.selectTab(at: Int(parts[1]) ?? 0) }
         case "frame":
