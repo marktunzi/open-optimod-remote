@@ -178,6 +178,12 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
         }
     }
 
+    /// Test hook: selects a tab as a click on it does.
+    func selectTab(at index: Int) {
+        guard tabController.tabViewItems.indices.contains(index) else { return }
+        tabController.selectedTabViewItemIndex = index
+    }
+
     private func showValidationError(_ message: String) {
         ErrorLogStore.shared.record(source: "System Settings", message: message)
         setBusy(false, status: "Setting not applied · See Error Log")

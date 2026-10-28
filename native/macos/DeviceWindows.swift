@@ -28,6 +28,16 @@ enum DeviceWindowKind: String, CaseIterable, Sendable {
         }
     }
 
+    /// The content size a window opens at on a screen this wide. The meters
+    /// scale evenly with the window, so Meters opens at the Figma proportions
+    /// across most of the screen (at least the 1133 × 370 reference); the
+    /// other windows open at their reference size.
+    func openingSize(screenWidth: CGFloat) -> NSSize {
+        guard self == .meters else { return defaultSize }
+        let width = min(1700, max(defaultSize.width, (screenWidth * 0.85).rounded()))
+        return NSSize(width: width, height: (width * defaultSize.height / defaultSize.width).rounded())
+    }
+
     var minimumSize: NSSize {
         switch self {
         // The meters scale with the window; below this the labels get too small to read.
@@ -273,7 +283,23 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
         if !window.setFrameUsingName(name) {
             if !window.setFrameUsingName(Self.lastFrameName(kind)) { placeFirstTime(window) }
         }
+        growToOpeningSize(window)
         window.setFrameAutosaveName(name)
+    }
+
+    /// A window never opens smaller than its opening size; a smaller saved
+    /// frame grows from its top-left corner and stays on its screen.
+    private func growToOpeningSize(_ window: NSWindow) {
+        guard let visible = (window.screen ?? NSScreen.main ?? NSScreen.screens.first)?.visibleFrame else { return }
+        let content = window.contentRect(forFrameRect: window.frame)
+        let wanted = kind.openingSize(screenWidth: visible.width)
+        guard content.width < wanted.width - 0.5 || content.height < wanted.height - 0.5 else { return }
+        var frame = window.frameRect(forContentRect: NSRect(origin: content.origin,
+            size: NSSize(width: max(content.width, wanted.width), height: max(content.height, wanted.height))))
+        frame.origin.y = window.frame.maxY - frame.height
+        frame.origin.x = min(max(frame.origin.x, visible.minX), max(visible.minX, visible.maxX - frame.width))
+        frame.origin.y = min(max(frame.origin.y, visible.minY), max(visible.minY, visible.maxY - frame.height))
+        window.setFrame(frame, display: false)
     }
 
     /// The first time, Meters sits at the top of the screen with Processing
@@ -285,8 +311,9 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
             window.center()
             return
         }
-        let meters = window.frameRect(forContentRect: NSRect(origin: .zero, size: DeviceWindowKind.meters.defaultSize))
-        var frame = window.frame
+        let meters = window.frameRect(forContentRect: NSRect(origin: .zero,
+            size: DeviceWindowKind.meters.openingSize(screenWidth: visible.width)))
+        var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: kind.openingSize(screenWidth: visible.width)))
         frame.origin.x = visible.midX - frame.width / 2
         let top = visible.maxY - 24 - (kind == .processing ? meters.height + 12 : 0)
         frame.origin.y = max(visible.minY, top - frame.height)
@@ -514,7 +541,10 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
 
     /// Test hook (OPEN_OPTIMOD_WINDOW_CONTROL=<file>): the same AppKit window
     /// actions as the title bar and Window menu, appended to the file as lines
-    /// `show|close|minimize|restore KIND`, `frame KIND X Y W H` or `settings`.
+    /// `show|close|minimize|restore KIND`, `frame KIND X Y W H` or `settings`;
+    /// `tab KIND N` presses the Nth page tab (from 0) and `path KIND FM|HD` the
+    /// processing path, as a click on them does; `settings-tab N` selects a
+    /// System Settings tab.
     /// Every line also writes the window list to <file>.state.
     func perform(control line: String) {
         let parts = line.split(separator: " ").map(String.init)
@@ -529,6 +559,14 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
         case "close": controller?.window?.performClose(nil)
         case "minimize": controller?.window?.miniaturize(nil)
         case "restore": controller?.window?.deminiaturize(nil)
+        case "tab" where parts.count > 2:
+            controller?.webView.evaluateJavaScript(
+                "document.querySelectorAll('nav.tabs > button')[\(Int(parts[2]) ?? 0)]?.click()")
+        case "path" where parts.count > 2 && ["FM", "HD"].contains(parts[2]):
+            controller?.webView.evaluateJavaScript(
+                "[...document.querySelectorAll('.processing-path-selector button')].find(b => b.textContent === '\(parts[2])')?.click()")
+        case "settings-tab" where parts.count > 1:
+            nativeSettings.values.forEach { $0.selectTab(at: Int(parts[1]) ?? 0) }
         case "frame":
             let numbers = parts.dropFirst(2).compactMap(Double.init)
             if numbers.count == 4 {

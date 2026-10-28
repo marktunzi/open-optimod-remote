@@ -43,6 +43,11 @@ struct DeviceWindowsTests {
         // The Figma Meters frame; the meters scale, so the window may be narrower.
         precondition(DeviceWindowKind.meters.defaultSize == NSSize(width: 1133, height: 370))
         precondition(DeviceWindowKind.meters.minimumSize.width < 1133)
+        // Meters opens across most of a wide screen at the Figma proportions, never below the reference.
+        precondition(DeviceWindowKind.meters.openingSize(screenWidth: 1728) == NSSize(width: 1469, height: 480))
+        precondition(DeviceWindowKind.meters.openingSize(screenWidth: 1024) == NSSize(width: 1133, height: 370))
+        precondition(DeviceWindowKind.meters.openingSize(screenWidth: 3000).width == 1700)
+        precondition(DeviceWindowKind.processing.openingSize(screenWidth: 1728) == NSSize(width: 1133, height: 500))
         precondition(DeviceWindowKind.startup == [.meters, .processing])
         print("DeviceWindowsTests passed")
     }
