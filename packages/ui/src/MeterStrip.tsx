@@ -43,20 +43,32 @@ function unitFor(group: MeterGroup): string {
   return '';
 }
 
-function levelColor(percent:number): string {
-  if(percent>=92)return METER_PALETTE.red;
-  if(percent>=78)return METER_PALETTE.amber;
-  return METER_PALETTE.green;
+function levelColor(percent:number,palette:MeterPalette=METER_PALETTE): string {
+  if(percent>=92)return palette.red;
+  if(percent>=78)return palette.amber;
+  return palette.green;
 }
 
-export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE_METERS,values}:{
+type MeterPalette={[K in keyof typeof METER_PALETTE]:string};
+
+/** The meter panel of the Figma Meters frame (150:2690): flat panel, no group grooves. */
+const FIGMA_METER_PALETTE:MeterPalette={
+ ...METER_PALETTE,
+ panelTop:'#292929',panelBottom:'#292929',well:'#1c1c1c',separator:'#292929',separatorHighlight:'#292929',
+ ticks:'#8a8a8a',label:'#d6d6d6',
+};
+
+export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE_METERS,values,theme='instrument'}:{
   connected:boolean;
   identity:string;
   view:MeterView;
   onLiveChange?:(live:boolean)=>void;
   model?:MeterModel;
   values?:SettingValues;
+  /** 'figma': the Meters window of the Figma design, the same for every model. */
+  theme?:'instrument'|'figma';
 }) {
+ const palette=theme==='figma'?FIGMA_METER_PALETTE:METER_PALETTE;
  const groups=useMemo(()=>visibleGroups(view,model,values),[view,model,values]);
  const minimumCanvasWidth=meterCanvasWidth(groups);
  const canvas=useRef<HTMLCanvasElement>(null);
@@ -85,37 +97,57 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
     element.width=Math.round(width*ratio);element.height=Math.round(height*ratio);
    }
    context.setTransform(ratio,0,0,ratio,0,0);context.clearRect(0,0,width,height);
-   const scaleX=width/minimumCanvasWidth,scaleY=height/REFERENCE_HEIGHT;
-   context.setTransform(ratio*scaleX,0,0,ratio*scaleY,0,0);
+   // The Figma window scales the meters evenly and spreads the groups over a
+   // wider window; the instrument stretches its fixed artwork.
+   let spread=0;
+   if(theme==='figma'){
+    const scale=Math.min(width/minimumCanvasWidth,height/REFERENCE_HEIGHT);
+    spread=groups.length?Math.max(0,width/scale-minimumCanvasWidth)/groups.length:0;
+    const offsetY=Math.max(0,(height/scale-REFERENCE_HEIGHT)/2);
+    context.setTransform(ratio*scale,0,0,ratio*scale,0,ratio*scale*offsetY);
+    context.fillStyle=palette.panelTop;context.fillRect(0,-offsetY,width/scale,height/scale);
+   }else{
+    context.setTransform(ratio*width/minimumCanvasWidth,0,0,ratio*height/REFERENCE_HEIGHT,0,0);
+    const panelGradient=context.createLinearGradient(0,0,0,REFERENCE_HEIGHT);
+    panelGradient.addColorStop(0,palette.panelTop);panelGradient.addColorStop(1,palette.panelBottom);
+    context.fillStyle=panelGradient;context.fillRect(0,0,minimumCanvasWidth,REFERENCE_HEIGHT);
+   }
    context.imageSmoothingEnabled=false;
-   const panelGradient=context.createLinearGradient(0,0,0,REFERENCE_HEIGHT);
-   panelGradient.addColorStop(0,METER_PALETTE.panelTop);panelGradient.addColorStop(1,METER_PALETTE.panelBottom);
-   context.fillStyle=panelGradient;context.fillRect(0,0,minimumCanvasWidth,REFERENCE_HEIGHT);
    let x=0;
    groups.forEach((group,index)=>{
+    x+=spread/2;
     const groupWidth=meterGroupWidth(group),top=46.096,bottom=214.096,meterHeight=bottom-top;
-    context.font='600 10px "SF Compact Text", -apple-system, sans-serif';
-    context.textAlign='center';context.fillStyle=METER_PALETTE.label;
+    context.font=theme==='figma'?'500 10.5px -apple-system, "SF Pro Text", sans-serif':'600 10px "SF Compact Text", -apple-system, sans-serif';
+    context.textAlign='center';context.fillStyle=palette.label;
     if(group.name==='Loudness GR'){
      context.fillText('Loudness',x+groupWidth/2,22.5,groupWidth-8);
      context.fillText('Gr',x+groupWidth/2,33,groupWidth-8);
-    }else context.fillText(titleFor(group),x+groupWidth/2,26.2,groupWidth-8);
+    }else{
+     const title=titleFor(group);
+     // A title wider than its group wraps onto two lines, as "Loudness Gr" does.
+     const words=title.split(' ');
+     if(words.length>1&&context.measureText(title).width>groupWidth-8){
+      const split=Math.ceil(words.length/2);
+      context.fillText(words.slice(0,split).join(' '),x+groupWidth/2,22.5,groupWidth-4);
+      context.fillText(words.slice(split).join(' '),x+groupWidth/2,33,groupWidth-4);
+     }else context.fillText(title,x+groupWidth/2,26.2,groupWidth-8);
+    }
     const channels=meterChannelLayout(group);
     const contentStart=x+group.contentOffset;
     const firstWell=contentStart+(channels[0]?.wellLeft||0);
     context.font='500 7px "SF Compact Text", -apple-system, sans-serif';
-    context.textAlign='right';context.fillStyle=METER_PALETTE.ticks;
+    context.textAlign='right';context.fillStyle=palette.ticks;
     ticksFor(group).forEach(([position,label],tickIndex)=>{
      const y=top+2.5+position*(meterHeight-5);
      const signedOutput=group.kind==='level'&&group.name.endsWith('Output')&&tickIndex===0;
      context.fillText(signedOutput?`+${label}`:label,firstWell-5,y+2);
-     context.fillStyle=METER_PALETTE.ticks;context.fillRect(firstWell-3,y,2,.55);
+     context.fillStyle=palette.ticks;context.fillRect(firstWell-3,y,2,.55);
     });
     channels.forEach(channel=>{
      const wellX=contentStart+channel.wellLeft;
-     context.fillStyle=METER_PALETTE.well;
+     context.fillStyle=palette.well;
      const wellGradient=context.createLinearGradient(0,top,0,bottom);
-     wellGradient.addColorStop(0,'rgba(20,20,20,.8)');wellGradient.addColorStop(1,METER_PALETTE.well);
+     wellGradient.addColorStop(0,theme==='figma'?palette.well:'rgba(20,20,20,.8)');wellGradient.addColorStop(1,palette.well);
      context.fillStyle=wellGradient;
      context.beginPath();context.roundRect(wellX,top,channel.wellWidth,meterHeight,2.3913);context.fill();
      channel.lanes.forEach(lane=>{
@@ -127,51 +159,51 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
        const activeTop=top+2.5,activeBottom=bottom-2.5,activeHeight=activeBottom-activeTop;
        const barHeight=value/100*activeHeight;
        const barY=reduction?activeTop:activeBottom-barHeight;
-       let color:string=group.kind==='reduction'?METER_PALETTE.blue:METER_PALETTE.amber;
+       let color:string=group.kind==='reduction'?palette.blue:palette.amber;
        if(group.kind==='level'){
         const gradient=context.createLinearGradient(0,activeTop,0,activeBottom);
-        gradient.addColorStop(0,METER_PALETTE.red);gradient.addColorStop(.07362,METER_PALETTE.red);
+        gradient.addColorStop(0,palette.red);gradient.addColorStop(.07362,palette.red);
         gradient.addColorStop(.07363,'#F8D448');gradient.addColorStop(.1853,'#F8D448');
-        gradient.addColorStop(.3714,METER_PALETTE.green);gradient.addColorStop(1,METER_PALETTE.green);
+        gradient.addColorStop(.3714,palette.green);gradient.addColorStop(1,palette.green);
         context.fillStyle=gradient;
        } else context.fillStyle=color;
        context.fillRect(laneX,barY,lane.width,barHeight);
        const peakY=reduction?activeTop+peak/100*activeHeight:activeBottom-peak/100*activeHeight;
-       if(group.kind==='level')color=levelColor(peak);
+       if(group.kind==='level')color=levelColor(peak,palette);
        context.fillStyle=color;context.fillRect(laneX,peakY-.5,lane.width,1);
       }
       if(lane.label){
-       context.font='500 6px "SF Compact Text", -apple-system, sans-serif';context.textAlign='center';context.fillStyle=METER_PALETTE.ticks;
+       context.font='500 6px "SF Compact Text", -apple-system, sans-serif';context.textAlign='center';context.fillStyle=palette.ticks;
        context.fillText(lane.label,laneX+lane.width/2,224.5);
       }
      });
      if(channel.label){
-      context.font='500 6px "SF Compact Text", -apple-system, sans-serif';context.textAlign='center';context.fillStyle=METER_PALETTE.ticks;
+      context.font='500 6px "SF Compact Text", -apple-system, sans-serif';context.textAlign='center';context.fillStyle=palette.ticks;
       context.fillText(channel.label,contentStart+channel.center,224.5);
      }
     });
     if(group.name==='AGC'&&model.reference){
-     context.font='600 9px "SF Compact Text", -apple-system, sans-serif';context.fillStyle=METER_PALETTE.ticks;context.textAlign='center';
+     context.font='600 9px "SF Compact Text", -apple-system, sans-serif';context.fillStyle=palette.ticks;context.textAlign='center';
      ['G','A','T','E','D'].forEach((letter,letterIndex)=>context.fillText(letter,x+54.75,105+letterIndex*12));
     }
-    context.font='500 6px "SF Compact Text", -apple-system, sans-serif';context.fillStyle=METER_PALETTE.ticks;context.textAlign='center';
+    context.font='500 6px "SF Compact Text", -apple-system, sans-serif';context.fillStyle=palette.ticks;context.textAlign='center';
     const unit=unitFor(group);
     if(unit)context.fillText(unit,x+groupWidth/2,232.5);
     if(index<groups.length-1){
-     const divider=x+groupWidth;
-     context.fillStyle=METER_PALETTE.separator;context.fillRect(divider-1,0,1,REFERENCE_HEIGHT);
-     context.fillStyle=METER_PALETTE.separatorHighlight;context.fillRect(divider,0,1,REFERENCE_HEIGHT);
+     const divider=x+groupWidth+spread/2;
+     context.fillStyle=palette.separator;context.fillRect(divider-1,0,1,REFERENCE_HEIGHT);
+     context.fillStyle=palette.separatorHighlight;context.fillRect(divider,0,1,REFERENCE_HEIGHT);
     }
-    x+=groupWidth;
+    x+=groupWidth+spread/2;
    });
    animation=requestAnimationFrame(draw);
   };
   animation=requestAnimationFrame(draw);
   return()=>cancelAnimationFrame(animation);
- },[connected,identity,view,onLiveChange,groups,minimumCanvasWidth]);
+ },[connected,identity,view,onLiveChange,groups,minimumCanvasWidth,palette,theme]);
  return <section className="meterstrip" aria-label="Live meter groups">
   <div className="meter-canvas-scroll">
-   <canvas ref={canvas} style={{width:`${minimumCanvasWidth/REFERENCE_WIDTH*100}%`,minWidth:`${minimumCanvasWidth}px`}} role="img" aria-label={groups.map(group=>group.name).join(', ')}/>
+   <canvas ref={canvas} style={theme==='figma'?{width:'100%',height:'100%'}:{width:`${minimumCanvasWidth/REFERENCE_WIDTH*100}%`,minWidth:`${minimumCanvasWidth}px`}} role="img" aria-label={groups.map(group=>group.name).join(', ')}/>
   </div>
   <ul className="sr-only">{groups.map(group=><li key={group.name}>{group.name}: {group.channels.flatMap(channel=>channel.laneLabels || [channel.label]).join(', ')}</li>)}</ul>
  </section>;

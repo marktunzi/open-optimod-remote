@@ -14,6 +14,7 @@ import { Presets } from './Presets';
 import { Outputs } from './Outputs';
 import { Setup } from './Setup';
 import { InstrumentHeader } from './InstrumentHeader';
+import { FigmaMetersHeader } from './FigmaMetersHeader';
 import { DEFAULT_METER_VIEW, initialWorkspace, livePages, mergeSupplementPages, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
 import { binaryOnIndex, groupProcessingPage, type LayoutPage } from './processing-layout';
 import { modifiedFieldNames, optimisticLessMoreAvailability, optimisticModifiedFields } from './preset-state';
@@ -254,6 +255,13 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState("");
   const [meterLive, setMeterLive] = useState(false);
+  const [deviceNames, setDeviceNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!windowed || !sessionSnapshot.device_id || deviceNames[sessionSnapshot.device_id]) return;
+    void api('devices').then((book: { devices: { id: string; name: string }[] }) =>
+      setDeviceNames(Object.fromEntries(book.devices.map(device => [device.id, device.name]))))
+      .catch(e => reportError('Connections', e));
+  }, [windowed, sessionSnapshot.device_id, deviceNames]);
   const mutationInFlight = useRef(false);
   const lastReportedDeviceError = useRef<string | null>(null);
   const load = useCallback(async () => {
@@ -402,7 +410,8 @@ function App() {
     This window belongs to another processor, which is not connected. Its data is not shown here.
   </div>;
   return (
-    <main className={area === 'Connections' ? 'connection-mode' : ''} data-skin={skin.id} data-material={skin.material}
+    <main className={area === 'Connections' ? 'connection-mode' : ''}
+      data-skin={windowed ? 'figma' : skin.id} data-material={windowed ? 'figma' : skin.material}
       data-window={route.kind} data-binding={binding}>
       <a className="skip-link" href="#main-workspace">Skip to Controls</a>
       {area === 'Connections' ? <div className="connection-workspace" id="main-workspace" tabIndex={-1}>
@@ -410,17 +419,23 @@ function App() {
         <Devices connected={snapshot.connected} activeId={snapshot.device_id} activeHost={snapshot.host}
           busy={busy} action={action} onConnected={() => setArea('Processing')}/>
       </div> : <>
+      {route.kind === 'meters' && <FigmaMetersHeader snapshot={snapshot} skin={skin}
+        deviceName={snapshot.device_id ? deviceNames[snapshot.device_id] ?? null : null} meterLive={meterLive}
+        coupling={coupling} couplingDefinition={definition('Processing','HD COUPLING')} busy={busy} action={action}
+        onOpenSetup={openSystemSettings} onOpenPresets={openPresets} onOpenConnections={openConnections}
+        onOpenProcessing={() => window.webkit?.messageHandlers?.openProcessing?.postMessage({ device: route.deviceId })}/>}
       {(route.kind === 'combined' || route.kind === 'meters') && <>
-      <InstrumentHeader snapshot={snapshot} skin={skin} coupling={coupling}
+      {route.kind === 'combined' && <InstrumentHeader snapshot={snapshot} skin={skin} coupling={coupling}
         couplingDefinition={definition('Processing','HD COUPLING')} busy={busy}
         meterLive={meterLive} action={action} activeView={area}
         onOpenConnections={openConnections}
         onOpenPresets={openPresets}
-        onOpenSetup={openSystemSettings}/>
+        onOpenSetup={openSystemSettings}/>}
       {snapshot.connected && snapshot.capabilities?.live_meters === false
         ? <ModelMeterPanel skin={skin}/>
         : <MeterStrip connected={snapshot.connected} identity={snapshot.session_id || snapshot.device_id || snapshot.host}
-            view={DEFAULT_METER_VIEW} onLiveChange={setMeterLive} model={meterModel} values={meterSettings}/>}
+            view={DEFAULT_METER_VIEW} onLiveChange={setMeterLive} model={meterModel} values={meterSettings}
+            theme={windowed ? 'figma' : 'instrument'}/>}
       </>}
       {route.kind === 'meters' && (binding === 'other-device' ? otherDeviceNotice : reconnectBanner)}
       {route.kind !== 'meters' && <div className="app-body">

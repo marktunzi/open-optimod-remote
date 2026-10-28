@@ -485,3 +485,348 @@ main[data-window="processing"] .tabs {
   overflow-x: auto;
   scrollbar-width: none;
 }
+
+/*
+ * The Figma design (Meters 150:2690, Processing Settings 150:3651), the same
+ * for every model in the macOS app's windows. Colours sampled from the frames;
+ * accents from the file's variables.
+ */
+main[data-skin="figma"] {
+  --fx-strip: #4c4c4c;
+  --fx-strip-line: #434343;
+  --fx-bar: #313131;
+  --fx-meters: #292929;
+  --fx-button: #4d4d4d;
+  --fx-icon: #d1d1d1;
+  --fx-muted: #8f8f8f;
+  --fx-text: rgba(255, 255, 255, 0.86);
+  --fx-processing: #535353;
+  --fx-tabs: #4c4c4c;
+  --fx-value: #4a4a4a;
+  --fx-track: #333333;
+  --fx-blue: #009dff;
+  --fx-cyan: #00c4e3;
+  --fx-green: #34c759;
+  --app-cyan: var(--fx-cyan);
+  --control-track-fill: var(--fx-track);
+  background: var(--fx-processing);
+  font-family: -apple-system, "SF Pro Text", BlinkMacSystemFont, sans-serif;
+}
+
+main[data-skin="figma"]::before {
+  display: none;
+}
+
+main[data-window="meters"][data-skin="figma"] {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--fx-meters);
+}
+
+/* The meters take the window's remaining height and scale with it. */
+main[data-window="meters"][data-skin="figma"] > .meterstrip {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px 16px 10px;
+}
+
+main[data-window="meters"][data-skin="figma"] .meter-canvas-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  aspect-ratio: auto;
+  overflow: hidden;
+}
+
+main[data-window="meters"][data-skin="figma"] > .development {
+  flex: 0 0 auto;
+}
+
+main[data-skin="figma"] > .fx-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 41px 82px;
+  justify-content: stretch;
+  align-items: stretch;
+  padding: 0;
+  border: 0;
+}
+
+.fx-status {
+  display: flex;
+  align-items: stretch;
+  padding: 0 24px;
+  background: var(--fx-strip);
+  color: var(--fx-text);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.fx-cell {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  border-left: 1px solid var(--fx-strip-line);
+  line-height: 41px;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+.fx-cell:first-child {
+  padding-left: 0;
+  border-left: 0;
+  text-align: left;
+}
+
+.fx-clock {
+  flex: 0 0 auto;
+  padding-left: 16px;
+  padding-right: 0;
+  text-align: right;
+}
+
+.fx-connection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fx-connection > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b6b6b;
+}
+
+.fx-connection.is-connected > i {
+  background: var(--fx-green);
+  box-shadow: 0 0 4px rgba(52, 199, 89, 0.7);
+}
+
+.fx-connection.is-reconnecting > i {
+  background: #ffcc00;
+}
+
+.fx-connection.is-connection > i {
+  background: #ff383c;
+}
+
+/* Connected, but no meter frame has arrived yet. */
+.fx-connection.is-connected:not(.is-live) > i {
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.fx-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--fx-bar);
+}
+
+.fx-logo {
+  width: 78px;
+  height: 37px;
+  margin-left: 11px;
+  object-fit: contain;
+}
+
+.fx-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.fx-action {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 56px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fx-icon);
+  font: inherit;
+  cursor: pointer;
+}
+
+.fx-action-face {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--fx-button);
+}
+
+.fx-action-face > svg {
+  width: 24px;
+  height: 24px;
+}
+
+.fx-action-label {
+  color: var(--fx-muted);
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.fx-action:hover .fx-action-face {
+  background: #5a5a5a;
+}
+
+.fx-action[aria-pressed="true"] .fx-action-face {
+  color: var(--fx-blue);
+}
+
+.fx-action:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.fx-action:focus-visible {
+  outline: none;
+}
+
+.fx-action:focus-visible .fx-action-face {
+  outline: 2px solid var(--fx-blue);
+  outline-offset: 2px;
+}
+
+main[data-skin="figma"] .coupling-control {
+  position: relative;
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+main[data-skin="figma"] .coupling-confirmation {
+  position: absolute;
+  z-index: 20;
+  top: 54px;
+  right: -60px;
+  width: 340px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #3a3a3a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+main[data-skin="figma"] .meterstrip {
+  padding: 0 16px;
+  border: 0;
+  background: var(--fx-meters);
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .meter-canvas-scroll {
+  border-radius: 0;
+  background: var(--fx-meters);
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .meter-canvas-scroll::after {
+  display: none;
+}
+
+/* Processing Settings */
+main[data-skin="figma"] .tabs {
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  min-height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid #444;
+  background: var(--fx-tabs);
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .tabs > button {
+  flex: 1 0 auto;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  text-shadow: none;
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .tabs > button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+main[data-skin="figma"] .tabs > button[aria-pressed="true"] {
+  border: 0;
+  background: var(--fx-blue);
+  color: #fff;
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .tabs > button:disabled {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+main[data-skin="figma"] .app-body,
+main[data-skin="figma"] .workspace,
+main[data-skin="figma"] .processing {
+  background: var(--fx-processing);
+}
+
+main[data-skin="figma"] .control-well {
+  background: transparent;
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .processing-group > h3 {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+main[data-skin="figma"] .single-group-page .control-well.dense > .processing-control:first-child {
+  border-color: #6d6d6d;
+  border-radius: 6px;
+}
+
+main[data-skin="figma"] .control > label,
+main[data-skin="figma"] .toggle-control > label,
+main[data-skin="figma"] .control-value,
+main[data-skin="figma"] .toggle-control output {
+  font-family: inherit;
+}
+
+main[data-skin="figma"] .control-value,
+main[data-skin="figma"] .control-value:read-only,
+main[data-skin="figma"] .toggle-control output {
+  border-radius: 4px !important;
+  background: var(--fx-value) !important;
+}
+
+main[data-skin="figma"] .toggle-switch.on {
+  background: linear-gradient(164deg, #2cd96a, #13b250);
+}
+
+main[data-skin="figma"] .fx-action,
+main[data-skin="figma"] .fx-action.is-coupled {
+  background: transparent;
+  box-shadow: none;
+}

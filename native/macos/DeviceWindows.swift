@@ -19,10 +19,10 @@ enum DeviceWindowKind: String, CaseIterable, Sendable {
     }
 
     /// Meters and Processing Settings follow the Figma frames (1133 × 370 and
-    /// 1133 × 500); the meter window adds the instrument header for now.
+    /// 1133 × 500).
     var defaultSize: NSSize {
         switch self {
-        case .meters: NSSize(width: 1133, height: 420)
+        case .meters: NSSize(width: 1133, height: 370)
         case .processing: NSSize(width: 1133, height: 500)
         case .presets: NSSize(width: 1000, height: 640)
         }
@@ -30,9 +30,8 @@ enum DeviceWindowKind: String, CaseIterable, Sendable {
 
     var minimumSize: NSSize {
         switch self {
-        // The meter lanes have fixed reference widths until the Phase 3
-        // layout; a narrower window would hide meter groups.
-        case .meters: NSSize(width: 1133, height: 360)
+        // The meters scale with the window; below this the labels get too small to read.
+        case .meters: NSSize(width: 760, height: 300)
         case .processing: NSSize(width: 900, height: 360)
         case .presets: NSSize(width: 760, height: 460)
         }
@@ -251,6 +250,10 @@ final class DeviceWebWindowController: NSWindowController, NSWindowDelegate, WKN
         window.minSize = kind.minimumSize
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
+        // The Figma design is dark from edge to edge; the title bar follows it.
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.titlebarAppearsTransparent = true
+        window.backgroundColor = NSColor(srgbRed: 0x4c / 255, green: 0x4c / 255, blue: 0x4c / 255, alpha: 1)
         window.contentView = webView
         window.identifier = NSUserInterfaceItemIdentifier("OpenOptimod.\(kind.rawValue)")
         super.init(window: window)

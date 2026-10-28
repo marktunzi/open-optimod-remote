@@ -40,6 +40,9 @@ struct DeviceWindowsTests {
         precondition(DeviceWebWindowController.autosaveName(kind: .meters, deviceID: "d1") == "OpenOptimod.meters.d1")
         precondition(DeviceWebWindowController.autosaveName(kind: .processing, deviceID: nil) == "OpenOptimod.processing.none")
         precondition(DeviceWindowKind.processing.defaultSize == NSSize(width: 1133, height: 500))
+        // The Figma Meters frame; the meters scale, so the window may be narrower.
+        precondition(DeviceWindowKind.meters.defaultSize == NSSize(width: 1133, height: 370))
+        precondition(DeviceWindowKind.meters.minimumSize.width < 1133)
         precondition(DeviceWindowKind.startup == [.meters, .processing])
         print("DeviceWindowsTests passed")
     }
