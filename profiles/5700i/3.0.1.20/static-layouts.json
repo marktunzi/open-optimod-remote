@@ -1693,6 +1693,17 @@
       },
       {
         "kind": "slider",
+        "name": "B3 CLIP THRSH",
+        "label": "Multiband Limit Threshold",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 1315,
+        "reference_id": 121,
+        "options": []
+      },
+      {
+        "kind": "slider",
         "name": "SPEECH THR",
         "label": "Multiband Speech Threshold",
         "x": 182,
@@ -1828,6 +1839,17 @@
         "w": 105,
         "id": 1307,
         "reference_id": 118,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "B3 CLIP THRSH",
+        "label": "Multiband Limit Threshold",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 1315,
+        "reference_id": 121,
         "options": []
       },
       {
@@ -2091,6 +2113,17 @@
         "w": 105,
         "id": 3210,
         "reference_id": 137,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MPX PWR OFFSET",
+        "label": "MPX Power Offset",
+        "x": 13,
+        "y": 166,
+        "w": 105,
+        "id": 1395,
+        "reference_id": 323,
         "options": []
       },
       {
@@ -2532,6 +2565,211 @@
     ]
   },
   {
+    "title": "RDS",
+    "path": "FM",
+    "width": 319,
+    "height": 266,
+    "reference_dialog": 406,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "RDS DPS SPEED",
+        "label": "Dynamic Program Service Speed: (DPSS)",
+        "x": 174,
+        "y": 58,
+        "w": 42,
+        "id": 3484,
+        "reference_id": 747,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS DPS TIMEOUT",
+        "label": "Dynamic Program Service Timeout: (DPST)",
+        "x": 174,
+        "y": 76,
+        "w": 42,
+        "id": 3486,
+        "reference_id": 748,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS RADIO TEXT SPEED",
+        "label": "Radio Text Speed",
+        "x": 133,
+        "y": 125,
+        "w": 38,
+        "id": 3469,
+        "reference_id": 750,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "RDS MUSIC SPEECH",
+        "label": "Music/Speech(MS)",
+        "x": 123,
+        "y": 190,
+        "w": 72,
+        "id": 3472,
+        "reference_id": 754,
+        "options": [
+          "Speech",
+          "Music"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "RDS DECODER INFO",
+        "label": "Decoder Info(DI)",
+        "x": 123,
+        "y": 205,
+        "w": 76,
+        "id": 3473,
+        "reference_id": 755,
+        "options": [
+          "Mono",
+          "Stereo"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "RDS TRAFFIC PROGRAM",
+        "label": "Traffic Program(TP)",
+        "x": 123,
+        "y": 220,
+        "w": 66,
+        "id": 3475,
+        "reference_id": 756,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "RDS ACTIVE",
+        "label": "57kHz RDS Subcarrier",
+        "x": 222,
+        "y": 136,
+        "w": 85,
+        "id": 3480,
+        "reference_id": 759,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "RDS LEVEL",
+        "label": "Subcarrier Level",
+        "x": 222,
+        "y": 165,
+        "w": 38,
+        "id": 3482,
+        "reference_id": 760,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "RDS USE SYSTEM",
+        "label": "Use System RDS Values",
+        "x": 12,
+        "y": 6,
+        "w": 106,
+        "id": 2013,
+        "reference_id": 745,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "kind": "text",
+        "name": "RDS DYNAMIC PS",
+        "label": "Program Service Name(PS)",
+        "x": 133,
+        "y": 27,
+        "w": 177,
+        "id": 3468,
+        "max_length": 255,
+        "options": []
+      },
+      {
+        "kind": "text",
+        "name": "RDS RADIO TEXT",
+        "label": "Radio Text Default(RT)",
+        "x": 133,
+        "y": 93,
+        "w": 177,
+        "id": 2548,
+        "max_length": 128,
+        "options": []
+      },
+      {
+        "kind": "text",
+        "name": "RDS PROGRAM ID",
+        "label": "Program Identification(PI)",
+        "x": 133,
+        "y": 140,
+        "w": 37,
+        "id": 2549,
+        "max_length": 4,
+        "options": []
+      },
+      {
+        "kind": "text",
+        "name": "RDS PROGRAM TYPE",
+        "label": "Program Type(PTY)",
+        "x": 133,
+        "y": 155,
+        "w": 37,
+        "id": 2550,
+        "max_length": 2,
+        "options": []
+      },
+      {
+        "kind": "text",
+        "name": "RDS PROGRAM NAME",
+        "label": "Program Type Name(PTYN)",
+        "x": 133,
+        "y": 170,
+        "w": 37,
+        "id": 2551,
+        "max_length": 8,
+        "options": []
+      },
+      {
+        "kind": "text",
+        "name": "RDS EAS",
+        "label": "EAS Text (EAS)",
+        "x": 133,
+        "y": 234,
+        "w": 177,
+        "id": 2552,
+        "max_length": 64,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 211,
+        "y": 123,
+        "w": 101,
+        "h": 61,
+        "text": "RDS Modulator"
+      },
+      {
+        "x": 25,
+        "y": 18,
+        "w": 293,
+        "h": 244,
+        "text": "Preset RDS Settings"
+      }
+    ]
+  },
+  {
     "title": "Final Clip",
     "path": "FM",
     "width": 173,
@@ -2547,6 +2785,17 @@
         "w": 105,
         "id": 3210,
         "reference_id": 137,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MPX PWR OFFSET",
+        "label": "MPX Power Offset",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 1395,
+        "reference_id": 323,
         "options": []
       },
       {

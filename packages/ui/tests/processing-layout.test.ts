@@ -60,3 +60,19 @@ test('extracted pages read the original dialog column by column; group titles ke
     controls: [control('BASS GAIN', 13, 46)] };
   assert.equal(groupProcessingPage(page)[0].title, 'LF Shelf Equalizer');
 });
+
+test('the 5700i preset RDS page has the client text boxes and keeps its nested RDS Modulator box', () => {
+  const supplement = JSON.parse(readFileSync(`${root}/profiles/5700i/3.0.1.20/static-layouts.json`, 'utf8')) as LayoutPage[];
+  const rds = supplement.find(page => page.title === 'RDS')!;
+  const texts = rds.controls.filter(control => control.kind === 'text');
+  assert.deepEqual(texts.map(control => [control.name, control.max_length]), [
+    ['RDS DYNAMIC PS', 255], ['RDS RADIO TEXT', 128], ['RDS PROGRAM ID', 4],
+    ['RDS PROGRAM TYPE', 2], ['RDS PROGRAM NAME', 8], ['RDS EAS', 64]]);
+  const groups = groupProcessingPage(rds);
+  const modulator = groups.find(group => group.title === 'RDS Modulator')!;
+  assert.deepEqual(modulator.controls.map(control => control.name).sort(), ['RDS ACTIVE', 'RDS LEVEL']);
+  const names = groups.flatMap(group => group.controls.map(control => control.name));
+  assert.equal(names.length, new Set(names).size);
+  for (const [title, name] of [['Distortion Control', 'B3 CLIP THRSH'], ['Final Clipping', 'MPX PWR OFFSET']])
+    assert.ok(supplement.find(page => page.title === title)!.controls.some(control => control.name === name), name);
+});

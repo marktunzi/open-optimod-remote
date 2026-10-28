@@ -8,6 +8,8 @@ export type LayoutControl = {
   id: number;
   options: string[];
   reference_id?: number;
+  /** A text box's maximum length in the client (`kind: 'text'`). */
+  max_length?: number;
 };
 
 export type LayoutGroup = {
@@ -43,7 +45,7 @@ export function binaryOnIndex(options: string[]): number | null {
   return affirmative >= 0 ? affirmative : 1;
 }
 
-const ACRONYMS = new Set(['LF', 'HF', 'MB', 'EQ', 'AGC', 'HD', 'FM', 'MX', 'GR', 'MPX', '2B', 'B4/5']);
+const ACRONYMS = new Set(['RDS', 'LF', 'HF', 'MB', 'EQ', 'AGC', 'HD', 'FM', 'MX', 'GR', 'MPX', '2B', 'B4/5']);
 
 function titleCase(value: string): string {
   return value
@@ -96,15 +98,22 @@ export function groupProcessingPage(page: LayoutPage): ProcessingGroup[] {
     return [{ title: page.title, controls: page.controls, order: 0 }];
   }
 
+  // A control belongs to the smallest group box around it, so a box inside
+  // another (the 5700i's RDS Modulator in Preset RDS Settings) keeps its own.
+  const inside = (control: LayoutControl, group: LayoutGroup) => {
+    const centerX = control.x + control.w / 2;
+    const centerY = control.y + 9;
+    return centerX >= group.x && centerX <= group.x + group.w && centerY >= group.y && centerY <= group.y + group.h;
+  };
+  const owner = (control: LayoutControl) => named
+    .filter(group => inside(control, group))
+    .reduce<LayoutGroup | undefined>((best, group) => !best || group.w * group.h < best.w * best.h ? group : best, undefined);
   const assigned = new Set<string>();
   const groups: ProcessingGroup[] = named.map(group => {
     const controls = page.controls.filter(control => {
-      const centerX = control.x + control.w / 2;
-      const centerY = control.y + 9;
-      const inside = centerX >= group.x && centerX <= group.x + group.w
-        && centerY >= group.y && centerY <= group.y + group.h;
-      if (inside) assigned.add(control.name);
-      return inside;
+      const mine = owner(control) === group;
+      if (mine) assigned.add(control.name);
+      return mine;
     });
     return { title: titleCase(group.text), controls, order: group.x * 1000 + group.y };
   }).filter(group => group.controls.length);

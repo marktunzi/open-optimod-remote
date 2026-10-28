@@ -896,3 +896,27 @@ main[data-skin="figma"] .processing-groups:not(.single-group-page) .control-well
   gap: 12px 30px;
 }
 
+
+/* Text boxes of the original client (5700i preset RDS): full width, left aligned. */
+.text-control .text-value {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 22px;
+  padding: 2px 6px;
+  text-align: left;
+  border: 1px solid transparent;
+  color: inherit;
+}
+.text-control .text-value:focus-visible {
+  outline: 2px solid var(--fx-cyan);
+  outline-offset: 0;
+}
+.text-control .text-value[aria-invalid="true"] {
+  border-color: #ff5a4f;
+}
+.text-control small {
+  display: block;
+  font-size: 11px;
+  color: #ff8a80;
+}

@@ -209,6 +209,43 @@ function Control({
   );
 }
 
+/**
+ * A text box of the original client (the preset RDS page): the firmware's
+ * `undefined` shows empty, as in the client, and an emptied box writes
+ * `undefined` back, as the client does. Enter or leaving the box writes;
+ * Escape restores the current value. The write is confirmed by readback.
+ */
+export function TextControl({ name, label, field, maxLength, disabled, pending, modified, write }: {
+  name: string; label: string; field?: Field; maxLength?: number; disabled: boolean; pending: boolean;
+  modified: boolean; write: (text: string) => Promise<boolean>;
+}) {
+  const current = field?.value.type === 'Text' && field.value.value !== 'undefined' ? String(field.value.value) : '';
+  const [draft, setDraft] = useState<string | null>(null);
+  useEffect(() => setDraft(null), [current]);
+  const value = draft ?? current;
+  const valid = value.length <= (maxLength ?? 255) && /^[\x20-\x7e]*$/.test(value) && !/[;<>]/.test(value);
+  const available = !disabled && !!field;
+  const commit = async () => {
+    if (draft === null || draft === current || !valid || !available || pending) return;
+    if (!(await write(draft === '' ? 'undefined' : draft))) setDraft(null);
+  };
+  return <div className={`control text-control${!available ? ' unavailable' : ''}${modified ? ' modified' : ''}`}
+    title={!field ? 'Not available in this preset' : label}>
+    <label htmlFor={`processing-${name}`}>{label}</label>
+    <input id={`processing-${name}`} name={`processing-${name}`} className="control-value text-value" type="text"
+      autoComplete="off" spellCheck={false} maxLength={maxLength ?? 255} value={value} disabled={!available}
+      aria-invalid={!valid} aria-busy={pending}
+      onChange={event => setDraft(event.target.value)}
+      onBlur={() => void commit()}
+      onKeyDown={event => {
+        if (event.key === 'Enter') { event.preventDefault(); void commit(); }
+        if (event.key === 'Escape') { event.preventDefault(); setDraft(null); }
+      }}/>
+    {!valid && <small role="alert">Letters, digits and spaces only; no ; &lt; or &gt;.</small>}
+    <span className="sr-only">{name}</span>
+  </div>;
+}
+
 function BinaryToggle({ name, label, options, field, disabled, pending, modified, change }: {
   name: string;
   label: string;
@@ -502,7 +539,12 @@ function App() {
                     // Only the page's on/off switch, put first, gets the outlined box of the design.
                     const pageSwitch = controlIndex === 0 && toggleIndex !== null;
                     return <div className={`processing-control${pageSwitch ? ' page-switch' : ''}`} key={control.name}>
-                      {control.kind === 'radio' && toggleIndex !== null ? <BinaryToggle
+                      {control.kind === 'text' ? <TextControl name={control.name} label={control.label}
+                        field={field} maxLength={control.max_length} pending={busy} disabled={disabled}
+                        modified={modifiedFields.has(control.name)}
+                        write={text => action('change', { scope: 'Processing', name: control.name, index: field!.index,
+                          expected: field, requested: { type: 'Text', value: text } })}/>
+                      : control.kind === 'radio' && toggleIndex !== null ? <BinaryToggle
                         name={control.name} label={control.label} options={control.options}
                         field={field} pending={busy} disabled={disabled || !controlDefinition}
                         modified={modifiedFields.has(control.name)}

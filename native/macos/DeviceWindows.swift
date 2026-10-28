@@ -664,11 +664,15 @@ final class DeviceWindowManager: DeviceWindowBridgeDelegate {
             let text = parts.dropFirst(2).joined(separator: " ").replacingOccurrences(of: "'", with: "\\'")
             controller?.webView.evaluateJavaScript(
                 "[...document.querySelectorAll('button')].find(b => b.textContent.trim().startsWith('\(text)') && !b.disabled)?.click()")
-        case "type" where parts.count > 3:
-            // Test hook: TEXT into the input named FIELD, as typing does for React.
+        case "type" where parts.count > 2:
+            // Test hook: TEXT into the input named FIELD (`+` for a space), as typing does for React.
             let text = parts.dropFirst(3).joined(separator: " ").replacingOccurrences(of: "'", with: "\\'")
             controller?.webView.evaluateJavaScript(
-                "(() => { const i = document.querySelector('[name=\"\(parts[2])\"]'); if (!i) return; const proto = i instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(i, '\(text)'); i.dispatchEvent(new Event(i instanceof HTMLSelectElement ? 'change' : 'input', {bubbles: true})); })()")
+                "(() => { const i = document.querySelector('[name=\"\(parts[2].replacingOccurrences(of: "+", with: " "))\"]'); if (!i) return; const proto = i instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(i, '\(text)'); i.dispatchEvent(new Event(i instanceof HTMLSelectElement ? 'change' : 'input', {bubbles: true})); })()")
+        case "enter" where parts.count > 2:
+            // Test hook: Return in the input named FIELD, as pressing it does.
+            controller?.webView.evaluateJavaScript(
+                "document.querySelector('[name=\"\(parts[2].replacingOccurrences(of: "+", with: " "))\"]')?.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}))")
         case "files" where parts.count > 1:
             // Test hook: `files PATH|PATH…` answers the next open panel.
             FilePanelTestHook.nextOpen = parts.dropFirst().joined(separator: " ")

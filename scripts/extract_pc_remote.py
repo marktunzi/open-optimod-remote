@@ -77,7 +77,12 @@ CONFIGS = {
         ctor=0x4B2E20, assign=0x47C400, sprintf=0x52A3D8, itoa=0x530481,
         binders={0x4293D0: ("slider", 5), 0x429580: ("radio", 7), 0x429750: ("combo", 3)},
         processing_dialogs=[232, 233, 234, 235, 240, 244, 245, 246, 362, 368, 370, 375, 377, 380,
-                            387, 388, 393, 394, 395, 396, 399, 400],
+                            387, 388, 393, 394, 395, 396, 399, 400, 406],
+        # Edit boxes the client binds with DDX_Text/DDV_MaxChars instead of a
+        # binder (the preset RDS page 406, handlers 0x40c400-0x40cd30): control
+        # id, field, the client's maximum length.
+        text_controls={406: [(3468, "RDS DYNAMIC PS", 255), (2548, "RDS RADIO TEXT", 128), (2549, "RDS PROGRAM ID", 4),
+                             (2550, "RDS PROGRAM TYPE", 2), (2551, "RDS PROGRAM NAME", 8), (2552, "RDS EAS", 64)]},
         meter=dict(subclass=0x546767, init=0x442810, chan=0x4447F0, curve=0x442EB0,
                    getbyte=0x4B8EB0, setvalue=0x442D70,
                    dialogs=[247, 373, 378], primary=247, max_values=112),
@@ -191,7 +196,7 @@ PAGE_TITLES = {246: "Less More", 244: "Final Clip", 381: "Clipper Options", 393:
 MX_VARIANT_DIALOGS = {244, 396, 399, 400}
 PAGE_ORDER = ["Less More", "Stereo Enhancer", "AGC", "Equalizer", "Multiband", "Compressors", "Band Mix",
               "2 Band", "Distortion Control", "2 Band Distortion", "Final Clipping", "Clipper Options",
-              "Speech Mode", "HD Limiting"]
+              "Speech Mode", "HD Limiting", "RDS"]
 
 md = Cs(CS_ARCH_X86, CS_MODE_32)
 
@@ -669,8 +674,21 @@ def title_case(name: str) -> str:
     return " ".join(words)
 
 
-def dialog_controls(dialog, binds, by_id, names):
-    """The controls one dialog binds to fields in `names`, with the dialog's own labels."""
+def row_label(dialog, item):
+    """The static text just left of a control on its row, else right above
+    it, as the client lays it out."""
+    statics = [i for i in dialog["items"] if i["cls"] == "Static" and i["text"].strip()]
+    left = [i for i in statics if abs(i["y"] - item["y"]) <= 8 and 0 <= item["x"] - (i["x"] + i["w"]) < 40]
+    above = [i for i in statics if abs(i["x"] - item["x"]) <= 6 and 0 < item["y"] - i["y"] <= 20]
+    labels = sorted(left, key=lambda i: abs(i["y"] - item["y"])) or sorted(above, key=lambda i: item["y"] - i["y"])
+    return labels[0]["text"].replace("&", "").strip().rstrip(":").strip() if labels else None
+
+
+def dialog_controls(dialog, binds, by_id, names, raw_values=None, row_labels=False):
+    """The controls one dialog binds to fields in `names`, with the dialog's own labels.
+    With `row_labels`, a control without a label of its own takes the static
+    text on its row (dialogs laid out as a form)."""
+    raw_values = raw_values or {}
     items = {i["id"]: i for i in dialog["items"]}
     controls = []
     for _, kind, args in sorted(binds):
@@ -682,7 +700,7 @@ def dialog_controls(dialog, binds, by_id, names):
             item = items.get(track) or items.get(edit)
             if not item:
                 continue
-            text = items.get(label, {}).get("text", "").strip() or title_case(name)
+            text = items.get(label, {}).get("text", "").strip() or (row_labels and row_label(dialog, item)) or title_case(name)
             controls.append(dict(kind="slider", name=name, label=text.replace("&", ""), x=item["x"], y=item["y"], w=item["w"],
                                  id=item["id"], reference_id=args[0], options=[]))
         elif kind == "radio":
@@ -692,11 +710,20 @@ def dialog_controls(dialog, binds, by_id, names):
             buttons = [i for i in referenced if i["cls"] == "Button" and i["style"] & 0xF in (4, 9)]
             captions = [i["text"].replace("&", "").strip() for i in referenced if i not in buttons and i["text"].strip()]
             if not buttons:
+                # A single check box (the preset RDS page's "Use System RDS
+                # Values"): its own text is the label, unchecked/checked the
+                # field's two values.
+                boxes = [i for i in referenced if i["cls"] == "Button" and i["style"] & 0xF in (2, 3) and i["text"].strip()]
+                if boxes and len(raw_values.get(name, ())) == 2:
+                    box = boxes[0]
+                    controls.append(dict(kind="radio", name=name, label=box["text"].replace("&", "").strip(), x=box["x"], y=box["y"],
+                                         w=box["w"], id=box["id"], reference_id=args[0], options=list(raw_values[name])))
                 continue
             x, y = min(b["x"] for b in buttons), min(b["y"] for b in buttons)
             boxes = sorted((g for g in dialog["items"] if g["cls"] == "Button" and g["style"] & 0xF == 7 and g["text"].strip()
                             and g["x"] <= x <= g["x"] + g["w"] and g["y"] <= y <= g["y"] + g["h"]), key=lambda g: g["w"] * g["h"])
-            label = captions[0] if captions else boxes[0]["text"].replace("&", "").strip() if boxes else title_case(name)
+            label = captions[0] if captions else (row_labels and row_label(dialog, buttons[0])) or (
+                boxes[0]["text"].replace("&", "").strip() if boxes else title_case(name))
             controls.append(dict(kind="radio", name=name, label=label, x=x, y=y, w=max(b["x"] + b["w"] for b in buttons) - x,
                                  id=buttons[0]["id"], reference_id=args[0], options=[b["text"].replace("&", "").strip() for b in buttons]))
         else:
@@ -707,10 +734,28 @@ def dialog_controls(dialog, binds, by_id, names):
     return controls
 
 
-def build_layouts(image: Image, config: dict, profile_fields, raw):
+def text_controls(dialog, entries):
+    """Edit boxes bound as text, labelled by the static text on their row."""
+    items = {i["id"]: i for i in dialog["items"]}
+    controls = []
+    for identifier, name, length in entries:
+        item = items.get(identifier)
+        if not item:
+            continue
+        label = row_label(dialog, item) or title_case(name)
+        controls.append(dict(kind="text", name=name, label=label, x=item["x"], y=item["y"], w=item["w"], id=identifier,
+                             max_length=length, options=[]))
+    return controls
+
+
+def build_layouts(image: Image, config: dict, profile_fields, raw, reference=()):
     resources = dialogs(image)
-    names = {f["name"] for f in profile_fields if f["scope"] == "Processing"}
+    # A supplement may place fields its own conversion could not confirm but
+    # the hardware-verified profile next to it has.
+    names = {f["name"] for f in profile_fields if f["scope"] == "Processing"} | set(reference)
     by_id = {r["id"]: r["name"] for r in raw}
+    raw_values = {f["name"]: [str(v["value"]) for v in f.get("values", [])] for f in profile_fields
+                  if f["scope"] == "Processing" and all(v.get("type") == "Choice" for v in f.get("values", []))}
     pages = []
     for function, binds in binder_calls(image, config["binders"]).items():
         controls_used = {c for _, _, args in binds for c in args[1:] if c}
@@ -722,7 +767,9 @@ def build_layouts(image: Image, config: dict, profile_fields, raw):
         if not best or best[1] not in config["processing_dialogs"]:
             continue
         dialog = resources[best[1]]
-        controls = dialog_controls(dialog, binds, by_id, names)
+        texts = config.get("text_controls", {}).get(best[1])
+        controls = dialog_controls(dialog, binds, by_id, names, raw_values, row_labels=bool(texts))
+        controls += text_controls(dialog, texts or [])
         if not controls:
             continue
         hd = sum(c["name"].startswith(("HD ", "IBOC")) for c in controls)
@@ -1193,7 +1240,9 @@ def main():
             "status": "Statically derived from the official PC Remote conversion routines and cross-checked against the "
                       "factory presets in the same installer. Not verified on hardware.",
             "fields": fields}, indent=2) + "\n")
-        layouts = build_layouts(image, config, fields, raw)
+        reference = [n for n, scopes in reference_scopes(repository).items() if "Processing" in scopes] \
+            if config.get("supplement") else ()
+        layouts = build_layouts(image, config, fields, raw, reference)
         (args.output / f"{prefix}layouts.json").write_text(json.dumps(layouts, indent=2) + "\n")
         system_layouts = build_system_layouts(image, config, fields, raw)
         (args.output / f"{prefix}system-layouts.json").write_text(json.dumps(system_layouts, indent=2) + "\n")

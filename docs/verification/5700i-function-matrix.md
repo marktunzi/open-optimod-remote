@@ -33,8 +33,10 @@ Original client: `5700iPC.exe` (SHA-256 `63def9bb…`), menus from its own resou
 | Windows function | Mac app | Status | Evidence |
 |---|---|---|---|
 | AGC page order and write with readback | Processing window | PASS | [Phase 4](2026-10-28-ui-phase4-processing.md) |
-| Every other page, control, range and step (5-band, 2-band, HD, MX) | Processing window | UNTESTED | |
-| FM->HD Couple / Uncouple | — | UNTESTED | |
+| Every on-air field the client binds is on its page (B3 Clip Threshold, MPX Power Offset added) | Processing window | PASS (binding comparison; the two added sliders written with readback) | [M1H](2026-10-28-m1h-couple-processing.md) |
+| Preset RDS page (text boxes, Use System RDS Values, modulator) | Processing › RDS | PASS (PTYN set and cleared, wire identical to the client) | [M1H](2026-10-28-m1h-couple-processing.md) |
+| Every other control's range and step on hardware | Processing window | UNTESTED (ranges from the verified profile) | |
+| FM->HD Couple / Uncouple | FM HD button (Meters/Processing header) | PASS (same single write as the client) | [M1H](2026-10-28-m1h-couple-processing.md) |
 
 ## Setup (Edit/Tools › Setup, 11 tabs)
 
