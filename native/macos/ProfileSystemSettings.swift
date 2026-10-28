@@ -199,7 +199,7 @@ enum ProfileSystemSettings {
     private static let manualClock = #"^SET (HOUR|MINUTE|SECOND|DAY|MONTH|YEAR)$"#
 
     static func group(of name: String) -> String {
-        if matches(name, #"^(EI[12] |INPUT LEVEL$)"#) { return "Input" }
+        if matches(name, #"^(EI[12] |INPUT LEVEL$)"#) || matches(name, "FALLBACK$") { return "Input" }
         if matches(name, #"^(EO[12] |EO LR SWAP|DO LR SWAP|DIGITAL COMP LEVEL$)"#) { return "Output" }
         if matches(name, testAndBypass) || matches(name, processingStructure)
             || matches(name, modulationExtras) || matches(name, loudnessExtras) { return "FM" }
@@ -300,7 +300,7 @@ enum ProfileSystemSettings {
             text = text.replacingOccurrences(of: "\\b\(word)\\b", with: replacement, options: .regularExpression)
         }
         text = text.lowercased().capitalized
-        for acronym in ["FM", "HD", "RDS", "SNMP", "UECP", "IP", "ID", "CBET", "CSID", "PPM", "EAS", "AGC", "MPX", "AES"] {
+        for acronym in ["FM", "HD", "RDS", "SNMP", "UECP", "IP", "ID", "CBET", "CSID", "PPM", "EAS", "AGC", "MPX", "AES", "TA", "MP3", "DPS"] {
             text = text.replacingOccurrences(of: "\\b\(acronym.capitalized)\\b", with: acronym, options: .regularExpression)
         }
         return text

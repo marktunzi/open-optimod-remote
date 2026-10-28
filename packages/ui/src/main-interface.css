@@ -412,14 +412,14 @@ main:not(.connection-mode)::before {
   padding-left: 38px;
 }
 
-.single-group-page .control-well.dense > .processing-control:first-child {
+.single-group-page .control-well.dense > .processing-control.page-switch {
   margin: -8px -16px -9px;
   padding: 8px 16px 9px;
   border: 1px solid #50504e;
   border-radius: 4px;
 }
 
-.single-group-page .control-well.dense > .processing-control:first-child output {
+.single-group-page .control-well.dense > .processing-control.page-switch output {
   text-transform: uppercase;
 }
 
@@ -833,7 +833,7 @@ main[data-skin="figma"] .processing-group > h3 {
   color: rgba(255, 255, 255, 0.7);
 }
 
-main[data-skin="figma"] .single-group-page .control-well.dense > .processing-control:first-child {
+main[data-skin="figma"] .single-group-page .control-well.dense > .processing-control.page-switch {
   border-color: #6d6d6d;
   border-radius: 6px;
 }

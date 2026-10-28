@@ -493,13 +493,15 @@ function App() {
               {processingGroups.map(group => <section className={`processing-group ${group.className || ''}`} key={group.title}>
                 <h3>{group.title}</h3>
                 <div className={`control-well ${group.controls.length > 10 ? 'dense' : ''}`}>
-                  {group.controls.map(control => {
+                  {group.controls.map((control, controlIndex) => {
                     const field = snapshot.processing?.fields[control.name];
                     const controlDefinition = definition("Processing", control.name);
                     const disabled = !snapshot.connected || !snapshot.write_enabled
                       || !processingControlEditable(control.name, couplingValue);
                     const toggleIndex = control.kind === 'radio' ? binaryOnIndex(control.options) : null;
-                    return <div className="processing-control" key={control.name}>
+                    // Only the page's on/off switch, put first, gets the outlined box of the design.
+                    const pageSwitch = controlIndex === 0 && toggleIndex !== null;
+                    return <div className={`processing-control${pageSwitch ? ' page-switch' : ''}`} key={control.name}>
                       {control.kind === 'radio' && toggleIndex !== null ? <BinaryToggle
                         name={control.name} label={control.label} options={control.options}
                         field={field} pending={busy} disabled={disabled || !controlDefinition}
