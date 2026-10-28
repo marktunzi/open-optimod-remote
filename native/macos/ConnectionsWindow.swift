@@ -500,9 +500,24 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
 
     func controlTextDidChange(_ obj: Notification) { filterAndReload() }
 
-    /// Test hook: `all` or `group NAME`, as a click on that sidebar row.
-    func perform(_ command: String) {
+    /// Test hook: `all` or `group NAME`, as a click on that sidebar row;
+    /// `connect NAME` as a double-click on that saved processor.
+    func perform(_ command: String, attempts: Int = 40) {
         if command == "all" { showAllConnections(); return }
+        if command.hasPrefix("connect ") {
+            // Opening the window reloads the list first.
+            if busy {
+                if attempts > 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.perform(command, attempts: attempts - 1) }
+                }
+                return
+            }
+            let name = String(command.dropFirst(8))
+            guard let device = context.devices.first(where: { $0.name == name }) else { return }
+            selectedID = device.id
+            connectSelected()
+            return
+        }
         guard command.hasPrefix("group "),
               let button = groupButtons.first(where: { $0.identifier?.rawValue == String(command.dropFirst(6)) }) else { return }
         showGroup(button)
@@ -802,7 +817,10 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         api.connect(id: device.id) { [weak self] result in
             guard let self else { return }
             switch result {
-            case let .failure(error): self.finishMutation(.failure(error), selectedID: device.id, success: "")
+            case let .failure(error):
+                self.setBusy(false, subtitle: "Not connected")
+                self.presentError(error.localizedDescription, title: "Could not connect to \(device.name)")
+                self.reload(select: device.id, message: "Not connected")
             case .success:
                 self.setBusy(false, subtitle: "Connected to \(device.name)")
                 self.onConnected?()
@@ -862,10 +880,21 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         }
     }
 
-    private func presentError(_ message: String) {
+    /// The reason is shown, not only logged: a reload right after a failure
+    /// replaces the subtitle, which left only a beep (issue #1).
+    private func presentError(_ message: String, title: String = "The operation failed") {
         ErrorLogStore.shared.record(source: "Connections", message: message)
         subtitleLabel.stringValue = "Operation failed · See Error Log"
-        NSSound.beep()
+        guard let window, window.attachedSheet == nil else {
+            NSSound.beep()
+            return
+        }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = title
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        alert.beginSheetModal(for: window)
     }
 }
 
