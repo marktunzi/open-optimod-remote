@@ -701,7 +701,7 @@ private final class SettingsControlRow: NSView, NSTextFieldDelegate {
     }
 
     private func makeText(maxLength: Int?, validation: SettingsTextValidation) -> NSView {
-        let field = NSTextField(string: self.field?.value.value.text ?? "")
+        let field = NSTextField(string: Self.shownText(self.field?.value.value.text))
         field.placeholderString = validation == .ipAddress ? "0.0.0.0" : ""
         field.target = self
         field.action = #selector(textChanged(_:))
@@ -931,7 +931,18 @@ private final class SettingsControlRow: NSView, NSTextFieldDelegate {
             return
         }
         guard let field else { return }
-        commitHandler(item, field.index, text)
+        // The client writes an emptied box as the firmware's "undefined".
+        let written = text.isEmpty ? Self.undefinedText : text
+        if written == field.value.value.text { return }
+        commitHandler(item, field.index, written)
+    }
+
+    /// The firmware's value of an empty text field; the original client shows
+    /// it as an empty box (5700iPC.exe RDS pages).
+    static let undefinedText = "undefined"
+
+    static func shownText(_ text: String?) -> String {
+        text == undefinedText ? "" : text ?? ""
     }
 
     @objc private func integerChanged(_ sender: NSTextField) {

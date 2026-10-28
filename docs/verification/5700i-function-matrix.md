@@ -40,13 +40,15 @@ Original client: `5700iPC.exe` (SHA-256 `63def9bb…`), menus from its own resou
 
 ## Setup (Edit/Tools › Setup, 11 tabs)
 
+Every field the client binds on a tab is in the native window ([M2A](2026-10-28-m2a-system-settings.md)); one write per tab with readback.
+
 | Tab | Mac app | Status |
 |---|---|---|
-| Input | System Settings | UNTESTED (preferred input write PASS in M1A) |
-| Output 1, Output 2, Stereo Encoder, Test, Utility | System Settings | UNTESTED |
-| Network | read only | UNTESTED |
-| Remote Interface / Silence | System Settings | UNTESTED (fallback write PASS in M1A) |
-| HD Digital Radio, RDS, RDS Alternate Frequencies | System Settings | UNTESTED |
+| Input | System Settings › Input | PASS (M1A, M2A) |
+| Output 1, Output 2, Stereo Encoder, Test, Utility | System Settings | PASS (M2A; External AGC in use added) |
+| Network | read only | PASS (shown, not writable) |
+| Remote Interface / Silence | System Settings › Remote I/O | PASS (fallback write in M1A) |
+| HD Digital Radio, RDS, RDS Alternate Frequencies | System Settings | PASS (M2A; UECP Client added, empty text as in the client) |
 
 ## Presets and files (File menu)
 
