@@ -63,13 +63,33 @@ test('5700i keeps its built-in pages and gains only new structures from the supp
   }
 });
 
+test('2-band and 5-band processing pages follow the on-air document, even with shared fields', async () => {
+  const { livePages, pageControls } = await import('../src/navigation-model.ts');
+  const layouts: LayoutPage[] = profile('8700hd/1.0.2.161/layouts.json');
+  const fieldsOf = (names: string[]) => Object.fromEntries(names.map(name => [name, {}]));
+  const all = (titles: string[]) => layouts.filter(page => titles.includes(page.title)).flatMap(page => page.controls.map(c => c.name));
+  // A 5-band document shares MB GATE THR and SPEECH THR with the 2-band pages.
+  const five = fieldsOf([...all(['Less More', 'AGC', 'Multiband', 'Compressors', 'Band Mix', 'Speech Mode', 'Distortion Control']), 'B1 ATTACK', 'HD B1 ATTACK']);
+  const two = fieldsOf([...all(['Less More', 'AGC', '2 Band', '2 Band Distortion']), 'SPEECH THR', '2B DRIVE', 'HD 2B DRIVE']);
+  const titles = (fields: Record<string, unknown>) => livePages(layouts, fields).map(page => `${page.path}:${page.title}`);
+  assert.ok(!titles(five).some(title => title.includes('2 Band')), titles(five).join(', '));
+  assert.ok(titles(five).includes('FM:Multiband') && titles(five).includes('FM:Speech Mode'));
+  for (const title of ['FM:Multiband', 'FM:Compressors', 'FM:Band Mix', 'FM:Speech Mode', 'FM:Distortion Control'])
+    assert.ok(!titles(two).includes(title), `${title} in 2-band`);
+  assert.ok(titles(two).includes('FM:2 Band') && titles(two).includes('FM:2 Band Distortion'));
+  // Only controls in the document, the page's switch first.
+  const controls = [{ name: 'AGC DRIVE', kind: 'slider' }, { name: 'AGC', kind: 'radio' }, { name: 'AGC MISSING', kind: 'slider' }];
+  assert.deepEqual(pageControls(controls, { 'AGC DRIVE': {}, 'AGC': {} }, c => c.kind === 'radio').map(c => c.name), ['AGC', 'AGC DRIVE']);
+  assert.deepEqual(pageControls(controls, undefined, () => false).map(c => c.name), ['AGC DRIVE', 'AGC', 'AGC MISSING']);
+});
+
 test('statically derived pages appear only when the processor reports their fields', async () => {
   const { livePages } = await import('../src/navigation-model.ts');
   const supplement: LayoutPage[] = profile('5700i/3.0.1.20/static-layouts.json');
   // A 5-band preset on a 5700i without the MX upgrade reports neither 2B nor MX fields.
   const fiveBand = livePages(supplement, { 'B1 COMP THRSH': {}, 'LESS MORE': {} }).map(page => page.title);
   assert.ok(!fiveBand.some(title => title.startsWith('MX') || title.includes('2 Band')), fiveBand.join(', '));
-  const mx = livePages(supplement, { 'MX CLIP DRIVE': {} }).map(page => page.title);
+  const mx = livePages(supplement, { 'MX CLIP DRIVE': {}, 'B1 ATTACK': {} }).map(page => page.title);
   assert.ok(mx.includes('MX Distortion Control'), mx.join(', '));
   assert.equal(livePages(supplement, undefined).length, supplement.length);
 });

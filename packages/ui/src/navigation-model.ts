@@ -72,5 +72,55 @@ export function mergeSupplementPages(builtin: LayoutPage[], supplement: LayoutPa
 export function livePages(pages: LayoutPage[], fields: Record<string, unknown> | undefined): LayoutPage[] {
   if (!fields) return pages.filter(page => !page.when);
   return pages.filter(page => page.controls.some(control => control.name in fields)
-    && (!page.when || (fields[page.when.field] as { value?: { value?: unknown } } | undefined)?.value?.value === page.when.value));
+    && (!page.when || (fields[page.when.field] as { value?: { value?: unknown } } | undefined)?.value?.value === page.when.value)
+    && structureOnAir(page, fields));
+}
+
+/** Pages of the original clients that belong to the 5-band structure. */
+const FIVE_BAND_PAGES = new Set(['Multiband', 'Compressors', 'Compressors (B4/5 Linked)', 'Band Mix',
+  'Distortion', 'Distortion Control', 'MX Distortion Control', 'Speech Mode', 'MX Speech Mode']);
+
+/** The structure a page belongs to, or null for a page every structure has. */
+export function pageStructure(page: LayoutPage): '2band' | '5band' | null {
+  if (page.title.includes('2 Band')) return '2band';
+  return FIVE_BAND_PAGES.has(page.title) ? '5band' : null;
+}
+
+/**
+ * Whether a page's processing structure is on air, read from the on-air
+ * document as the meters do: a 5-band document carries `B1 ATTACK`, a 2-band
+ * one `2B DRIVE`, and HD has its own fields. Several 2-band pages share a
+ * field or two with the 5-band document (`MB GATE THR`, `SPEECH THR`), so a
+ * single shared control must not bring them in.
+ */
+export function structureOnAir(page: LayoutPage, fields: Record<string, unknown>): boolean {
+  const structure = pageStructure(page);
+  if (!structure) return true;
+  const prefix = page.path === 'HD' ? 'HD ' : '';
+  return (structure === '5band' ? `${prefix}B1 ATTACK` : `${prefix}2B DRIVE`) in fields;
+}
+
+/**
+ * The controls a page shows on this processor: only those in its on-air
+ * document, with the page's on/off switch first, as in the Figma design.
+ */
+export function pageControls<T extends { name: string; kind: string }>(controls: T[], fields: Record<string, unknown> | undefined,
+  isSwitch: (control: T) => boolean): T[] {
+  const present = fields ? controls.filter(control => control.name in fields) : controls;
+  const first = present.findIndex(isSwitch);
+  return first > 0 ? [present[first], ...present.slice(0, first), ...present.slice(first + 1)] : present;
+}
+
+/** Short tab names in the style of the Figma tab bar; the full title stays as tooltip. */
+const TAB_LABELS: Record<string, string> = {
+  'Equalizer': 'EQ',
+  'Speech Mode': 'Speech mode',
+  'MX Speech Mode': 'MX Speech',
+  'Distortion Control': 'Distortion',
+  'MX Distortion Control': 'MX Distortion',
+  'Compressors (B4/5 Linked)': 'B4/5 Linked',
+};
+
+export function tabLabel(title: string): string {
+  return TAB_LABELS[title] ?? title;
 }

@@ -15,7 +15,7 @@ import { Outputs } from './Outputs';
 import { Setup } from './Setup';
 import { InstrumentHeader } from './InstrumentHeader';
 import { FigmaMetersHeader } from './FigmaMetersHeader';
-import { DEFAULT_METER_VIEW, initialWorkspace, livePages, mergeSupplementPages, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
+import { DEFAULT_METER_VIEW, initialWorkspace, livePages, pageControls, structureOnAir, tabLabel, mergeSupplementPages, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
 import { binaryOnIndex, groupProcessingPage, type LayoutPage } from './processing-layout';
 import { modifiedFieldNames, optimisticLessMoreAvailability, optimisticModifiedFields } from './preset-state';
 import { nextControlIndex } from './control-keyboard';
@@ -330,11 +330,14 @@ function App() {
   const pages = processingPages(
     modelLayouts
       ? livePages(modelLayouts, liveFields)
-      : mergeSupplementPages(layouts as LayoutPage[], livePages(supplementLayouts, liveFields)),
+      : mergeSupplementPages((layouts as LayoutPage[]).filter(p => !liveFields || structureOnAir(p, liveFields)),
+        livePages(supplementLayouts, liveFields)),
     path,
     couplingValue,
   );
-  const page = pages.find((p) => p.title === tab) || pages[0];
+  const selectedPage = pages.find((p) => p.title === tab) || pages[0];
+  const page = selectedPage && { ...selectedPage, controls: pageControls(selectedPage.controls, liveFields,
+    control => control.kind === 'radio' && binaryOnIndex(control.options) !== null) };
   const processingGroups = groupProcessingPage(page);
   const independentPaths = processingPathSelectorVisible(couplingValue);
   useEffect(() => {
@@ -447,7 +450,7 @@ function App() {
 
       {snapshot.connected && snapshot.sync_error && <div className="development" role="status">{snapshot.sync_error} <button disabled={busy} onClick={() => void action('refresh', {})}>Refresh</button></div>}
       {snapshot.connected && !snapshot.write_enabled && <div className="development">Read-only access: this connection does not allow changes.</div>}
-      {snapshot.connected && snapshot.write_enabled && snapshot.evidence === 'static' && <div className="development">Statically derived profile, not yet verified on this processor. Every change is confirmed by reading the processor back.</div>}
+      {snapshot.connected && snapshot.write_enabled && snapshot.evidence === 'static' && <div className="development static-note">Statically derived profile, not yet verified on this processor. Every change is confirmed by reading the processor back.</div>}
       {area === "Presets" ? <Presets key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} busy={busy} action={action} /> : area === "Outputs" ? <Outputs key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} definitions={definitions} busy={busy} action={action} /> : area === "Processing" ? (
         <>
           <nav
@@ -470,10 +473,10 @@ function App() {
                 key={p.title}
                 aria-pressed={page.title === p.title}
                 disabled={p.title === 'Less More' && !lessMoreAvailable}
-                title={p.title === 'Less More' && !lessMoreAvailable ? 'Recall a factory preset to use Less More' : undefined}
+                title={p.title === 'Less More' && !lessMoreAvailable ? 'Recall a factory preset to use Less More' : p.title}
                 onClick={() => setTab(p.title)}
               >
-                {p.title === 'Equalizer' ? 'EQ' : p.title === 'Speech Mode' ? 'Speech mode' : p.title}
+                {tabLabel(p.title)}
               </button>
             ))}
             {independentPaths && <div className="processing-path-selector segmented" aria-label="Processing path">
