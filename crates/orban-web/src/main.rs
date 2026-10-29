@@ -405,6 +405,10 @@ struct Device {
     /// as shown to the user. Changes wait for a complete one: their
     /// confirmation is read on that port.
     sync_gap: Option<String>,
+    /// The status port did not answer this session's synchronization, and
+    /// the model can be run as its original PC Remote does: settings,
+    /// presets, confirmations and Recall all over the PC Remote session.
+    status_port_down: bool,
 }
 
 /// The next read of the active input, and whether it follows a change of the
@@ -1100,7 +1104,7 @@ async fn with_meter_polling<T>(
     }
 }
 async fn live_snapshot(device: &mut Device, app: &App, scope: Scope) -> Result<Document, String> {
-    if device.session.adapter().wire.file_sync {
+    if uses_files(device) {
         return read_file_document(app, device, scope).await;
     }
     let address = device.terminal;
@@ -1196,6 +1200,19 @@ fn is_definite_disconnect(message: &str) -> bool {
         || lower.contains("not connected")
 }
 
+/// Whether this session reads and confirms over the PC Remote session only:
+/// a file-sync model always, a 5700i whose status port did not answer.
+fn uses_files(device: &Device) -> bool {
+    device.session.adapter().wire.file_sync || device.status_port_down
+}
+
+/// A model whose original PC Remote needs no status port: its setup file,
+/// preset files and on-air file can be read over the PC Remote session.
+fn can_use_files(device: &Device) -> bool {
+    let wire = device.session.adapter().wire;
+    wire.setup_request.is_some() && wire.user_presets_request.is_some()
+}
+
 /// Reads the current settings and presets from the status (terminal) port.
 /// The system settings (AS) and the processing with the preset list (LP/AP)
 /// are separate reads: one failing does not skip the other. When the status
@@ -1205,6 +1222,11 @@ fn is_definite_disconnect(message: &str) -> bool {
 async fn synchronize(app: &App, device: &mut Device) -> Result<(), String> {
     if device.session.adapter().wire.file_sync {
         return synchronize_files(app, device).await;
+    }
+    if device.status_port_down {
+        let synced = synchronize_files(app, device).await;
+        device.sync_gap = synced.as_ref().err().map(|e| sync_failure(device, e));
+        return synced;
     }
     // Until this read is complete, nothing may change the processor; a read
     // that stops early (a lost session) leaves the gap in place.
@@ -1222,6 +1244,13 @@ async fn synchronize(app: &App, device: &mut Device) -> Result<(), String> {
                 state.revision += 1;
             }
             Err(error) if device.lost.is_some() => return Err(error),
+            // As the original PC Remote: everything over the PC Remote session.
+            Err(_) if can_use_files(device) => {
+                device.status_port_down = true;
+                let synced = synchronize_files(app, device).await;
+                device.sync_gap = synced.as_ref().err().map(|e| sync_failure(device, e));
+                return synced;
+            }
             Err(error) => {
                 if orban_protocol::terminal::is_unreachable(&error) {
                     unreachable = Some(error.clone());
@@ -1304,7 +1333,7 @@ fn sync_gap(unavailable: &[(&str, String)]) -> String {
 /// Reads the on-air processing again (with the preset list where the model
 /// has one: LP is followed by AP in the same exchange).
 async fn reload_processing(app: &App, device: &mut Device) -> Result<(), String> {
-    if device.session.adapter().wire.file_sync {
+    if uses_files(device) {
         return synchronize_files(app, device).await;
     }
     let capabilities = device.session.info.capabilities;
@@ -1332,7 +1361,7 @@ async fn reload_processing(app: &App, device: &mut Device) -> Result<(), String>
 /// off (223) it arrives whole (virtual 5700i, original firmware, 5 of 5).
 async fn read_on_air_archive(app: &App, device: &mut Device) -> Result<Document, String> {
     let plain = read_on_air_file(app, device).await?;
-    if device.session.adapter().wire.file_sync {
+    if uses_files(device) {
         return file_document(&plain, device.session.info.model);
     }
     Document::parse_for_model(&plain, device.session.info.model)
@@ -1447,7 +1476,7 @@ async fn read_back(
     scope: Scope,
     accept: impl Fn(&Document) -> bool,
 ) -> Result<Document, String> {
-    if !device.session.adapter().wire.file_sync {
+    if !uses_files(device) {
         return live_snapshot(device, app, scope).await;
     }
     let end = tokio::time::Instant::now() + FILE_READBACK_LIMIT;
@@ -1542,7 +1571,8 @@ async fn with_user_preset_files(
     if device.session.adapter().wire.user_presets_request.is_none() {
         return Ok(presets);
     }
-    for user in read_preset_files(app, device).await? {
+    let files = read_preset_files(app, device).await?;
+    for user in files.into_iter().filter(|p| p.kind != PresetKind::Factory) {
         // `LP` writes the firmware's working copies in capitals (`MODIF ...`).
         match presets
             .iter_mut()
@@ -1666,6 +1696,9 @@ async fn recall_with_files(
                     .await
                     .map_err(OperationError::uncertain)?;
                 device.boundaries.sent();
+            } else if device.status_port_down {
+                // The 5700i answers the upload with a boundary answer of its own.
+                device.boundaries.sent();
             }
             Some(file_document(plain, device.session.info.model).map_err(OperationError::safe)?)
         }
@@ -1787,7 +1820,7 @@ async fn on_air_pushed(app: &App, device: &mut Device) {
         Pushed::Whole(sealed) => {
             match device.session.decrypt_file(&sealed).and_then(|plain| {
                 // A file-sync model pushes its document with LF line ends.
-                if device.session.adapter().wire.file_sync {
+                if uses_files(device) {
                     file_document(&plain, model)
                 } else {
                     Document::parse_for_model(&plain, model)
@@ -1862,7 +1895,7 @@ async fn read_pushed_on_air(app: &App, device: &mut Device) {
 }
 
 fn sync_failure(device: &Device, error: &str) -> String {
-    if device.session.adapter().wire.file_sync {
+    if uses_files(device) {
         return format!(
             "Connected, but the current settings and presets could not be read over the PC Remote connection. Use Refresh to try again. {error}"
         );
@@ -1875,11 +1908,11 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
     device.boundaries.sent();
     // One deadline for the whole wait: unrelated pushes (247 about every
     // 0.85 s) must not keep the owner here past it.
-    let end = tokio::time::Instant::now() + device.session.deadline();
+    let mut end = tokio::time::Instant::now() + device.session.deadline();
     // An answer to a request (not a timed 247 or clock push) shows the unit
     // is processing requests while this boundary is not answered.
     let mut answered_other = false;
-    for _ in 0..256 {
+    for _ in 0..4096 {
         let event = match tokio::time::timeout_at(end, device.session.next_event()).await {
             Ok(Ok(event)) => event,
             Ok(Err(error)) if error != "Receive timed out" => return Err(error),
@@ -1894,6 +1927,11 @@ async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
             event,
             Message::Meters { .. } | Message::Truncated { .. } | Message::File { .. }
         );
+        // A unit with many preset files sends them one by one for longer
+        // than one deadline; each file shows it is still answering.
+        if matches!(event, Message::File { .. }) {
+            end = tokio::time::Instant::now() + device.session.deadline();
+        }
         match event {
             // Bank 1 carries the current values, bank 2 the firmware's peak
             // hold of the same channels; the original 5700i client draws a bar
@@ -2002,6 +2040,7 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
         profile,
         input_status: None,
         sync_gap: None,
+        status_port_down: false,
     };
     // The PC Remote login is the connection. Reading the current settings
     // over the status port is a separate step: when it fails, the session
@@ -2039,7 +2078,7 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
     Ok(device)
 }
 async fn refresh_presets(app: &App, device: &mut Device) -> Result<(), String> {
-    if device.session.adapter().wire.file_sync {
+    if uses_files(device) {
         return synchronize_files(app, device).await;
     }
     let address = device.terminal;
@@ -2130,7 +2169,7 @@ async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), Oper
             ));
         }
     }
-    if device.session.adapter().wire.file_sync {
+    if uses_files(device) {
         let kind = app
             .state
             .read()
@@ -2318,20 +2357,24 @@ async fn preset_file_message(
     // The terminal `AP` document, not the on-air file: the unit writes that
     // file a few seconds after a change, so a Save right after a change
     // would store the previous value (seen 28 October 2026).
-    let address = device.terminal;
-    let code = device.code.clone();
     let model = device.session.info.model;
-    let text = with_meter_polling(
-        device,
-        app,
-        orban_protocol::terminal::read_processing_text_for_model(
-            address,
-            &code,
-            SYSTEM_READ_DEADLINE,
-            model,
-        ),
-    )
-    .await?;
+    let text = if device.status_port_down {
+        on_air_text_as_shown(app, device).await?
+    } else {
+        let address = device.terminal;
+        let code = device.code.clone();
+        with_meter_polling(
+            device,
+            app,
+            orban_protocol::terminal::read_processing_text_for_model(
+                address,
+                &code,
+                SYSTEM_READ_DEADLINE,
+                model,
+            ),
+        )
+        .await?
+    };
     let on_air = Document::parse_for_model(text.as_bytes(), model)?;
     let shown = app.state.read().await.processing.clone();
     let changed = match &shown {
@@ -2363,6 +2406,33 @@ async fn preset_file_message(
     // The unit answers the upload with a boundary answer (FBh) of its own.
     device.boundaries.sent();
     Ok(())
+}
+
+/// Without the status port, the on-air file once the unit has saved what
+/// is shown (it writes that file a few seconds after a change). The last
+/// file read is returned either way; the caller compares it.
+async fn on_air_text_as_shown(
+    app: &App,
+    device: &mut Device,
+) -> Result<Zeroizing<String>, String> {
+    let model = device.session.info.model;
+    let end = tokio::time::Instant::now() + FILE_READBACK_LIMIT;
+    loop {
+        let plain = read_on_air_file(app, device).await?;
+        let text = Zeroizing::new(
+            String::from_utf8(plain.to_vec()).map_err(|_| "Unsupported document encoding")?,
+        );
+        let last = tokio::time::Instant::now() + FILE_READBACK_INTERVAL > end;
+        let shown = app.state.read().await.processing.clone();
+        let saved = Document::parse_for_model(text.as_bytes(), model)
+            .ok()
+            .zip(shown)
+            .is_some_and(|(on_air, shown)| on_air.fields == shown.fields);
+        if saved || last {
+            return Ok(text);
+        }
+        sleep(FILE_READBACK_INTERVAL).await;
+    }
 }
 
 /// An on-air file as the original 5700i PC Remote saves it under `name`: LF
@@ -3563,7 +3633,7 @@ fn decides_active_input(name: &str) -> bool {
 /// The active input can be read live: the model reports it and its system
 /// document comes from the status port, not from a saved file.
 fn reads_live_input(device: &Device, system: &Document) -> bool {
-    !device.session.adapter().wire.file_sync && system.fields.contains_key("ACTUAL A OR D")
+    !uses_files(device) && system.fields.contains_key("ACTUAL A OR D")
 }
 
 /// When to read the active input again. Without a fallback the processor
@@ -4271,6 +4341,7 @@ mod tests {
             profile: Some(reference_profile()),
             input_status: None,
             sync_gap: None,
+            status_port_down: false,
         };
 
         with_meter_polling(&mut device, &app, async {
@@ -4388,6 +4459,7 @@ mod tests {
             profile: Some(reference_profile()),
             input_status: None,
             sync_gap: None,
+            status_port_down: false,
         };
 
         change(
@@ -4553,6 +4625,7 @@ mod tests {
             profile: Some(reference_profile()),
             input_status: None,
             sync_gap: None,
+            status_port_down: false,
         };
 
         recall(
@@ -4682,6 +4755,8 @@ mod tests {
         push_on_air: Arc<watch::Sender<u64>>,
         /// Whether opcode 239 is answered with the on-air archive.
         answers_archive: Arc<AtomicBool>,
+        /// Whether the setup file (240) and preset files (243) are answered.
+        answers_files: Arc<AtomicBool>,
         /// Archive reads still answered with the previous (CURRENT) file.
         archive_lag: Arc<AtomicUsize>,
     }
@@ -4700,6 +4775,7 @@ mod tests {
                 on_air: Arc::new(std::sync::Mutex::new("CURRENT")),
                 push_on_air: Arc::new(watch::channel(0).0),
                 answers_archive: Arc::new(AtomicBool::new(true)),
+                answers_files: Arc::new(AtomicBool::new(true)),
                 archive_lag: Arc::default(),
             };
             let counts = unit.counts.clone();
@@ -4708,6 +4784,7 @@ mod tests {
             let pushes = unit.push_on_air.clone();
             let archive_on_air = unit.on_air.clone();
             let answers_archive = unit.answers_archive.clone();
+            let answers_files = unit.answers_files.clone();
             let archive_lag = unit.archive_lag.clone();
             tokio::spawn(async move {
                 while let Ok((stream, _)) = pc_listener.accept().await {
@@ -4716,6 +4793,7 @@ mod tests {
                     let archive_on_air = archive_on_air.clone();
                     let push_on_air = archive_on_air.clone();
                     let answers_archive = answers_archive.clone();
+                    let answers_files = answers_files.clone();
                     let archive_lag = archive_lag.clone();
                     let mut dropped = drops.subscribe();
                     let mut pushed = pushes.subscribe();
@@ -4831,6 +4909,34 @@ mod tests {
                                         body.extend(sealed);
                                         orban_protocol::message::encode(229, &body).unwrap()
                                     }
+                                    Message::Other { kind: kind @ (240 | 243), .. }
+                                        if answers_files.load(Ordering::SeqCst) =>
+                                    {
+                                        let (reply, name, text) = if kind == 240 {
+                                            (
+                                                233,
+                                                "Setup.orb57setup",
+                                                document_text(
+                                                    "SYSTEM PRESET",
+                                                    &[("CONTRAST", "Int:3;D:3;")],
+                                                ),
+                                            )
+                                        } else {
+                                            (231, "MINE.ORB57USER", on_air_text("MINE"))
+                                        };
+                                        let sealed = orban_protocol::archive::encrypt(
+                                            text.as_bytes(),
+                                            "1234",
+                                            [4; 16],
+                                        )
+                                        .unwrap();
+                                        let mut body =
+                                            format!("0\n0\n{name}\n{}\n", sealed.len()).into_bytes();
+                                        body.extend(sealed);
+                                        orban_protocol::message::encode(reply, &body).unwrap()
+                                    }
+                                    // Unanswered file reads are still reads.
+                                    Message::Other { kind: 240 | 243, .. } => continue,
                                     Message::Other { kind: 250, .. } => {
                                         let delay = stall.lock().unwrap().take();
                                         if let Some(delay) = delay {
@@ -5036,7 +5142,8 @@ mod tests {
         assert!(state.reconnect.is_none() && state.sync_error.is_none() && state.error.is_none());
         assert_ne!(state.session_id.as_deref(), Some(first.as_str()));
         assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
-        assert_eq!(state.presets.len(), 2);
+        // TARGET and CURRENT from `LP`, MINE from the unit's preset files.
+        assert_eq!(state.presets.len(), 3);
         // The unit counts the new session's 222 as it arrives.
         assert!(unit_counted(&unit, |c| &c.subscriptions, 4).await);
         let polls = unit.count(|c| &c.polls);
@@ -5384,6 +5491,7 @@ mod tests {
     #[tokio::test]
     async fn status_port_failures_never_start_a_reconnect() {
         let unit = FakeUnit::start(Terminal::Closed).await;
+        unit.answers_files.store(false, Ordering::SeqCst);
         let (app, _storage) = owner_with_policy(FAST).await;
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
@@ -5409,69 +5517,36 @@ mod tests {
         assert_eq!(RECONNECT.delay(5), Duration::from_secs(960));
     }
 
+    /// Issue #18: a status port that takes no command does not limit the
+    /// 5700i. Settings, presets and processing come over PC Remote, as with
+    /// the original client, and the sync is complete.
     #[tokio::test]
-    async fn a_closed_status_port_still_connects_and_refuses_writes() {
+    async fn a_closed_status_port_syncs_everything_over_pc_remote() {
         let unit = FakeUnit::start(Terminal::Closed).await;
         let (app, _storage) = running_owner().await;
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
             .unwrap();
-        sleep(Duration::from_millis(300)).await;
-        let (session, host) = {
+        {
             let state = app.state.read().await;
-            assert!(state.connected);
-            // The processing comes from the on-air archive; nothing else is guessed.
+            assert!(state.connected && state.error.is_none());
+            assert_eq!(state.sync_error, None);
             assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
-            assert!(state.system.is_none() && state.presets.is_empty());
-            let sync = state.sync_error.as_deref().unwrap();
-            assert!(sync.contains("status port"), "{sync}");
-            assert!(sync.contains("System settings could not be read"), "{sync}");
-            assert!(sync.contains("The preset list could not be read"), "{sync}");
-            assert!(
-                sync.contains("read over the PC Remote connection"),
-                "{sync}"
-            );
-            assert!(!sync.contains("applied"), "{sync}");
-            (state.session_id.clone().unwrap(), state.host.clone())
-        };
+            assert_eq!(state.system.as_ref().unwrap().name, "SYSTEM PRESET");
+            let factory = state.presets.iter().filter(|p| p.kind == PresetKind::Factory).count();
+            assert_eq!(factory, 46);
+            assert!(state.presets.iter().any(|p| p.name == "MINE" && p.kind == PresetKind::User));
+        }
+        assert_eq!(unit.count(|c| &c.terminal_sessions), 1);
         assert!(unit.count(|c| &c.subscriptions) >= 1);
+        sleep(Duration::from_millis(300)).await;
         assert!(unit.count(|c| &c.polls) > 2, "meters keep running");
         assert_eq!(app.meters.borrow()["live"], true);
-
-        // Changes wait for the port their confirmation is read on.
-        let refused = command(&app, |r| {
-            Command::Change(
-                Change {
-                    scope: Scope::Processing,
-                    name: "AGC DRIVE".into(),
-                    index: 21,
-                    expected: Field {
-                        index: 20,
-                        value: Value::Int(10),
-                    },
-                    requested: None,
-                    expected_host: host,
-                    expected_session: session,
-                    expected_preset: Some("CURRENT".into()),
-                },
-                r,
-            )
-        })
-        .await;
-        assert!(refused.unwrap_err().contains("status port (TCP"));
-        assert_eq!(unit.count(|c| &c.writes), 0);
-
-        // A failed Refresh is not a lost session.
-        assert!(command(&app, Command::Refresh).await.is_err());
-        assert!(app.state.read().await.connected);
-
-        *unit.terminal_mode.lock().unwrap() = Terminal::Answering;
+        // Refresh stays on PC Remote for this session.
         command(&app, Command::Refresh).await.unwrap();
-        let state = app.state.read().await;
-        assert!(state.connected && state.sync_error.is_none());
-        assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
-        assert_eq!(state.system.as_ref().unwrap().name, "SYSTEM PRESET");
-        assert_eq!(state.presets.len(), 2);
+        assert_eq!(app.state.read().await.sync_error, None);
+        assert_eq!(unit.count(|c| &c.terminal_sessions), 1);
+        assert_eq!(unit.count(|c| &c.writes), 0);
     }
 
     /// Issue #18 review: an incomplete synchronization refuses every command
@@ -5479,14 +5554,15 @@ mod tests {
     #[tokio::test]
     async fn an_incomplete_sync_sends_no_write_of_any_kind() {
         let unit = FakeUnit::start(Terminal::Closed).await;
+        unit.answers_files.store(false, Ordering::SeqCst);
         let (app, _storage) = running_owner().await;
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
             .unwrap();
         let (session, host) = {
             let state = app.state.read().await;
-            // The processing is on screen from the archive; the sync is still incomplete.
-            assert!(state.connected && state.processing.is_some() && state.sync_error.is_some());
+            // Neither the status port nor the setup file answered: incomplete.
+            assert!(state.connected && state.sync_error.is_some());
             (state.session_id.clone().unwrap(), state.host.clone())
         };
         let terminal_sessions = unit.count(|c| &c.terminal_sessions);
@@ -5670,34 +5746,18 @@ mod tests {
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
             .unwrap();
-        // Each read waits its own deadline; then the archive gives the processing.
+        // One deadline on the status port; then everything over PC Remote.
         let took = started.elapsed();
-        assert!(
-            took < SYSTEM_READ_DEADLINE + CATALOG_READ_DEADLINE + Duration::from_secs(2),
-            "{took:?}"
-        );
+        assert!(took < SYSTEM_READ_DEADLINE + Duration::from_secs(2), "{took:?}");
         let state = app.state.read().await;
-        assert!(state.connected && state.processing.is_some());
-        let sync = state.sync_error.as_deref().unwrap();
-        assert!(
-            sync.contains("did not finish its reply within 4 s"),
-            "{sync}"
-        );
-        assert!(
-            sync.contains("did not finish its reply within 6 s"),
-            "{sync}"
-        );
-        assert!(
-            sync.contains("nothing was changed") && !sync.contains("applied"),
-            "{sync}"
-        );
+        assert!(state.connected && state.processing.is_some() && state.system.is_some());
+        assert_eq!(state.sync_error, None);
     }
 
     /// Issue #18: the physical 5700i's TCP 23 did not take the connection.
-    /// The catalog read does not try the port again, the processing comes from the on-air archive,
-    /// and the message says what happened instead of a possible write.
+    /// The port is tried once; everything else comes over PC Remote.
     #[tokio::test]
-    async fn an_unreachable_status_port_is_tried_once_and_the_archive_gives_the_processing() {
+    async fn an_unreachable_status_port_is_tried_once_and_pc_remote_gives_everything() {
         let unit = FakeUnit::start(Terminal::Answering).await;
         let (app, _storage) = running_owner().await;
         let mut connect = unit.connect();
@@ -5707,53 +5767,36 @@ mod tests {
             .local_addr()
             .unwrap()
             .port();
+        let started = tokio::time::Instant::now();
         command(&app, |r| Command::Connect(connect, r))
             .await
             .unwrap();
+        assert!(started.elapsed() < Duration::from_secs(3), "{:?}", started.elapsed());
         let state = app.state.read().await;
-        assert!(state.connected && state.reconnect.is_none());
+        assert!(state.connected && state.reconnect.is_none() && state.error.is_none());
+        assert_eq!(state.sync_error, None);
         assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
-        assert!(state.system.is_none() && state.presets.is_empty());
-        let sync = state.sync_error.as_deref().unwrap();
-        assert!(
-            sync.starts_with("Connected. System settings could not be read: The status port (TCP"),
-            "{sync}"
-        );
-        assert!(sync.contains("could not be reached"), "{sync}");
-        assert!(
-            sync.contains("The preset list is unavailable for the same reason."),
-            "{sync}"
-        );
-        assert!(
-            sync.contains("The processing was read over the PC Remote connection."),
-            "{sync}"
-        );
-        assert!(!sync.contains("applied"), "{sync}");
+        assert_eq!(state.system.as_ref().unwrap().name, "SYSTEM PRESET");
+        assert_eq!(state.presets.len(), 47);
     }
 
-    /// A late system read no longer skips the processing and preset reads.
+    /// A status port that does not finish `AS` in time hands the session to
+    /// PC Remote after one deadline; nothing waits for it again.
     #[tokio::test]
-    async fn a_late_system_read_does_not_skip_the_processing_and_presets() {
+    async fn a_late_system_read_hands_the_session_to_pc_remote() {
         let unit = FakeUnit::start(Terminal::StallsSystem).await;
         let (app, _storage) = running_owner().await;
+        let started = tokio::time::Instant::now();
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
             .unwrap();
+        assert!(started.elapsed() < SYSTEM_READ_DEADLINE + Duration::from_secs(2));
         let state = app.state.read().await;
+        assert_eq!(state.sync_error, None);
         assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
-        assert_eq!(
-            state.presets.len(),
-            2,
-            "the preset list came from the status port"
-        );
-        assert!(state.system.is_none());
-        let sync = state.sync_error.as_deref().unwrap();
-        assert!(sync.contains("System settings could not be read"), "{sync}");
-        // The processing came from the status port, not from the archive fallback.
-        assert!(
-            !sync.contains("preset list") && !sync.contains("PC Remote connection"),
-            "{sync}"
-        );
+        assert_eq!(state.system.as_ref().unwrap().name, "SYSTEM PRESET");
+        assert_eq!(state.presets.len(), 47);
+        assert_eq!(unit.count(|c| &c.terminal_sessions), 1);
     }
 
     /// Both processing structures reach the app from the on-air archive with
@@ -5784,6 +5827,7 @@ mod tests {
     async fn no_processing_is_shown_when_neither_read_succeeds() {
         let unit = FakeUnit::start(Terminal::Closed).await;
         unit.answers_archive.store(false, Ordering::SeqCst);
+        unit.answers_files.store(false, Ordering::SeqCst);
         let (app, _storage) = running_owner().await;
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
@@ -5791,9 +5835,8 @@ mod tests {
         let state = app.state.read().await;
         assert!(state.connected && state.processing.is_none() && state.system.is_none());
         let sync = state.sync_error.as_deref().unwrap();
-        assert!(sync.contains("The processing could not be read"), "{sync}");
         assert!(
-            sync.contains("over the PC Remote connection either"),
+            sync.contains("could not be read over the PC Remote connection"),
             "{sync}"
         );
     }
@@ -5940,6 +5983,19 @@ mod tests {
         user: ".ORB87USER",
         on_air: "OnAir.orb87onair",
         setup: "Setup.orb87setup",
+    };
+
+    /// A 5700i whose status port does not answer: it runs on files as its
+    /// original PC Remote does.
+    const M5700I: FileModel = FileModel {
+        wire: orban_protocol::adapter::WIRE_5700I,
+        model: DeviceModel::Optimod5700i,
+        login: b"connect ok\n0\n5700i V 3.0.1.20\n123\n",
+        terminal: b"",
+        version: "5700.50",
+        user: ".ORB57USER",
+        on_air: "OnAir.orb57onair",
+        setup: "Setup.orb57setup",
     };
 
     const M2300: FileModel = FileModel {
@@ -6104,7 +6160,10 @@ mod tests {
                                     }
                                     219 => {
                                         let mut meter = vec![1];
-                                        if m.wire.file_names {
+                                        if m.model == DeviceModel::Optimod5700i {
+                                            meter.extend(b"112\n");
+                                            meter.extend([0x55; 112]);
+                                        } else if m.wire.file_names {
                                             meter.extend(b"104\n");
                                             meter.extend([0x55; 104]);
                                         } else {
@@ -6233,7 +6292,11 @@ mod tests {
                                         }
                                         *running.lock().unwrap() = text.replace('\n', "\r\n");
                                         lag = 2;
-                                        continue;
+                                        // The 5700i answers an upload with a boundary answer.
+                                        if m.model != DeviceModel::Optimod5700i {
+                                            continue;
+                                        }
+                                        orban_protocol::message::encode(251, b"").unwrap()
                                     }
                                     218 => return,
                                     // A preset file upload gets a boundary answer of its own,
@@ -6990,8 +7053,18 @@ mod tests {
     /// file-sync unit, with that model's own opcodes only.
     async fn file_sync_round_trip(m: FileModel, factory: usize) {
         let unit = FakeFileUnit::start(m).await;
+        let mut connect = unit.connect();
+        if m.model == DeviceModel::Optimod5700i {
+            // A port that takes no connection, as on the physical 5700i.
+            connect.terminal_port = tokio::net::TcpListener::bind("127.0.0.1:0")
+                .await
+                .unwrap()
+                .local_addr()
+                .unwrap()
+                .port();
+        }
         let (app, _storage) = running_owner().await;
-        command(&app, |r| Command::Connect(unit.connect(), r))
+        command(&app, |r| Command::Connect(connect, r))
             .await
             .unwrap();
         let session = {
@@ -7053,6 +7126,13 @@ mod tests {
         sleep(Duration::from_millis(200)).await;
         command(&app, Command::Refresh).await.unwrap();
         assert_eq!(app.state.read().await.sync_error, None);
+    }
+
+    /// Issue #18: without its status port the 5700i syncs, writes, confirms
+    /// and recalls over PC Remote alone, as its original client does.
+    #[tokio::test]
+    async fn a_5700i_without_its_status_port_runs_over_pc_remote() {
+        file_sync_round_trip(M5700I, 46).await;
     }
 
     #[tokio::test]
@@ -7261,6 +7341,7 @@ mod tests {
             profile: Some(reference_profile()),
             input_status: None,
             sync_gap: None,
+            status_port_down: false,
         };
         assert_eq!(
             drain(&mut device, &app).await.unwrap_err(),
@@ -7299,6 +7380,7 @@ mod tests {
             profile: None,
             input_status: None,
             sync_gap: None,
+            status_port_down: false,
         };
         assert!(session_lost(&device, "Receive timed out").is_none());
         assert!(session_lost(&device, "Invalid meter count").is_none());
@@ -7402,6 +7484,7 @@ mod tests {
                 profile: None,
                 input_status: None,
                 sync_gap: None,
+                status_port_down: false,
             };
             assert_eq!(
                 drain(&mut device, &app).await.unwrap_err(),
@@ -7466,6 +7549,7 @@ mod tests {
             profile: None,
             input_status: None,
             sync_gap: None,
+            status_port_down: false,
         };
         let started = std::time::Instant::now();
         assert_eq!(
@@ -7615,6 +7699,7 @@ mod tests {
             profile: Some(reference_profile()),
             input_status: None,
             sync_gap: None,
+            status_port_down: false,
         };
 
         recall(
@@ -8051,6 +8136,7 @@ mod tests {
             profile: Some(profile),
             input_status: None,
             sync_gap: None,
+            status_port_down: false,
         };
         let result = change(
             &mut device,
@@ -8362,6 +8448,7 @@ mod tests {
             profile: Some(reference_profile()),
             input_status: None,
             sync_gap: None,
+            status_port_down: false,
         };
         let result = manage_preset(
             &mut device,
@@ -8663,6 +8750,7 @@ mod tests {
             profile: Some(reference_profile()),
             input_status: None,
             sync_gap: None,
+            status_port_down: false,
         };
         (app, device, writes)
     }

@@ -301,6 +301,11 @@ pub const WIRE_PC_REMOTE: Wire = Wire {
 /// Delete sends EDh with `NAME.orb57user` and a newline; the unit does not
 /// answer (captures, 28 October 2026).
 pub const WIRE_5700I: Wire = Wire {
+    // Setup.orb57setup; equal to the terminal `AS` but for a stale
+    // `ACTUAL A OR D` (docs/protocol/5700i.md). Read when the status port
+    // does not answer, as the original PC Remote does.
+    setup_request: Some((240, 233)),
+    factory_presets: &FACTORY_5700I,
     user_presets_request: Some((243, 231)),
     user_extension: ".orb57user",
     preset_file_delete: Some(237),
@@ -722,6 +727,56 @@ const FACTORY_8700I: [&str; 58] = [
     "SMOOTH JAZZ MX",
     "SPORTS",
     "URBAN UL",
+    "URBAN-LIGHT",
+];
+
+/// Preset names of the factory `.orb57f50`/`.orb57f75` files of PC Remote 3.0.1.20.
+const FACTORY_5700I: [&str; 46] = [
+    "CLASSICAL-2 BAND",
+    "CLASSICAL-2B+AGC",
+    "CLASSICAL-5 BAND",
+    "CLASSICAL-5B+AGC",
+    "COUNTRY UL",
+    "COUNTRY-LIGHT",
+    "COUNTRY-MEDIUM",
+    "CRISP",
+    "DANCE ENERGY",
+    "EDGE",
+    "FOLK-TRADITIONAL",
+    "GOLD",
+    "GREGG LL",
+    "GREGG OPEN",
+    "GREGG",
+    "IMPACT LL",
+    "IMPACT",
+    "INSTRUMENTAL",
+    "JAZZ",
+    "LOUD-BIG",
+    "LOUD-COMPRESSED",
+    "LOUD-FAT",
+    "LOUD-HOT LL",
+    "LOUD-HOT",
+    "LOUD-HOT+BASS LL",
+    "LOUD-HOT+BASS",
+    "LOUD-PUNCHY",
+    "LOUD-WIDE",
+    "LOUD+SLAM",
+    "NEWS-TALK",
+    "PROTECT-0DB",
+    "ROCK-DENSE",
+    "ROCK-GEN UL",
+    "ROCK-LIGHT",
+    "ROCK-MEDIUM",
+    "ROCK-MEDIUM+LOWBASS",
+    "ROCK-MEDIUM+MIDBASS",
+    "ROCK-OPEN UL",
+    "ROCK-OPEN",
+    "ROCK-SMOOTH",
+    "ROCK-SOFT",
+    "SMOOTH JAZZ",
+    "SPORTS",
+    "URBAN UL",
+    "URBAN-HEAVY",
     "URBAN-LIGHT",
 ];
 
