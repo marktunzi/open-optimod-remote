@@ -2391,6 +2391,20 @@ async fn read_unit_file_from(
         .map_err(|_| "Unsupported document encoding".into())
 }
 
+/// Every change to a processor needs a profile that may write: an adapter
+/// without verified writes (for example the original 5500, never tested on
+/// its firmware) stays read-only for files, Setup and restores too.
+fn require_writes(device: &Device) -> Result<(), OperationError> {
+    if device.session.info.capabilities.parameter_writes {
+        Ok(())
+    } else {
+        Err(OperationError::safe(format!(
+            "Changes are not available for the {} in this version",
+            device.session.info.model.label()
+        )))
+    }
+}
+
 /// Replaces the unit's automation or passcode file as the original client
 /// does, then reads it back and requires it to be the document sent.
 async fn write_unit_file(
@@ -2398,6 +2412,7 @@ async fn write_unit_file(
     app: &App,
     body: UnitFileWrite,
 ) -> Result<(), OperationError> {
+    require_writes(device)?;
     let Some(tools) = device.session.adapter().wire.tool_files else {
         return Err(OperationError::safe(format!(
             "Not available for {}",
@@ -2565,6 +2580,7 @@ async fn setup_preset(
     if !body.confirmed {
         return Err(OperationError::safe("Confirm the change first"));
     }
+    require_writes(device)?;
     if !device.session.info.access().setup {
         return Err(OperationError::safe(
             "System Setup is not enabled for this access level",
@@ -2682,6 +2698,7 @@ async fn restore_preset_files(
     app: &App,
     body: RestorePresetFiles,
 ) -> Result<(), OperationError> {
+    require_writes(device)?;
     let model = device.session.info.model;
     let extension = device.session.adapter().wire.user_extension;
     if device.session.adapter().wire.preset_file_delete.is_none() {
@@ -2976,6 +2993,7 @@ async fn apply_preset(
     app: &App,
     body: ApplyPreset,
 ) -> Result<(), OperationError> {
+    require_writes(device)?;
     let imported = Document::parse_for_model(body.document.as_bytes(), device.session.info.model)
         .map_err(OperationError::safe)?;
     let profile = device.profile.clone().ok_or_else(|| {
@@ -3243,6 +3261,7 @@ async fn restore_setup(
 }
 
 async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), OperationError> {
+    require_writes(device)?;
     let before = {
         let state = app.state.read().await;
         ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
@@ -5902,15 +5921,62 @@ mod tests {
         file_sync_round_trip(M5500I, 27).await;
     }
 
+    /// The original 5500 syncs with its own opcodes but changes nothing until
+    /// its profile is confirmed on 5500 firmware (#1): a write and a Recall are
+    /// refused before any request reaches the unit.
     #[tokio::test]
-    async fn the_5500_syncs_writes_and_recalls_with_the_8700hd_opcodes() {
-        file_sync_round_trip(M5500, 27).await;
+    async fn the_5500_syncs_but_refuses_changes_until_verified() {
+        let unit = FakeFileUnit::start(M5500).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let session = {
+            let state = app.state.read().await;
+            assert_eq!(state.sync_error, None);
+            assert_eq!(state.processing.as_ref().unwrap().name, "Test01");
+            assert!(!state.write_enabled);
+            state.session_id.clone().unwrap()
+        };
+        let sent = |kind| unit.received(kind).len();
+        let before = (sent(229), sent(236));
+        let change = Change {
+            scope: Scope::Processing,
+            name: "AGC DRIVE".into(),
+            index: 21,
+            expected: Field {
+                index: 20,
+                value: Value::Int(10),
+            },
+            requested: None,
+            expected_host: "127.0.0.1".into(),
+            expected_session: session.clone(),
+            expected_preset: Some("Test01".into()),
+        };
+        let refused = command(&app, |r| Command::Change(change, r))
+            .await
+            .unwrap_err();
+        assert!(refused.contains("not available"), "{refused}");
+        let recall = Recall {
+            name: "Late Night".into(),
+            expected_name: "Test01".into(),
+            confirmed: true,
+            expected_host: "127.0.0.1".into(),
+            expected_session: session,
+        };
+        assert!(command(&app, |r| Command::Recall(recall, r)).await.is_err());
+        assert_eq!((sent(229), sent(236)), before);
+        assert_eq!(
+            app.state.read().await.processing.as_ref().unwrap().name,
+            "Test01"
+        );
     }
 
-    /// The 5500's tool files, Delete, Backup and Restore use its firmware's
-    /// opcodes (one below the 5500i's): never a 5500i request.
+    /// The 5500's tool files and Backup read with its firmware's opcodes (one
+    /// below the 5500i's), never a 5500i request; automation, Delete and
+    /// Restore are refused before any request while the 5500 is unverified.
     #[tokio::test]
-    async fn the_5500_tools_backup_and_restore_use_its_own_opcodes() {
+    async fn the_5500_tools_read_with_its_own_opcodes_and_refuse_changes() {
         let unit = FakeFileUnit::start(M5500).await;
         let (app, _storage) = running_owner().await;
         command(&app, |r| Command::Connect(unit.connect(), r))
@@ -5934,8 +6000,8 @@ mod tests {
         assert!(!unit.received(204).is_empty());
         assert!(!unit.received(243).is_empty() && !unit.received(241).is_empty());
         let session = app.state.read().await.session_id.clone().unwrap();
-        // No events left: the automation file is deleted with ECh.
-        command(&app, |r| {
+        // Writing automation is refused: nothing is deleted (ECh) or uploaded.
+        let refused = command(&app, |r| {
             Command::WriteUnitFile(
                 UnitFileWrite {
                     kind: 235,
@@ -5946,11 +6012,11 @@ mod tests {
                 r,
             )
         })
-        .await
-        .ok();
-        assert_eq!(unit.received(236), [b"Automation.orb55autom\n".to_vec()]);
-        // Delete Preset is ECh with the preset's file name, as the client sends it.
-        let _ = command(&app, |r| {
+        .await;
+        assert!(refused.is_err());
+        assert!(unit.received(236).is_empty());
+        // Delete Preset is refused as well.
+        let refused = command(&app, |r| {
             Command::PresetFile(
                 PresetFile {
                     action: PresetFileAction::Delete {
@@ -5965,10 +6031,8 @@ mod tests {
             )
         })
         .await;
-        assert!(
-            unit.received(236)
-                .contains(&b"Late Night.orb55user\n".to_vec())
-        );
+        assert!(refused.is_err());
+        assert!(unit.received(236).is_empty());
         // Backup asks for setup (EFh), automation (F1h) and preset files
         // (F2h); the fake's preset answer holds a 6300 file, which stops it.
         let before = (
@@ -5990,7 +6054,7 @@ mod tests {
             ),
             (before.0 + 1, before.1 + 1, before.2 + 1)
         );
-        // Its Restore sends the automation file as EAh, presets as 231.
+        // Restore is refused: no preset upload (231), no automation file (EAh).
         let automation =
             "OptimodVersion=<5500.50>\nPreset Name=<auto_event_00> size=0\nEnd Preset<end>\n";
         command(&app, |r| {
@@ -6016,13 +6080,9 @@ mod tests {
             )
         })
         .await
-        .unwrap();
-        assert_eq!(unit.received(231).len(), 1);
-        assert!(
-            unit.received(234)
-                .iter()
-                .any(|d| d.starts_with(b"Automation.orb55autom\n"))
-        );
+        .unwrap_err();
+        assert!(unit.received(231).is_empty());
+        assert!(unit.received(234).is_empty());
         // None of the 5500i's requests: F0h setup, F4h passcodes, F2h automation, EDh delete, FAh.
         for kind in [244, 237, 251] {
             assert!(unit.received(kind).is_empty(), "{kind}");
@@ -7450,7 +7510,7 @@ mod tests {
         PresetFileOutcome { result, commands }
     }
 
-    const P5500: (&str, &str) = ("5500 V 1.2.8.24", "Orban Optimod 5500");
+    const P5700I: (&str, &str) = ("5700i V 3.0.1.20", "Orban Optimod 5700i V 3.0.1.20");
 
     #[tokio::test]
     async fn preset_changes_are_refused_before_any_command_when_unsafe() {
@@ -7491,9 +7551,9 @@ mod tests {
                 &["MORNING"][..],
                 "FACTORY ONE",
                 PresetFileAction::Save {
-                    name: "NINETEEN CHARACTERS".into(),
+                    name: "TWENTY-ONE CHARACTERS".into(),
                 },
-                "at most 18",
+                "at most 20",
             ),
             (
                 &["MORNING"][..],
@@ -7514,8 +7574,8 @@ mod tests {
             ),
         ] {
             let outcome = simulated_preset_file(PresetFileCase {
-                banner: P5500.0,
-                terminal_banner: P5500.1,
+                banner: P5700I.0,
+                terminal_banner: P5700I.1,
                 on_air,
                 users,
                 ignore: false,
