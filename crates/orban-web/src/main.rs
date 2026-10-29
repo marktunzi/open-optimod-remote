@@ -1736,12 +1736,15 @@ async fn recall_with_files(
             upload_on_air(device, &text).await?;
             Some(file_document(&plain, device.session.info.model).map_err(OperationError::safe)?)
         }
-        // Without its status port, the 5700i gets the factory file from its
-        // client's installation as that client sends it (capture, 29 October
-        // 2026); the firmware loads it as it loads its own on a front-panel
-        // Recall.
+        // Without a status port (a 5700i whose TCP 23 does not answer, the
+        // 2300 that has none), a factory preset is recalled as the original
+        // client does: by uploading the factory file of its installation
+        // (captures, 29 October 2026). The client converts it to the
+        // current document version first; the firmware converts the
+        // unconverted file to the same on-air document.
         PresetKind::Factory
-            if device.status_port_down && device.session.adapter().wire.factory_files.is_some() =>
+            if device.session.adapter().wire.factory_files.is_some()
+                && (device.status_port_down || !device.session.adapter().wire.factory_recall) =>
         {
             let text = factory_file(device, app, name).await?;
             upload_on_air(device, &text).await?;
@@ -6187,7 +6190,10 @@ mod tests {
                             "OptimodVersion=<{}>\r\nPreset Name=<SYSTEM PRESET> size=2\r\nC:<CONTRAST>Int:2;D:2;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nEnd Preset<end>\r\n",
                             m.version
                         );
-                        if m.model == DeviceModel::Optimod5700i {
+                        if matches!(
+                            m.model,
+                            DeviceModel::Optimod5700i | DeviceModel::Optimod2300
+                        ) {
                             setup = setup
                                 .replace("End Preset", "C:<PRE-E>String:<75us>;D:1;\r\nEnd Preset");
                         }
@@ -7111,7 +7117,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn the_2300_syncs_without_session_numbers_or_file_names_and_refuses_factory_recall() {
+    async fn the_2300_syncs_without_session_numbers_or_file_names_and_uploads_factory_presets() {
         file_sync_round_trip(M2300, 10).await;
         let unit = FakeFileUnit::start(M2300).await;
         let (app, _storage) = running_owner().await;
@@ -7126,14 +7132,21 @@ mod tests {
             expected_host: "127.0.0.1".into(),
             expected_session: session,
         };
-        let refused = command(&app, |r| Command::Recall(recall, r))
-            .await
-            .unwrap_err();
-        assert!(
-            refused.contains("cannot be recalled over the network"),
-            "{refused}"
+        // As the original client: the installer's factory file for the
+        // unit's pre-emphasis, uploaded without a name line.
+        command(&app, |r| Command::Recall(recall, r)).await.unwrap();
+        assert_eq!(
+            app.state.read().await.processing.as_ref().unwrap().name,
+            "MUSIC MEDIUM"
         );
-        assert!(unit.received(229).is_empty());
+        let uploads = unit.received(229);
+        assert_eq!(uploads.len(), 1);
+        let sealed = &uploads[0][uploads[0].iter().position(|b| *b == b'\n').unwrap() + 1..];
+        let text =
+            String::from_utf8(orban_protocol::archive::decrypt(sealed, FILE_UNIT_CODE).unwrap())
+                .unwrap();
+        assert!(text.starts_with("OptimodVersion=<2300.10>\nPreset Name=<MUSIC MEDIUM>"));
+        assert!(text.contains("Preset File Name= <MUSIC MEDIUM.orb23f75>"));
         assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
         assert!(app.state.read().await.connected);
     }

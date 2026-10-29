@@ -4,6 +4,8 @@
 
 - 5700i (#18): when the status port (TCP 23) does not answer, the 5700i runs over PC Remote alone, as its original client does: system settings, presets, processing, writes, Save/Save As/Delete and Recall of user and factory presets. While a sync is incomplete, every change is refused, not only parameter changes. No 2-band or 5-band page is shown without a live on-air document; status port messages name the stage that failed and no longer suggest a write for a read.
 - Connections: the sidebar icons sit inside their selection.
+- 6300 and 8700i: Automation, with each client's own action list and file (captured from the original clients, checked on their firmware).
+- 2300: factory preset Recall, by uploading the client installation's factory file as the original client does; the on-air result equals the client's Recall byte for byte.
 - 8700HD: Save As, Delete, Backup/Restore, Automation, Security and Diagnostics, from its original client's code (`8700PC.exe` 1.0.2.161 has the 5500 client's file code with `.orb86` names) and tested against a scripted unit; not yet confirmed on its firmware.
 - 6300 and 8700i: Save As, Delete, Backup/Restore, Security and Diagnostics from their original clients' code (`6300PC.exe` has the 8700HD client's file code, `8700iPC.exe` the 5500i client's), with each client's access levels and name limit; tested against a scripted unit, not yet confirmed on firmware. Their Automation is not offered yet (function lists unknown).
 

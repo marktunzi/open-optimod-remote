@@ -614,7 +614,9 @@ const FACTORY_6300: [&str; 68] = [
 /// a factory preset can only be recalled by uploading a document that the
 /// original client converts from its installer's factory file.
 pub const WIRE_2300: Wire = Wire {
-    factory_files: None,
+    factory_files: Some(include_str!(
+        "../../../profiles/2300/2.0.3.85/factory-presets.json"
+    )),
     boundary: (247, 248),
     on_air_request: 237,
     setup_request: Some((238, 232)),
