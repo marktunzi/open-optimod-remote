@@ -1,0 +1,29 @@
+<?xml version="1.0" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Open Optimod Remote</title>
+        <item>
+            <title>0.3.0</title>
+            <pubDate>Thu, 29 Oct 2026 18:41:32 +0100</pubDate>
+            <sparkle:version>12</sparkle:version>
+            <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description><![CDATA[<h2>Open Optimod Remote 0.3.0</h2>
+<p>The first signed release with automatic updates. Limited scope: not yet a complete replacement for Orban's Windows PC Remote.</p>
+<ul>
+<li>Several processors at once, one tab and session each.</li>
+<li>Native windows for Connections, Presets, System Settings, Automation, Security and Diagnostics.</li>
+<li>Supports the OPTIMOD 5700i, 5500i, 5500, 8700HD, 6300, 8700i, 2300 and 8400 at the firmware versions listed in the compatibility table.</li>
+<li>An update never ends a processor session by itself: choose Disconnect and Install, or Later.</li>
+</ul>
+<p><a href="https://github.com/marktunzi/open-optimod-remote/blob/main/docs/releases/v0.3.0.md">Release notes and compatibility table</a></p>
+]]></description>
+            <enclosure url="https://github.com/marktunzi/open-optimod-remote/releases/download/v0.3.0/OpenOptimodRemote-0.3.0.zip" length="5604674" type="application/octet-stream" sparkle:edSignature="BP0RJvchASm/m28/fsQDIMbCIlC9gLuUMVHQxe1S/37aG0CT7NRS/RXNPYib3qeuyDfxb1BA1+Eo+EKmUfGpBg=="></enclosure>
+        </item>
+    </channel>
+</rss><!-- sparkle-signatures:
+edSignature: Lhfw5JAG91jL32vnuR8fjLZKoQIMzH/b+R6whbmrIeWeE2m5rn7NWu447wO2H2T64XEIxBlswoz2A1AymvwiCw==
+length: 1941
+-->
