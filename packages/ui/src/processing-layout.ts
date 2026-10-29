@@ -8,6 +8,8 @@ export type LayoutControl = {
   id: number;
   options: string[];
   reference_id?: number;
+  /** A text box's maximum length in the client (`kind: 'text'`). */
+  max_length?: number;
 };
 
 export type LayoutGroup = {
@@ -18,6 +20,15 @@ export type LayoutGroup = {
   text: string;
 };
 
+/** An explicit section of a page (the 8400), in place of the client's group boxes. */
+export type LayoutSection = {
+  title: string;
+  /** Control names in display order. */
+  controls: string[];
+  /** 'band-mix' pairs each band's level with its on/mute switch. */
+  layout?: 'band-mix';
+};
+
 export type LayoutPage = {
   title: string;
   path: string;
@@ -26,6 +37,10 @@ export type LayoutPage = {
   reference_dialog: number;
   controls: LayoutControl[];
   groups: LayoutGroup[];
+  /** Shown only while this processing field has this value (e.g. the 8400's 2B/5B SWITCH). */
+  when?: { field: string; value: string };
+  /** Named sections that replace the coordinate grouping (pages without group boxes). */
+  sections?: LayoutSection[];
 };
 
 export type ProcessingGroup = {
@@ -41,11 +56,32 @@ export function binaryOnIndex(options: string[]): number | null {
   return affirmative >= 0 ? affirmative : 1;
 }
 
+const ACRONYMS = new Set(['RDS', 'LF', 'HF', 'MB', 'EQ', 'AGC', 'HD', 'FM', 'MX', 'GR', 'MPX', '2B', 'B4/5']);
+
 function titleCase(value: string): string {
   return value
     .trim()
-    .toLocaleLowerCase()
-    .replace(/\b\w/g, character => character.toLocaleUpperCase());
+    .split(/\s+/)
+    .map(word => ACRONYMS.has(word.toUpperCase()) ? word.toUpperCase()
+      : word.toLocaleLowerCase().replace(/^\w/, character => character.toLocaleUpperCase()))
+    .join(' ');
+}
+
+/**
+ * The order a page's controls have on the original client's dialog: column
+ * by column, top to bottom. Extracted pages list them in the order the
+ * client binds them, which jumps around the dialog. A control starts a new
+ * column when it sits more than 40 dialog units right of the column's first.
+ */
+export function readingOrder(controls: LayoutControl[]): LayoutControl[] {
+  const byX = [...controls].sort((a, b) => a.x - b.x || a.y - b.y);
+  const columns: LayoutControl[][] = [];
+  for (const control of byX) {
+    const column = columns.at(-1);
+    if (column && control.x - column[0].x <= 40) column.push(control);
+    else columns.push([control]);
+  }
+  return columns.flatMap(column => column.sort((a, b) => a.y - b.y));
 }
 
 function bandMixControls(controls: LayoutControl[]): LayoutControl[] {
@@ -62,6 +98,17 @@ function bandMixControls(controls: LayoutControl[]): LayoutControl[] {
 }
 
 export function groupProcessingPage(page: LayoutPage): ProcessingGroup[] {
+  if (page.sections?.length) {
+    // The page's controls may be filtered to the live document; a section keeps
+    // its own order and disappears when none of its controls is present.
+    const byName = new Map(page.controls.map(control => [control.name, control]));
+    return page.sections.map((section, order) => {
+      const controls = section.controls.flatMap(name => byName.get(name) ?? []);
+      return section.layout === 'band-mix'
+        ? { title: section.title, controls, className: 'band-mix-group', order }
+        : { title: section.title, controls, order };
+    }).filter(group => group.controls.length);
+  }
   if (page.title === 'Band Mix') {
     return [{ title: 'Band Mix', controls: bandMixControls(page.controls), className: 'band-mix-group', order: 0 }];
   }
@@ -73,15 +120,22 @@ export function groupProcessingPage(page: LayoutPage): ProcessingGroup[] {
     return [{ title: page.title, controls: page.controls, order: 0 }];
   }
 
+  // A control belongs to the smallest group box around it, so a box inside
+  // another (the 5700i's RDS Modulator in Preset RDS Settings) keeps its own.
+  const inside = (control: LayoutControl, group: LayoutGroup) => {
+    const centerX = control.x + control.w / 2;
+    const centerY = control.y + 9;
+    return centerX >= group.x && centerX <= group.x + group.w && centerY >= group.y && centerY <= group.y + group.h;
+  };
+  const owner = (control: LayoutControl) => named
+    .filter(group => inside(control, group))
+    .reduce<LayoutGroup | undefined>((best, group) => !best || group.w * group.h < best.w * best.h ? group : best, undefined);
   const assigned = new Set<string>();
   const groups: ProcessingGroup[] = named.map(group => {
     const controls = page.controls.filter(control => {
-      const centerX = control.x + control.w / 2;
-      const centerY = control.y + 9;
-      const inside = centerX >= group.x && centerX <= group.x + group.w
-        && centerY >= group.y && centerY <= group.y + group.h;
-      if (inside) assigned.add(control.name);
-      return inside;
+      const mine = owner(control) === group;
+      if (mine) assigned.add(control.name);
+      return mine;
     });
     return { title: titleCase(group.text), controls, order: group.x * 1000 + group.y };
   }).filter(group => group.controls.length);

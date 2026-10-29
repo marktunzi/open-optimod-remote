@@ -1,5 +1,7 @@
 # Open Optimod Remote — compatibiliteitsmatrix
 
+> **Historisch (stand 29 september 2026).** De actuele, per model en firmware geverifieerde stand staat in de [0.3.0-compatibiliteitstabel](releases/v0.3.0.md#compatibility-exactly-what-was-verified). De 5500 heeft volledige bediening met zijn eigen protocol en profiel; bevestiging op 5500-firmware volgt in de eindacceptatie.
+
 Referentie: Optimod 5700i firmware 3.0.1.20 met bijpassende PC Remote. Stand: 29 september 2026. Deze lijst maakt het bouwplan controleerbaar; zij is nog geen afgeronde compatibiliteitscertificering.
 
 **Status:** L = lezen geverifieerd; D = gedocumenteerd; O = nog te verifiëren. Er is inmiddels een eigen Rust-protocolkern en lokale webinterface. De native en browserproeven lezen 400 velden, ontvangen echte meters en wijzigen/herstellen schermcontrast met volledige teruglezing. Dit is nog geen complete Windows-vervanger. Zie [protocolbewijs](protocol/5700i.md) voor de actuele begrenzing. De onderstaande scenario's blijven open tenzij afzonderlijk bewezen.

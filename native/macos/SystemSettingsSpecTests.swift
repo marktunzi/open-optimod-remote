@@ -68,6 +68,12 @@ struct SystemSettingsSpecTests {
             precondition(minimum == 1 && maximum == 255 && step == 1 && unit == "min" && !slider)
         }
 
+        // Every Setup field the original client binds is in the window (M1H/M2A).
+        let rdsFields = Set(rds.sections.flatMap(\.items).compactMap(\.deviceField))
+        precondition(["RDS UECP SITE", "RDS UECP ENCODE", "RDS UECP ACTIVE", "RDS UECP UDP", "RDS UECP PORT"].allSatisfy(rdsFields.contains))
+        let utilityFields = tabs.first { $0.title == "Utility" }!.sections.flatMap(\.items).compactMap(\.deviceField)
+        precondition(utilityFields.contains("STUDIO CHASSIS"))
+
         let af = tabs.first { $0.title == "RDS AF" }!
         precondition(af.sections.map { $0.items.count } == [12, 12])
         let afItems = af.sections.flatMap(\.items)
@@ -76,7 +82,7 @@ struct SystemSettingsSpecTests {
         precondition(afItems.allSatisfy { $0.control == .alternateFrequency })
 
         let total = tabs.flatMap(\.sections).flatMap(\.items).count
-        precondition(total == 134)
+        precondition(total == 140)
 
         let profileURL = URL(fileURLWithPath: "profiles/5700i/3.0.1.20/parameters.json")
         let profile = try! JSONDecoder().decode(DeviceProfilePayload.self, from: Data(contentsOf: profileURL))

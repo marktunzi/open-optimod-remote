@@ -254,3 +254,156 @@ fn the_5700i_supplement_adds_structures_without_touching_verified_fields() {
     assert!(pages.iter().any(|page| page["title"] == "2 Band"));
     assert!(merged.layouts.is_none());
 }
+
+/// The 5500 keeps its own profile next to the 5500i's: no COMPOSITE MODE on
+/// Final Clipping, 79 meter values with MPX Power on 77 (86 and 84 on the
+/// 5500i), and the client's eight Setup tabs instead of ten.
+#[test]
+fn the_5500_profile_differs_from_the_5500i_where_its_client_does() {
+    let (old, new) = (
+        static_profile("pc-remote-5500-1.2.8.24"),
+        static_profile("pc-remote-5500i-3.1.0.2"),
+    );
+    let composite = |p: &Profile| {
+        p.layouts
+            .as_ref()
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|page| {
+                page["title"]
+                    .as_str()
+                    .unwrap()
+                    .starts_with("Final Clipping")
+                    && page["controls"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|c| c["name"] == "COMPOSITE MODE")
+            })
+    };
+    assert!(!composite(&old) && composite(&new));
+    for (p, pages) in [(&old, 13), (&new, 13)] {
+        assert_eq!(p.layouts.as_ref().unwrap().as_array().unwrap().len(), pages);
+    }
+    let mpx_power = |p: &Profile| {
+        let meters = p.meters.as_ref().unwrap();
+        let mpx = meters["groups"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|g| g["name"] == "MPX")
+            .unwrap();
+        let power = mpx["channels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["label"] == "Power")
+            .unwrap();
+        (
+            meters["max_values"].as_u64().unwrap(),
+            power["ids"][0].as_u64().unwrap(),
+        )
+    };
+    assert_eq!(mpx_power(&old), (79, 77));
+    assert_eq!(mpx_power(&new), (86, 84));
+    let tabs = |p: &Profile| -> Vec<String> {
+        p.system_layouts
+            .as_ref()
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["title"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    assert_eq!(
+        tabs(&old),
+        [
+            "Input",
+            "Output",
+            "Test",
+            "Utility",
+            "Network",
+            "Stereo Encoder",
+            "Remote Interface / Silence",
+            "Diversity Delay"
+        ]
+    );
+    assert_eq!(tabs(&new)[..8], tabs(&old)[..]);
+    assert_eq!(tabs(&new).len(), 10);
+    // Parameter reference ids are the model's own.
+    let reference = |p: &Profile, name: &str| {
+        p.fields
+            .iter()
+            .find(|f| f.name == name)
+            .map(|f| f.reference_id)
+    };
+    assert_ne!(reference(&old, "B1 ATTACK"), reference(&new, "B1 ATTACK"));
+}
+
+#[test]
+fn system_settings_follow_each_clients_setup_sheet() {
+    let tabs = |adapter: &str| -> Vec<String> {
+        Profile::for_adapter(adapter)
+            .unwrap()
+            .unwrap()
+            .system_layouts
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["title"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    // 6300PC.exe builds its sheet at 0x44c190; its Stereo Encoder dialog is never added.
+    assert_eq!(
+        tabs("pc-remote-6300-4.1.1.19"),
+        [
+            "Input",
+            "Output 1",
+            "Output 2",
+            "Test",
+            "Utility",
+            "Network",
+            "Misc",
+            "Remote Interface / Silence"
+        ]
+    );
+    // 8700iPC.exe at 0x460400; the Xponential page in that sheet holds processing fields.
+    assert_eq!(
+        tabs("pc-remote-8700i-1.5.1.11"),
+        [
+            "Input",
+            "Output 1",
+            "Stereo Encoder",
+            "Test",
+            "Utility",
+            "Network",
+            "Output 2",
+            "Remote Interface / Silence",
+            "HD Digital Radio",
+            "Digital MPX",
+            "RDS",
+            "RDS Alternate Frequencies",
+            "Dante Input",
+            "Dante Output",
+            "Streaming Audio",
+        ]
+    );
+    // The 8400 client's PEG screens, without the Quick Setup wizard.
+    assert_eq!(
+        tabs("pc-remote-8400-3.0.5.7"),
+        [
+            "Input/Output 1",
+            "Input/Output 2",
+            "Input/Output 3",
+            "Input/Output 4",
+            "Input/Output 5",
+            "Network/Remote",
+            "Security",
+            "Test Modes",
+        ]
+    );
+}

@@ -14,6 +14,15 @@ pub enum Message {
         kind: u16,
         data: Vec<u8>,
     },
+    /// A frame the device cut short (see `framing::Decoder::with_cut`). Its
+    /// body is incomplete and must not be interpreted.
+    Truncated {
+        kind: u16,
+        declared: usize,
+        received: usize,
+        /// The body bytes that did arrive, after the opcode prefix.
+        data: Vec<u8>,
+    },
 }
 
 fn decimal(bytes: &[u8]) -> Result<u32, String> {
@@ -52,11 +61,8 @@ pub fn decode(bytes: &[u8]) -> Result<Message, String> {
     )
 }
 
-pub fn decode_for(
-    bytes: &[u8],
-    meter_profile: Option<crate::adapter::MeterProfile>,
-) -> Result<Message, String> {
-    if bytes.len() < 16 || bytes.len() > 65535 {
+fn opcode(bytes: &[u8]) -> Result<u16, String> {
+    if bytes.len() < 16 {
         return Err("Invalid message length".into());
     }
     let kind = u16::try_from(
@@ -68,6 +74,41 @@ pub fn decode_for(
     if decimal(&bytes[8..16])? != 6 {
         return Err("Unsupported protocol type".into());
     }
+    Ok(kind)
+}
+
+/// A cut frame may end inside its own prefix; its opcode is then unknown (0).
+pub fn decode_truncated(bytes: &[u8], declared: usize) -> Result<Message, String> {
+    Ok(Message::Truncated {
+        kind: opcode(bytes).unwrap_or(0),
+        declared,
+        received: bytes.len(),
+        data: bytes.get(16..).unwrap_or_default().to_vec(),
+    })
+}
+
+/// The file name and the start of the file in the body of a cut file
+/// message (opcodes 229-235): `0\n0\n<name>\n<size>\n` and what arrived of
+/// the file. `None` when the cut fell inside those lines.
+pub fn file_prefix(mut data: &[u8]) -> Option<(String, &[u8])> {
+    decimal(line(&mut data).ok()?).ok()?;
+    decimal(line(&mut data).ok()?).ok()?;
+    let name = std::str::from_utf8(line(&mut data).ok()?).ok()?;
+    if name.chars().any(char::is_control) {
+        return None;
+    }
+    let size = decimal(line(&mut data).ok()?).ok()? as usize;
+    (data.len() <= size).then(|| (name.to_owned(), data))
+}
+
+pub fn decode_for(
+    bytes: &[u8],
+    meter_profile: Option<crate::adapter::MeterProfile>,
+) -> Result<Message, String> {
+    if bytes.len() > 65535 {
+        return Err("Invalid message length".into());
+    }
+    let kind = opcode(bytes)?;
     let mut data = &bytes[16..];
     match kind {
         220 => {
@@ -89,7 +130,24 @@ pub fn decode_for(
                 return Err("Unsupported meter bank".into());
             }
             data = &data[1..];
-            let count = decimal(line(&mut data)?)? as usize;
+            // The 2300 gives the count as one byte instead of a decimal line.
+            let mut probe = data;
+            let count = match line(&mut probe).and_then(decimal) {
+                Ok(count) => {
+                    line(&mut data)?;
+                    count as usize
+                }
+                Err(_)
+                    if data
+                        .first()
+                        .is_some_and(|n| usize::from(*n) + 1 == data.len()) =>
+                {
+                    let count = usize::from(data[0]);
+                    data = &data[1..];
+                    count
+                }
+                Err(error) => return Err(error),
+            };
             if !(profile.min_values..=profile.max_values).contains(&count) || data.len() != count {
                 return Err("Invalid meter count".into());
             }
@@ -101,6 +159,18 @@ pub fn decode_for(
         229..=235 => {
             decimal(line(&mut data)?)?;
             decimal(line(&mut data)?)?;
+            // The 2300 sends no name line: `0\n0\n<size>\n` and the file.
+            let mut unnamed = data;
+            if let Ok(count) = line(&mut unnamed).and_then(decimal)
+                && count as usize == unnamed.len()
+                && !unnamed.is_empty()
+            {
+                return Ok(Message::File {
+                    kind,
+                    name: String::new(),
+                    data: unnamed.to_vec(),
+                });
+            }
             let name = std::str::from_utf8(line(&mut data)?).map_err(|_| "Invalid filename")?;
             // This is device metadata, not a local filesystem path. PC Remote
             // events may contain an absolute Windows path. Keep it verbatim so

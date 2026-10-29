@@ -1,40 +1,49 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { METER_BAR_WIDTH, METER_MONO_WELL_WIDTH, METER_PALETTE, METER_WELL_WIDTH, MeterMotion, groups, meterCanvasWidth, meterChannelLayout, meterGroupWidth, meterPercent, visibleGroups } from '../src/meters.ts';
-test('meter movement is monotonic, bounded and expires when data stops',()=>{
+import { METER_BAR_WIDTH, METER_MONO_WELL_WIDTH, METER_PALETTE, METER_WELL_WIDTH, MeterMotion, groups, meterCanvasWidth, meterChannelLayout, meterGroupWidth, meterPercent, visibleGroups, conditionHolds, meterModelFromProfile } from '../src/meters.ts';
+test('meters show each firmware record at once and expire when data stops',()=>{
  const m=new MeterMotion();assert.equal(m.sample(0),null);
- m.push(Array(112).fill(0),100);m.sample(100);
- m.push(Array(112).fill(100),200);const a=m.sample(216)![1];const b=m.sample(232)![1];
- assert(a>0&&a<100);assert(b>a&&b<100);
+ m.push(Array(112).fill(0),100);assert.equal(m.sample(100)![1],0);
+ m.push(Array(112).fill(100),200);
+ assert.equal(m.sample(201)![1],meterPercent(1,100),'the original client sets the bar to the record, no smoothing');
  assert.equal(m.sample(1401),null);
- m.push(Array(112).fill(20),1500);assert(m.sample(1516)![1]<=meterPercent(1,20),'old device values must not survive a stale interval');
+ m.push(Array(112).fill(20),1500);assert.equal(m.sample(1516)![1],meterPercent(1,20));
  m.clear();assert.equal(m.sample(1517),null);
 });
-test('meter ballistics bridge device packets without a visible first-frame jump',()=>{
+test('peak markers are the firmware peak hold (bank 2) when the record has one',()=>{
  const m=new MeterMotion();
- m.push(Array(112).fill(0),0);m.sample(0);
- m.sample(16);m.sample(32);m.sample(48);
- m.push(Array(112).fill(100),50);
- const a=m.sample(66)![1],b=m.sample(82)![1],c=m.sample(98)![1];
- assert(a>0&&a<45,`first rendered step was ${a}`);
- assert(b>a&&c>b&&c>55);
- assert(Math.max(a,b-a,c-b)<45,'motion must be distributed across animation frames');
+ const values=Array(112).fill(0).map((v,i)=>i===1?40:i===5?10:v);
+ const peaks=Array(112).fill(0).map((v,i)=>i===1?60:i===5?30:v);
+ m.push(values,0,peaks);m.sample(0);
+ assert.equal(m.peakValues()[1],meterPercent(1,60));
+ assert.equal(m.peakValues()[5],30);
+ m.push(values,50,Array(112).fill(0));m.sample(50);
+ assert.equal(m.peakValues()[1],meterPercent(1,40),'a peak never sits below its bar');
+ m.push(values,100,[1,2]);m.sample(100);
+ assert.equal(m.peakValues()[5],10,'a malformed peak record falls back to the lane hold');
 });
-test('invalid or nonfinite frames clear meters, reduced motion uses actual values',()=>{
- const m=new MeterMotion();m.push(Array(112).fill(24),10);assert.equal(m.sample(20,true)![1],meterPercent(1,24));
+test('gate lamps light for any value above 0, as the client two-step lamp',()=>{
+ const gates=Object.fromEntries(groups.filter(g=>g.gate).map(g=>[g.name,g.gate!.id]));
+ assert.deepEqual(gates,{'AGC':62,'FM Gain Reduction':63,'FM 2-Band Gain Reduction':63,'FM Loudness':111,'HD Gain Reduction':38,'HD 2-Band Gain Reduction':38});
+ const m=new MeterMotion();m.push(Array(112).fill(0).map((v,i)=>i===62?127:v),0);
+ assert.equal(m.gated(62),true);assert.equal(m.gated(63),false);
+ m.clear();assert.equal(m.gated(62),false);
+});
+test('invalid or nonfinite frames clear meters',()=>{
+ const m=new MeterMotion();m.push(Array(112).fill(24),10);assert.equal(m.sample(20)![1],meterPercent(1,24));
  m.push([1,2],30);assert.equal(m.sample(31),null);
  m.push(Array(112).fill(NaN),40);assert.equal(m.sample(41),null);
 });
 test('each meter lane holds and releases its own peak marker',()=>{
  const m=new MeterMotion();
- m.push(Array(112).fill(0).map((value,index)=>index===5?90:index===14?60:value),0);m.sample(0,true);
+ m.push(Array(112).fill(0).map((value,index)=>index===5?90:index===14?60:value),0);m.sample(0);
  assert.equal(m.peakValues()[5],90);
  assert.equal(m.peakValues()[14],60);
- m.push(Array(112).fill(0).map((value,index)=>index===5?20:index===14?80:value),500);m.sample(500,true);
+ m.push(Array(112).fill(0).map((value,index)=>index===5?20:index===14?80:value),500);m.sample(500);
  assert.equal(m.peakValues()[5],90,'peak must hold above the falling meter');
  assert.equal(m.peakValues()[14],80,'a separate lane must capture its own later peak');
- m.sample(1000,true);assert.equal(m.peakValues()[14],80,'the later lane peak must retain its own hold time');
- m.sample(1100,true);assert(m.peakValues()[5]<90&&m.peakValues()[5]>=20,'peak must release toward the current level');
+ m.sample(1000);assert.equal(m.peakValues()[14],80,'the later lane peak must retain its own hold time');
+ m.sample(1100);assert(m.peakValues()[5]<90&&m.peakValues()[5]>=20,'peak must release toward the current level');
  assert.equal(m.peakValues()[14],80,'the later peak must still be held independently');
  m.clear();assert.deepEqual(m.peakValues(),[]);
 });
@@ -81,9 +90,42 @@ test('approved SVG fixes meter geometry and palette exactly',()=>{
   ticks:'#656565',label:'#9F9F9F',blue:'#0088FF',amber:'#FFCC00',
   red:'#FF383C',green:'#76D672',live:'#34C759',magenta:'#A62E9C',lcdTop:'#101A24',lcdBottom:'#182431',lcdText:'#7E95B1',
  });
- assert.deepEqual(groups.map(group=>group.referenceWidth),[71.021,95.541,73.042,169.542,66.542,67.041,53.042,59.541,169.542,72.042,65.042,65.542,72.52]);
- assert(Math.abs(meterCanvasWidth(groups)-1100)<1e-9);
+ const fiveBand=groups.filter(group=>!group.name.includes('2-Band') && group.name!=='HF Limiting');
+ assert.deepEqual(fiveBand.map(group=>group.referenceWidth),[71.021,95.541,73.042,169.542,66.542,67.041,53.042,59.541,169.542,72.042,65.042,65.542,72.52]);
+ assert(Math.abs(meterCanvasWidth(fiveBand)-1100)<1e-9);
  const paired=meterChannelLayout(groups.find(group=>group.name==='FM Gain Reduction')!)[0];
  assert.equal(paired.lanes.length,2);
  assert(paired.lanes.every(lane=>lane.width===METER_BAR_WIDTH));
+});
+
+test('5700i band meters follow the structure in the on-air document, never both',()=>{
+ const names=(values?:Record<string,string>)=>visibleGroups('Both',undefined,values).map(g=>g.name);
+ const fiveBand={'Processing:B1 ATTACK':'20','Processing:HD B1 ATTACK':'20','Processing:AGC':'On'};
+ const twoBand={'Processing:2B DRIVE':'0','Processing:HD 2B DRIVE':'0','Processing:AGC':'On'};
+ assert(!names().some(n=>n.includes('Gain Reduction')),'no band meters before the document arrives');
+ assert.deepEqual(names(fiveBand).filter(n=>n.includes('Gain Reduction')),['FM Gain Reduction','HD Gain Reduction']);
+ assert.deepEqual(names(twoBand).filter(n=>n.includes('Gain Reduction')),['FM 2-Band Gain Reduction','HD 2-Band Gain Reduction']);
+ assert.deepEqual(visibleGroups('Both',undefined,twoBand).find(g=>g.name==='FM 2-Band Gain Reduction')!.channels.map(c=>c.ids),[[64],[65]]);
+ assert(Math.abs(meterCanvasWidth(visibleGroups('Both',undefined,fiveBand))-1100)<1e-9);
+});
+test('a presence condition needs the document of its own scope',()=>{
+ const condition={field:'B1 ATTACK',present:false};
+ assert.equal(conditionHolds(condition,{}),false);
+ assert.equal(conditionHolds(condition,{'System:B1 ATTACK':'1'}),false);
+ assert.equal(conditionHolds(condition,{'Processing:AGC':'On'}),true);
+ assert.equal(conditionHolds({...condition,present:true},{'Processing:B1 ATTACK':'20'}),true);
+});
+test('every model profile carries its client gate lamps: AGC, multiband and HD',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const load=(path:string)=>meterModelFromProfile(JSON.parse(readFileSync(new URL(`../../../profiles/${path}/meters.json`,import.meta.url),'utf8')));
+ const gate=(path:string,name:string)=>load(path).groups.find(g=>g.name===name)?.gate?.id;
+ // From each client's meter registration (push index; push "o_gateIndicate*").
+ assert.equal(gate('6300/4.1.1.19','AGC'),69);
+ assert.equal(gate('6300/4.1.1.19','2-Band Gain Reduction'),70);
+ assert.equal(gate('6300/4.1.1.19','Gain Reduction'),70);
+ assert.equal(gate('8700hd/1.0.2.161','2-Band HD Gain Reduction'),38);
+ assert.equal(gate('8700i/1.5.1.11','Gain Reduction'),63);
+ assert.equal(gate('5500i/3.1.0.2','2-Band Gain Reduction'),37);
+ assert.equal(gate('2300/2.0.3.85','Gain Reduction'),39);
+ assert.equal(load('6300/4.1.1.19').groups.find(g=>g.name==='AGC')?.gate?.vertical,true);
 });

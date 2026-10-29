@@ -1,0 +1,1461 @@
+[
+  {
+    "title": "Input",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 212,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INPUT A OR D",
+        "label": "Input Source",
+        "x": 11,
+        "y": 17,
+        "w": 61,
+        "id": 2230,
+        "reference_id": 277,
+        "options": [
+          "Analog",
+          "Digital",
+          "Digital + J.17"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF LEVEL",
+        "label": "AI REF Level",
+        "x": 126,
+        "y": 30,
+        "w": 18,
+        "id": 2222,
+        "reference_id": 289,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF PPM LEVEL",
+        "label": "AI REF PPM Level",
+        "x": 143,
+        "y": 16,
+        "w": 40,
+        "id": 2547,
+        "reference_id": 290,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI BALANCE",
+        "label": "AI Balance",
+        "x": 87,
+        "y": 173,
+        "w": 95,
+        "id": 2241,
+        "reference_id": 292,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF LEVEL",
+        "label": "DI REF Level",
+        "x": 234,
+        "y": 30,
+        "w": 18,
+        "id": 2224,
+        "reference_id": 287,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF PPM LEVEL",
+        "label": "DI REF PPM Level",
+        "x": 234,
+        "y": 30,
+        "w": 18,
+        "id": 2224,
+        "reference_id": 288,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI BALANCE",
+        "label": "DI Balance",
+        "x": 195,
+        "y": 173,
+        "w": 95,
+        "id": 2242,
+        "reference_id": 293,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DI ANALOG FALLBACK",
+        "label": "DI Analog Fallback",
+        "x": 11,
+        "y": 70,
+        "w": 28,
+        "id": 2262,
+        "reference_id": 284,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 70,
+        "h": 45,
+        "text": "Input Source"
+      },
+      {
+        "x": 84,
+        "y": 7,
+        "w": 101,
+        "h": 187,
+        "text": "Analog Input Ref. Level"
+      },
+      {
+        "x": 192,
+        "y": 7,
+        "w": 101,
+        "h": 187,
+        "text": "Digital Input Ref. Level"
+      },
+      {
+        "x": 7,
+        "y": 56,
+        "w": 70,
+        "h": 45,
+        "text": "DI Analog Fallback"
+      }
+    ]
+  },
+  {
+    "title": "Output",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 218,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "AO1 LEVEL",
+        "label": "AO1 Level",
+        "x": 71,
+        "y": 17,
+        "w": 18,
+        "id": 2259,
+        "reference_id": 564,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 LEVEL",
+        "label": "DO1 Level",
+        "x": 167,
+        "y": 17,
+        "w": 18,
+        "id": 2266,
+        "reference_id": 579,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AO PRE-OUT",
+        "label": "Pre-emphasis",
+        "x": 19,
+        "y": 130,
+        "w": 66,
+        "id": 2260,
+        "reference_id": 566,
+        "options": [
+          "Flat",
+          "Pre-emphasized"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 PRE EMPH",
+        "label": "DO1 PRE Emph",
+        "x": 114,
+        "y": 132,
+        "w": 68,
+        "id": 2274,
+        "reference_id": 582,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AO1 SOURCE",
+        "label": "AO1 Source",
+        "x": 18,
+        "y": 168,
+        "w": 68,
+        "id": 3374,
+        "reference_id": 565,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 SOURCE",
+        "label": "DO1 Source",
+        "x": 115,
+        "y": 168,
+        "w": 68,
+        "id": 2281,
+        "reference_id": 581,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DO1 SYNC",
+        "label": "Digital Output Sync",
+        "x": 208,
+        "y": 22,
+        "w": 59,
+        "id": 3446,
+        "reference_id": 587,
+        "options": [
+          "Pilot Sync",
+          "Digital Input"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO1 FORMAT",
+        "label": "Format",
+        "x": 207,
+        "y": 165,
+        "w": 48,
+        "id": 2270,
+        "reference_id": 584,
+        "options": [
+          "AES/EBU",
+          "SPDIF"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 SAMPLE RATE",
+        "label": "DO1 Sample Rate",
+        "x": 204,
+        "y": 108,
+        "w": 68,
+        "id": 2271,
+        "reference_id": 583,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 WORD_LENGTH",
+        "label": "DO1 Word_length",
+        "x": 204,
+        "y": 135,
+        "w": 68,
+        "id": 2272,
+        "reference_id": 585,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 90,
+        "h": 187,
+        "text": "Analog Output"
+      },
+      {
+        "x": 12,
+        "y": 120,
+        "w": 80,
+        "h": 32,
+        "text": "Pre-emphasis "
+      },
+      {
+        "x": 12,
+        "y": 155,
+        "w": 80,
+        "h": 32,
+        "text": "Out Source "
+      },
+      {
+        "x": 103,
+        "y": 7,
+        "w": 189,
+        "h": 187,
+        "text": "Digital Output"
+      },
+      {
+        "x": 109,
+        "y": 120,
+        "w": 80,
+        "h": 32,
+        "text": "Pre-emphasis "
+      },
+      {
+        "x": 199,
+        "y": 12,
+        "w": 87,
+        "h": 36,
+        "text": "Digital Output Sync"
+      },
+      {
+        "x": 200,
+        "y": 155,
+        "w": 87,
+        "h": 32,
+        "text": "Format "
+      },
+      {
+        "x": 109,
+        "y": 155,
+        "w": 80,
+        "h": 32,
+        "text": "Out Source"
+      },
+      {
+        "x": 199,
+        "y": 95,
+        "w": 87,
+        "h": 57,
+        "text": ""
+      },
+      {
+        "x": 199,
+        "y": 50,
+        "w": 87,
+        "h": 44,
+        "text": "Pilot Sync"
+      }
+    ]
+  },
+  {
+    "title": "Test",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 214,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "BYPASS GAIN",
+        "label": "Bypass Gain",
+        "x": 95,
+        "y": 51,
+        "w": 18,
+        "id": 2239,
+        "reference_id": 339,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "ALGORITHM",
+        "label": "Algorithm",
+        "x": 12,
+        "y": 7,
+        "w": 179,
+        "id": 2257,
+        "reference_id": 275,
+        "options": [
+          "Operate",
+          "Bypass",
+          "Tone"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "MOD LEVEL",
+        "label": "MOD Level",
+        "x": 167,
+        "y": 51,
+        "w": 18,
+        "id": 2240,
+        "reference_id": 342,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "MOD TYPE",
+        "label": "Tone Channels",
+        "x": 231,
+        "y": 61,
+        "w": 36,
+        "id": 2246,
+        "reference_id": 343,
+        "options": [
+          "L-only",
+          "R-only",
+          "L + R",
+          "L - R"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "XTALK TEST",
+        "label": "Xtalk Test",
+        "x": 226,
+        "y": 161,
+        "w": 61,
+        "id": 2241,
+        "reference_id": 349,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "FREQUENCY",
+        "label": "Frequency",
+        "x": 226,
+        "y": 28,
+        "w": 59,
+        "id": 2523,
+        "reference_id": 340,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 80,
+        "y": 7,
+        "w": 66,
+        "h": 137,
+        "text": ""
+      },
+      {
+        "x": 153,
+        "y": 7,
+        "w": 140,
+        "h": 137,
+        "text": ""
+      },
+      {
+        "x": 226,
+        "y": 51,
+        "w": 60,
+        "h": 61,
+        "text": "Tone Channels"
+      },
+      {
+        "x": 80,
+        "y": 151,
+        "w": 213,
+        "h": 40,
+        "text": "Stereo Encoder Crosstalk Test "
+      }
+    ]
+  },
+  {
+    "title": "Utility",
+    "width": 305,
+    "height": 236,
+    "reference_dialog": 215,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "MOD REDUCE 1",
+        "label": "MOD Reduce 1",
+        "x": 182,
+        "y": 81,
+        "w": 13,
+        "id": 2554,
+        "reference_id": 312,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MOD REDUCE 2",
+        "label": "MOD Reduce 2",
+        "x": 228,
+        "y": 81,
+        "w": 13,
+        "id": 2555,
+        "reference_id": 313,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "PRE-E",
+        "label": "Processing Pre-Emphasis",
+        "x": 41,
+        "y": 181,
+        "w": 95,
+        "id": 2525,
+        "reference_id": 338,
+        "options": [
+          "50 \u00b5S",
+          "75 \u00b5S"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "ITU412 THR",
+        "label": "ITU412 THR",
+        "x": 282,
+        "y": 81,
+        "w": 13,
+        "id": 2244,
+        "reference_id": 322,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "PRE-E",
+        "label": "Processing Pre-Emphasis",
+        "x": 41,
+        "y": 181,
+        "w": 95,
+        "id": 2525,
+        "reference_id": 338,
+        "options": [
+          "50 \u00b5S",
+          "75 \u00b5S"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 139,
+        "h": 57,
+        "text": "Real-Time Clock "
+      },
+      {
+        "x": 151,
+        "y": 7,
+        "w": 148,
+        "h": 57,
+        "text": "Station ID "
+      },
+      {
+        "x": 7,
+        "y": 70,
+        "w": 139,
+        "h": 99,
+        "text": "Processing "
+      },
+      {
+        "x": 8,
+        "y": 171,
+        "w": 139,
+        "h": 22,
+        "text": "Processing Pre-Emphasis"
+      },
+      {
+        "x": 151,
+        "y": 70,
+        "w": 96,
+        "h": 123,
+        "text": "Modulation Reduction "
+      },
+      {
+        "x": 250,
+        "y": 70,
+        "w": 49,
+        "h": 123,
+        "text": "MPX Power"
+      },
+      {
+        "x": 8,
+        "y": 197,
+        "w": 140,
+        "h": 26,
+        "text": "Ratings Select"
+      }
+    ]
+  },
+  {
+    "title": "Network",
+    "width": 300,
+    "height": 268,
+    "reference_dialog": 371,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INTERFACE TYPE",
+        "label": "Network Settings",
+        "x": 8,
+        "y": 39,
+        "w": 78,
+        "id": 2540,
+        "reference_id": 374,
+        "options": [
+          "Direct (Null Modem)",
+          "Modem"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "START SNMP",
+        "label": "SNMP Settings",
+        "x": 161,
+        "y": 38,
+        "w": 107,
+        "id": 2549,
+        "reference_id": 401,
+        "options": [
+          "Disable SNMP on boot-up",
+          "Enable SNMP"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 3,
+        "y": 7,
+        "w": 140,
+        "h": 187,
+        "text": "Network Settings "
+      },
+      {
+        "x": 148,
+        "y": 7,
+        "w": 144,
+        "h": 258,
+        "text": "SNMP Settings "
+      },
+      {
+        "x": 155,
+        "y": 61,
+        "w": 133,
+        "h": 55,
+        "text": "Primary Manager"
+      },
+      {
+        "x": 155,
+        "y": 117,
+        "w": 133,
+        "h": 55,
+        "text": "Secondary Manager"
+      },
+      {
+        "x": 155,
+        "y": 175,
+        "w": 133,
+        "h": 86,
+        "text": "Community Strings"
+      }
+    ]
+  },
+  {
+    "title": "Stereo Encoder",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 213,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "COMP1 OUT",
+        "label": "Comp1 OUT",
+        "x": 22,
+        "y": 40,
+        "w": 18,
+        "id": 2231,
+        "reference_id": 307,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP2 OUT",
+        "label": "Comp2 OUT",
+        "x": 95,
+        "y": 40,
+        "w": 18,
+        "id": 2243,
+        "reference_id": 308,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PILOT LEVEL",
+        "label": "Pilot Level",
+        "x": 244,
+        "y": 40,
+        "w": 18,
+        "id": 2245,
+        "reference_id": 320,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MODULATION",
+        "label": "Modulation",
+        "x": 156,
+        "y": 92,
+        "w": 64,
+        "id": 2522,
+        "reference_id": 347,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PILOT REF",
+        "label": "Pilot REF",
+        "x": 157,
+        "y": 119,
+        "w": 48,
+        "id": 3349,
+        "reference_id": 321,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DIVERSITY DELAY",
+        "label": "Diversity Delay",
+        "x": 157,
+        "y": 178,
+        "w": 65,
+        "id": 3321,
+        "reference_id": 264,
+        "options": [
+          "In",
+          "Out"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 64,
+        "h": 187,
+        "text": "Composite Out 1"
+      },
+      {
+        "x": 80,
+        "y": 7,
+        "w": 66,
+        "h": 187,
+        "text": "Composite Out 2"
+      },
+      {
+        "x": 229,
+        "y": 7,
+        "w": 66,
+        "h": 187,
+        "text": "19 kHz Pilot "
+      },
+      {
+        "x": 149,
+        "y": 168,
+        "w": 76,
+        "h": 26,
+        "text": "Diversity Delay"
+      }
+    ]
+  },
+  {
+    "title": "Remote Interface / Silence",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 216,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "ANALOG FALLBACK",
+        "label": "Analog Fallback",
+        "x": 228,
+        "y": 96,
+        "w": 60,
+        "id": 3340,
+        "reference_id": 279,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "SILENCE THR",
+        "label": "Silence Threshold",
+        "x": 157,
+        "y": 138,
+        "w": 83,
+        "id": 3341,
+        "reference_id": 285,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SILENCE DELAY",
+        "label": "Silence Delay",
+        "x": 157,
+        "y": 166,
+        "w": 83,
+        "id": 3325,
+        "reference_id": 286,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DIGITAL FALLBACK",
+        "label": "Silence Detect",
+        "x": 227,
+        "y": 117,
+        "w": 61,
+        "id": 3348,
+        "reference_id": 280,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 140,
+        "h": 187,
+        "text": "Remote Interface (GPI) Functions "
+      },
+      {
+        "x": 153,
+        "y": 7,
+        "w": 140,
+        "h": 62,
+        "text": "Tally Outputs"
+      },
+      {
+        "x": 154,
+        "y": 80,
+        "w": 140,
+        "h": 114,
+        "text": "Silence Detect"
+      },
+      {
+        "x": 157,
+        "y": 90,
+        "w": 133,
+        "h": 18,
+        "text": ""
+      },
+      {
+        "x": 157,
+        "y": 111,
+        "w": 133,
+        "h": 18,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Diversity Delay",
+    "width": 305,
+    "height": 201,
+    "reference_dialog": 219,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "DIVERSITY DELAY ADJ",
+        "label": "Diversity Delay ADJ",
+        "x": 11,
+        "y": 144,
+        "w": 221,
+        "id": 3323,
+        "reference_id": 266,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 5,
+        "y": 122,
+        "w": 292,
+        "h": 43,
+        "text": " Diversity Delay Trim"
+      }
+    ]
+  },
+  {
+    "title": "RDS",
+    "width": 316,
+    "height": 291,
+    "reference_dialog": 404,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "RDS DPS SPEED",
+        "label": "RDS DPS Speed",
+        "x": 101,
+        "y": 83,
+        "w": 42,
+        "id": 3484,
+        "reference_id": 493,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS DPS TIMEOUT",
+        "label": "RDS DPS Timeout",
+        "x": 101,
+        "y": 101,
+        "w": 42,
+        "id": 3486,
+        "reference_id": 494,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS RADIO TEXT SPEED",
+        "label": "RDS Radio Text Speed",
+        "x": 101,
+        "y": 119,
+        "w": 42,
+        "id": 3469,
+        "reference_id": 496,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "RDS MUSIC SPEECH",
+        "label": "Preset RDS Settings",
+        "x": 238,
+        "y": 79,
+        "w": 72,
+        "id": 3472,
+        "reference_id": 500,
+        "options": [
+          "Speech",
+          "Music"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "RDS DECODER INFO",
+        "label": "Preset RDS Settings",
+        "x": 238,
+        "y": 95,
+        "w": 74,
+        "id": 3473,
+        "reference_id": 501,
+        "options": [
+          "Mono",
+          "Stereo"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "RDS TRAFFIC PROGRAM",
+        "label": "Preset RDS Settings",
+        "x": 238,
+        "y": 111,
+        "w": 66,
+        "id": 3475,
+        "reference_id": 502,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "RDS TA TIMEOUT",
+        "label": "RDS TA Timeout",
+        "x": 241,
+        "y": 127,
+        "w": 42,
+        "id": 3474,
+        "reference_id": 504,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "RDS TIME",
+        "label": "Preset RDS Settings",
+        "x": 238,
+        "y": 143,
+        "w": 65,
+        "id": 3478,
+        "reference_id": 529,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "RDS LEVEL",
+        "label": "RDS Level",
+        "x": 237,
+        "y": 257,
+        "w": 42,
+        "id": 3482,
+        "reference_id": 531,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 3,
+        "y": 205,
+        "w": 95,
+        "h": 82,
+        "text": "RDS Terminal Server"
+      },
+      {
+        "x": 223,
+        "y": 206,
+        "w": 90,
+        "h": 82,
+        "text": "RDS Modulator"
+      },
+      {
+        "x": 102,
+        "y": 206,
+        "w": 118,
+        "h": 82,
+        "text": "UECP Client"
+      },
+      {
+        "x": 3,
+        "y": 13,
+        "w": 310,
+        "h": 192,
+        "text": "Preset RDS Settings"
+      }
+    ]
+  },
+  {
+    "title": "RDS Alternate Frequencies",
+    "width": 302,
+    "height": 231,
+    "reference_dialog": 405,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 1",
+        "label": "RDS Alternate Frequency 1",
+        "x": 42,
+        "y": 22,
+        "w": 41,
+        "id": 3480,
+        "reference_id": 505,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 2",
+        "label": "RDS Alternate Frequency 2",
+        "x": 42,
+        "y": 46,
+        "w": 41,
+        "id": 2558,
+        "reference_id": 506,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 3",
+        "label": "RDS Alternate Frequency 3",
+        "x": 42,
+        "y": 70,
+        "w": 41,
+        "id": 2559,
+        "reference_id": 507,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 4",
+        "label": "RDS Alternate Frequency 4",
+        "x": 42,
+        "y": 94,
+        "w": 41,
+        "id": 2560,
+        "reference_id": 508,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 5",
+        "label": "RDS Alternate Frequency 5",
+        "x": 42,
+        "y": 118,
+        "w": 41,
+        "id": 2561,
+        "reference_id": 509,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 6",
+        "label": "RDS Alternate Frequency 6",
+        "x": 42,
+        "y": 142,
+        "w": 41,
+        "id": 2562,
+        "reference_id": 510,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 7",
+        "label": "RDS Alternate Frequency 7",
+        "x": 42,
+        "y": 166,
+        "w": 41,
+        "id": 2563,
+        "reference_id": 511,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 8",
+        "label": "RDS Alternate Frequency 8",
+        "x": 42,
+        "y": 188,
+        "w": 41,
+        "id": 2564,
+        "reference_id": 512,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 9",
+        "label": "RDS Alternate Frequency 9",
+        "x": 132,
+        "y": 22,
+        "w": 41,
+        "id": 2565,
+        "reference_id": 513,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 10",
+        "label": "RDS Alternate Frequency 10",
+        "x": 132,
+        "y": 46,
+        "w": 41,
+        "id": 2566,
+        "reference_id": 514,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 11",
+        "label": "RDS Alternate Frequency 11",
+        "x": 132,
+        "y": 70,
+        "w": 41,
+        "id": 2567,
+        "reference_id": 515,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 12",
+        "label": "RDS Alternate Frequency 12",
+        "x": 132,
+        "y": 93,
+        "w": 41,
+        "id": 2568,
+        "reference_id": 516,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 13",
+        "label": "RDS Alternate Frequency 13",
+        "x": 132,
+        "y": 119,
+        "w": 41,
+        "id": 2569,
+        "reference_id": 517,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 14",
+        "label": "RDS Alternate Frequency 14",
+        "x": 132,
+        "y": 142,
+        "w": 41,
+        "id": 2570,
+        "reference_id": 518,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 15",
+        "label": "RDS Alternate Frequency 15",
+        "x": 132,
+        "y": 166,
+        "w": 41,
+        "id": 2571,
+        "reference_id": 519,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 16",
+        "label": "RDS Alternate Frequency 16",
+        "x": 132,
+        "y": 189,
+        "w": 41,
+        "id": 2572,
+        "reference_id": 520,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 17",
+        "label": "RDS Alternate Frequency 17",
+        "x": 223,
+        "y": 22,
+        "w": 41,
+        "id": 2573,
+        "reference_id": 521,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 18",
+        "label": "RDS Alternate Frequency 18",
+        "x": 223,
+        "y": 46,
+        "w": 41,
+        "id": 2574,
+        "reference_id": 522,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 19",
+        "label": "RDS Alternate Frequency 19",
+        "x": 223,
+        "y": 70,
+        "w": 41,
+        "id": 2575,
+        "reference_id": 523,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 20",
+        "label": "RDS Alternate Frequency 20",
+        "x": 223,
+        "y": 94,
+        "w": 41,
+        "id": 2576,
+        "reference_id": 524,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 21",
+        "label": "RDS Alternate Frequency 21",
+        "x": 223,
+        "y": 118,
+        "w": 41,
+        "id": 2577,
+        "reference_id": 525,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 22",
+        "label": "RDS Alternate Frequency 22",
+        "x": 223,
+        "y": 142,
+        "w": 41,
+        "id": 2578,
+        "reference_id": 526,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 23",
+        "label": "RDS Alternate Frequency 23",
+        "x": 223,
+        "y": 166,
+        "w": 41,
+        "id": 2579,
+        "reference_id": 527,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "RDS ALTERNATE FREQUENCY 24",
+        "label": "RDS Alternate Frequency 24",
+        "x": 223,
+        "y": 189,
+        "w": 41,
+        "id": 2580,
+        "reference_id": 528,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 15,
+        "y": 15,
+        "w": 82,
+        "h": 24,
+        "text": "AF 1"
+      },
+      {
+        "x": 16,
+        "y": 39,
+        "w": 82,
+        "h": 24,
+        "text": "AF 2"
+      },
+      {
+        "x": 16,
+        "y": 63,
+        "w": 82,
+        "h": 24,
+        "text": "AF 3"
+      },
+      {
+        "x": 16,
+        "y": 87,
+        "w": 82,
+        "h": 24,
+        "text": "AF 4"
+      },
+      {
+        "x": 16,
+        "y": 111,
+        "w": 82,
+        "h": 24,
+        "text": "AF 5"
+      },
+      {
+        "x": 16,
+        "y": 135,
+        "w": 82,
+        "h": 24,
+        "text": "AF 6"
+      },
+      {
+        "x": 16,
+        "y": 159,
+        "w": 82,
+        "h": 24,
+        "text": "AF 7"
+      },
+      {
+        "x": 16,
+        "y": 183,
+        "w": 82,
+        "h": 24,
+        "text": "AF 8"
+      },
+      {
+        "x": 106,
+        "y": 15,
+        "w": 82,
+        "h": 24,
+        "text": "AF 9"
+      },
+      {
+        "x": 106,
+        "y": 39,
+        "w": 82,
+        "h": 24,
+        "text": "AF 10"
+      },
+      {
+        "x": 106,
+        "y": 63,
+        "w": 82,
+        "h": 24,
+        "text": "AF 11"
+      },
+      {
+        "x": 106,
+        "y": 87,
+        "w": 82,
+        "h": 24,
+        "text": "AF 12"
+      },
+      {
+        "x": 106,
+        "y": 111,
+        "w": 82,
+        "h": 24,
+        "text": "AF 13"
+      },
+      {
+        "x": 106,
+        "y": 135,
+        "w": 82,
+        "h": 24,
+        "text": "AF 14"
+      },
+      {
+        "x": 106,
+        "y": 159,
+        "w": 82,
+        "h": 24,
+        "text": "AF 15"
+      },
+      {
+        "x": 106,
+        "y": 183,
+        "w": 82,
+        "h": 24,
+        "text": "AF 16"
+      },
+      {
+        "x": 197,
+        "y": 15,
+        "w": 82,
+        "h": 24,
+        "text": "AF 17"
+      },
+      {
+        "x": 197,
+        "y": 39,
+        "w": 82,
+        "h": 24,
+        "text": "AF 18"
+      },
+      {
+        "x": 197,
+        "y": 63,
+        "w": 82,
+        "h": 24,
+        "text": "AF 19"
+      },
+      {
+        "x": 197,
+        "y": 87,
+        "w": 82,
+        "h": 24,
+        "text": "AF 20"
+      },
+      {
+        "x": 197,
+        "y": 111,
+        "w": 82,
+        "h": 24,
+        "text": "AF 21"
+      },
+      {
+        "x": 197,
+        "y": 135,
+        "w": 82,
+        "h": 24,
+        "text": "AF 21"
+      },
+      {
+        "x": 197,
+        "y": 159,
+        "w": 82,
+        "h": 24,
+        "text": "AF 23"
+      },
+      {
+        "x": 197,
+        "y": 183,
+        "w": 82,
+        "h": 24,
+        "text": "AF 24"
+      }
+    ]
+  }
+]

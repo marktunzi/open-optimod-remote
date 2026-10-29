@@ -199,6 +199,7 @@ enum SystemSettingsSpecification {
             SettingsItem("Time Server IP Address", field: "TIME SERVER", control: .text(maxLength: nil, validation: .ipAddress), writePolicy: .typedText),
         ]),
         SettingsSection(title: "Processing", items: [
+            SettingsItem("External AGC in use", field: "STUDIO CHASSIS", control: .toggle(offLabel: "No", onLabel: "Yes", offAliases: ["No"], onAliases: ["Yes"])),
             SettingsItem("Final Clipper active", field: "CLIP DEFEAT", control: .toggle(offLabel: "No", onLabel: "Yes", offAliases: ["Defeat", "No"], onAliases: ["Active", "Yes"])),
             SettingsItem("Processing Pre-Emphasis", field: "PRE-E", control: .segmented(options: [
                 SettingsOption("75 µs", aliases: ["75 µs", "75us"]),
@@ -316,22 +317,22 @@ enum SystemSettingsSpecification {
 
     private static let rds = SettingsTab(title: "RDS", symbolName: "antenna.radiowaves.left.and.right", sections: [
         SettingsSection(title: "Program", items: [
-            SettingsItem("Program Service (PS)", field: "RDS DYNAMIC PS", control: .text(maxLength: nil, validation: .plain), writePolicy: .typedText),
+            SettingsItem("Program Service (PS)", field: "RDS DYNAMIC PS", control: .text(maxLength: 255, validation: .plain), writePolicy: .typedText),
             SettingsItem("Dynamic Program Service Speed", field: "RDS DPS SPEED", control: .picker(options: (2...9).map { SettingsOption("\($0) sec", aliases: ["\($0) sec", "\($0)"]) }, includesDevicePresets: false)),
             SettingsItem("Dynamic Program Service Timeout", field: "RDS DPS TIMEOUT", control: .offRange(min: 1, max: 255, step: 1, unit: "min", slider: false)),
-            SettingsItem("Radio Text", field: "RDS RADIO TEXT", control: .text(maxLength: nil, validation: .plain), writePolicy: .typedText),
+            SettingsItem("Radio Text", field: "RDS RADIO TEXT", control: .text(maxLength: 128, validation: .plain), writePolicy: .typedText),
             SettingsItem("Radio Text Speed", field: "RDS RADIO TEXT SPEED", control: .picker(options: ["Off", "5 sec", "10 sec", "15 sec", "20 sec", "25 sec", "30 sec", "35 sec", "40 sec", "45 sec"].map {
                 SettingsOption($0, aliases: [$0, $0.replacingOccurrences(of: " sec", with: "")])
             }, includesDevicePresets: false)),
-            SettingsItem("Program Identification (PI)", field: "RDS PROGRAM ID", control: .text(maxLength: nil, validation: .hexadecimal), writePolicy: .typedText),
+            SettingsItem("Program Identification (PI)", field: "RDS PROGRAM ID", control: .text(maxLength: 4, validation: .hexadecimal), writePolicy: .typedText),
             SettingsItem("Program Type (PTY)", field: "RDS PROGRAM TYPE", control: .integer(min: 0, max: 31, unit: ""), writePolicy: .typedText),
-            SettingsItem("Program Type Name (PTYN)", field: "RDS PROGRAM NAME", control: .text(maxLength: nil, validation: .plain), writePolicy: .typedText),
+            SettingsItem("Program Type Name (PTYN)", field: "RDS PROGRAM NAME", control: .text(maxLength: 8, validation: .plain), writePolicy: .typedText),
             SettingsItem("Music / Speech", field: "RDS MUSIC SPEECH", control: .segmented(options: [SettingsOption("Speech"), SettingsOption("Music")])),
             SettingsItem("Decoder Info", field: "RDS DECODER INFO", control: .segmented(options: [SettingsOption("Mono"), SettingsOption("Stereo")])),
             SettingsItem("Traffic Program", field: "RDS TRAFFIC PROGRAM", control: .toggle(offLabel: "No", onLabel: "Yes", offAliases: ["No"], onAliases: ["Yes"])),
             SettingsItem("TA Timeout", field: "RDS TA TIMEOUT", control: .offRange(min: 1, max: 255, step: 1, unit: "min", slider: false)),
             SettingsItem("Current Time", field: "RDS TIME", control: .toggle(offLabel: "No", onLabel: "Yes", offAliases: ["No"], onAliases: ["Yes"])),
-            SettingsItem("EAS Text", field: "RDS EAS", control: .text(maxLength: nil, validation: .plain), writePolicy: .typedText),
+            SettingsItem("EAS Text", field: "RDS EAS", control: .text(maxLength: 64, validation: .plain), writePolicy: .typedText),
         ]),
         SettingsSection(title: "RDS Modulator", items: [
             SettingsItem("57 kHz RDS Subcarrier", field: "RDS ACTIVE", control: .toggle(offLabel: "Disable", onLabel: "Enable", offAliases: ["Disable", "No"], onAliases: ["Enable", "Yes"])),
@@ -340,8 +341,16 @@ enum SystemSettingsSpecification {
         SettingsSection(title: "RDS Terminal Server", items: [
             SettingsItem("Terminal Echo", field: "RDS ECHO", control: .toggle(offLabel: "Disable", onLabel: "Enable", offAliases: ["Disable", "No"], onAliases: ["Enable", "Yes"])),
             SettingsItem("Terminal Header", field: "RDS HEADER", control: .toggle(offLabel: "Disable", onLabel: "Enable", offAliases: ["Disable", "No"], onAliases: ["Enable", "Yes"])),
-            SettingsItem("IP Port", field: "RDS PORT", control: .integer(min: 1, max: 65_535, unit: "")),
+            SettingsItem("IP Port", field: "RDS PORT", control: .integer(min: 1, max: 65_534, unit: "")),
             SettingsItem("Source IP Address", field: "RDS SOURCE IP", control: .text(maxLength: nil, validation: .ipAddress), writePolicy: .typedText),
+        ]),
+        // The client's "UECP Client" box (Setup › RDS, dialog 404).
+        SettingsSection(title: "UECP Client", items: [
+            SettingsItem("Site Address", field: "RDS UECP SITE", control: .integer(min: 0, max: 1_022, unit: "")),
+            SettingsItem("Encoder Address", field: "RDS UECP ENCODE", control: .integer(min: 0, max: 62, unit: "")),
+            SettingsItem("Active", field: "RDS UECP ACTIVE", control: .toggle(offLabel: "No", onLabel: "Yes", offAliases: ["No"], onAliases: ["Yes"])),
+            SettingsItem("UDP", field: "RDS UECP UDP", control: .toggle(offLabel: "No", onLabel: "Yes", offAliases: ["No"], onAliases: ["Yes"])),
+            SettingsItem("TCP / UDP Port", field: "RDS UECP PORT", control: .integer(min: 1, max: 65_534, unit: "")),
         ]),
     ])
 

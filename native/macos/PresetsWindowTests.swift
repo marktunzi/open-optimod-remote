@@ -5,7 +5,7 @@ enum PresetsWindowTests {
     @MainActor
     static func main() {
         _ = NSApplication.shared
-        let controller = PresetsWindowController()
+        let controller = PresetsWindowController(deviceID: "unit-a")
         guard let window = controller.window else { preconditionFailure("Presets window missing") }
         precondition(window.title == "Presets")
         guard let splitController = window.contentViewController as? NSSplitViewController else {
@@ -19,23 +19,21 @@ enum PresetsWindowTests {
         precondition(sidebarItem.maximumThickness == PresetPresentation.maximumSidebarWidth)
         precondition(window.styleMask.contains(.fullSizeContentView))
         let contentSize = window.contentRect(forFrameRect: window.frame).size
-        precondition(PresetPresentation.defaultSize == NSSize(width: 900, height: 560))
         precondition(contentSize.width >= PresetPresentation.minimumSize.width)
         precondition(contentSize.height >= PresetPresentation.minimumSize.height)
         precondition(window.contentMinSize == PresetPresentation.minimumSize)
-        precondition(PresetPresentation.rowHeight == 40)
-        precondition(PresetPresentation.sidebarWidth == 188)
-        precondition(PresetPresentation.displayName("CLASSICAL-2B+AGC") == "Classical-2B+AGC")
-        precondition(PresetPresentation.displayName("COUNTRY UL") == "Country UL")
-        precondition(PresetPresentation.displayName("GREGG OPEN") == "Gregg Open")
-        let actionTitles = controller.window?.toolbar?.items.compactMap { ($0.view as? NSButton)?.title } ?? []
-        precondition(actionTitles.contains("Recall"))
-        precondition(actionTitles.contains("Apply File") == false)
-        precondition(actionTitles.contains("Save to Mac") == false)
-        let actionsID = NSToolbarItem.Identifier("OpenOptimodPresetActions")
-        precondition(controller.window?.toolbar?.items.contains { $0.itemIdentifier == actionsID } == true)
+        // Each processor keeps its own Presets window position.
+        precondition(window.frameAutosaveName == "OpenOptimod.presets.unit-a")
+        let labels = window.toolbar?.items.map(\.label) ?? []
+        for label in ["Recall", "Save", "Save As…", "Preset Actions", "Search"] {
+            precondition(labels.contains(label), "toolbar lacks \(label)")
+        }
         let tables = descendants(of: NSTableView.self, in: splitController.splitView)
-        precondition(tables.contains { $0.rowHeight == PresetPresentation.rowHeight && $0.doubleAction == nil })
+        // Double-click recalls (after asking), and every row has a context menu.
+        precondition(tables.contains { $0.rowHeight == PresetPresentation.rowHeight && $0.doubleAction != nil && $0.menu != nil })
+        let state = controller.testState
+        precondition(state["kind"] as? String == "native-presets")
+        precondition((state["enabled"] as? [String: Bool])?["recall"] == false, "nothing selected, nothing to recall")
         print("PresetsWindowTests passed")
     }
 

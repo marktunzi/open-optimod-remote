@@ -1,0 +1,844 @@
+[
+  {
+    "title": "Less More",
+    "path": "Shared",
+    "width": 181,
+    "height": 79,
+    "reference_dialog": 246,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "LESS MORE",
+        "label": "Less-More",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3239,
+        "reference_id": 238,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 38,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "AGC",
+    "path": "Shared",
+    "width": 353,
+    "height": 252,
+    "reference_dialog": 233,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "AGC XOVER",
+        "label": "AGC Crossover",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 1282,
+        "reference_id": 16,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AGC",
+        "label": "AGC",
+        "x": 99,
+        "y": 19,
+        "w": 61,
+        "id": 1277,
+        "reference_id": 0,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AGC DRIVE",
+        "label": "AGC Drive",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 1279,
+        "reference_id": 1,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "IDLE GR",
+        "label": "AGC Idle Gain",
+        "x": 183,
+        "y": 76,
+        "w": 105,
+        "id": 1398,
+        "reference_id": 2,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "GATE THRESH",
+        "label": "AGC Gate Threshold",
+        "x": 183,
+        "y": 106,
+        "w": 105,
+        "id": 1400,
+        "reference_id": 3,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC RELEASE",
+        "label": "AGC Release",
+        "x": 13,
+        "y": 166,
+        "w": 105,
+        "id": 3013,
+        "reference_id": 4,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS TH",
+        "label": "AGC Bass Threshold",
+        "x": 13,
+        "y": 226,
+        "w": 105,
+        "id": 3025,
+        "reference_id": 7,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS ATTACK",
+        "label": "AGC Bass Attack",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 1383,
+        "reference_id": 9,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS RELEASE",
+        "label": "AGC Bass Release",
+        "x": 13,
+        "y": 196,
+        "w": 105,
+        "id": 3029,
+        "reference_id": 10,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC MASTER ATTACK",
+        "label": "AGC Master Attack",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3036,
+        "reference_id": 11,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC WINDOW THRESH",
+        "label": "AGC Window Size",
+        "x": 183,
+        "y": 136,
+        "w": 105,
+        "id": 3004,
+        "reference_id": 12,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC WINDOW RELEASE",
+        "label": "AGC Window Release",
+        "x": 183,
+        "y": 166,
+        "w": 105,
+        "id": 3009,
+        "reference_id": 13,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC RATIO",
+        "label": "AGC Ratio",
+        "x": 183,
+        "y": 46,
+        "w": 105,
+        "id": 1397,
+        "reference_id": 15,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS COUPLE",
+        "label": "AGC Bass Couple",
+        "x": 183,
+        "y": 196,
+        "w": 105,
+        "id": 1107,
+        "reference_id": 17,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 13,
+        "y": 13,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 335,
+        "h": 247,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Stereo Enhancer",
+    "path": "FM",
+    "width": 180,
+    "height": 84,
+    "reference_dialog": 232,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "SE AMOUNT",
+        "label": "Stereo Enhancer Amount",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3042,
+        "reference_id": 192,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SE RATIO WIDTH",
+        "label": "Ratio Limit",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3045,
+        "reference_id": 193,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 71,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Equalizer",
+    "path": "FM",
+    "width": 521,
+    "height": 310,
+    "reference_dialog": 234,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "30 HZ HPF",
+        "label": "30 Hz High Pass Filter",
+        "x": 106,
+        "y": 148,
+        "w": 54,
+        "id": 1406,
+        "reference_id": 20,
+        "options": [
+          "Out",
+          "In"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "LOW BASS GAIN",
+        "label": "Bass Gain",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3078,
+        "reference_id": 25,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "LOW BASS FREQ",
+        "label": "Bass Frequency",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 1382,
+        "reference_id": 26,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "LOW BASS Q",
+        "label": "Bass Slope",
+        "x": 14,
+        "y": 76,
+        "w": 105,
+        "id": 3081,
+        "reference_id": 27,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "PHASE ROTATOR",
+        "label": "Phase Rotator",
+        "x": 106,
+        "y": 118,
+        "w": 54,
+        "id": 1409,
+        "reference_id": 23,
+        "options": [
+          "In",
+          "Out"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW FREQ",
+        "label": "Low Frequency",
+        "x": 182,
+        "y": 46,
+        "w": 105,
+        "id": 1336,
+        "reference_id": 29,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW GAIN",
+        "label": "Low Gain",
+        "x": 182,
+        "y": 16,
+        "w": 105,
+        "id": 3051,
+        "reference_id": 28,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ LOW WIDTH",
+        "label": "Low Width",
+        "x": 182,
+        "y": 76,
+        "w": 105,
+        "id": 1361,
+        "reference_id": 30,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID FREQ",
+        "label": "Mid Frequency",
+        "x": 182,
+        "y": 146,
+        "w": 105,
+        "id": 3054,
+        "reference_id": 32,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID GAIN",
+        "label": "Mid Gain",
+        "x": 182,
+        "y": 116,
+        "w": 105,
+        "id": 3057,
+        "reference_id": 31,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ MID WIDTH",
+        "label": "Mid Width",
+        "x": 182,
+        "y": 176,
+        "w": 105,
+        "id": 3061,
+        "reference_id": 33,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH FREQ",
+        "label": "High Frequency",
+        "x": 182,
+        "y": 246,
+        "w": 105,
+        "id": 3065,
+        "reference_id": 35,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH GAIN",
+        "label": "High Gain",
+        "x": 182,
+        "y": 216,
+        "w": 105,
+        "id": 3069,
+        "reference_id": 34,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PEQ HIGH WIDTH",
+        "label": "High Width",
+        "x": 182,
+        "y": 276,
+        "w": 105,
+        "id": 3073,
+        "reference_id": 36,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "HF ENHANCER",
+        "label": "High Frequency Enhancer",
+        "x": 353,
+        "y": 16,
+        "w": 105,
+        "id": 3083,
+        "reference_id": 38,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 177,
+        "y": 103,
+        "w": 166,
+        "h": 100,
+        "text": "MID BAND EQUALIZER"
+      },
+      {
+        "x": 177,
+        "y": 201,
+        "w": 166,
+        "h": 100,
+        "text": "HIGH BAND EQUALIZER"
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 100,
+        "text": "LF SHELF EQUALIZER"
+      },
+      {
+        "x": 178,
+        "y": 3,
+        "w": 166,
+        "h": 100,
+        "text": "LOW BAND EQUALIZER"
+      },
+      {
+        "x": 14,
+        "y": 143,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 14,
+        "y": 113,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 348,
+        "y": 4,
+        "w": 166,
+        "h": 40,
+        "text": "HF CONTOUR"
+      },
+      {
+        "x": 7,
+        "y": 103,
+        "w": 166,
+        "h": 62,
+        "text": "LF SHELF EQUALIZER"
+      }
+    ]
+  },
+  {
+    "title": "2 Band",
+    "path": "FM",
+    "width": 374,
+    "height": 182,
+    "reference_dialog": 377,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "2B DRIVE",
+        "label": "2B Drive",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 1314,
+        "reference_id": 207,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B MASTR ATTACK",
+        "label": "2B Master Attack",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3247,
+        "reference_id": 220,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B BASS ATTACK",
+        "label": "2B Bass Attack",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3251,
+        "reference_id": 219,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B RELEASE",
+        "label": "2B Release",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 1295,
+        "reference_id": 208,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B MASTER COMP THR",
+        "label": "2B Master Compression Threshold",
+        "x": 183,
+        "y": 16,
+        "w": 105,
+        "id": 3255,
+        "reference_id": 211,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B BASS COMP THR",
+        "label": "2B Bass Compression Threshold",
+        "x": 183,
+        "y": 46,
+        "w": 105,
+        "id": 3259,
+        "reference_id": 210,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B XOVER",
+        "label": "2B Crossover",
+        "x": 183,
+        "y": 76,
+        "w": 105,
+        "id": 3263,
+        "reference_id": 206,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B BASS COUPLE",
+        "label": "2B Bass Couple",
+        "x": 183,
+        "y": 106,
+        "w": 105,
+        "id": 3267,
+        "reference_id": 209,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MB GATE THR",
+        "label": "2B Gate Threshold",
+        "x": 183,
+        "y": 136,
+        "w": 105,
+        "id": 3271,
+        "reference_id": 71,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 338,
+        "h": 160,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "2 Band Distortion",
+    "path": "FM",
+    "width": 194,
+    "height": 265,
+    "reference_dialog": 387,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "2B BASS CLIP",
+        "label": "Bass Clip Threshold",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3195,
+        "reference_id": 214,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "BASS CLIP SHAPE",
+        "label": "Bass Clip Shape",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 1299,
+        "reference_id": 100,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SPEECH BC THR",
+        "label": "Speech Bass Clip Threshold",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3191,
+        "reference_id": 103,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B HF LIMITING",
+        "label": "2B High Frequency Limiting",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3275,
+        "reference_id": 216,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B CLIPPING",
+        "label": "2B Clipping",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3279,
+        "reference_id": 217,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B SPEECH CLIPPING",
+        "label": "Speech 2B Clipping",
+        "x": 13,
+        "y": 166,
+        "w": 105,
+        "id": 3288,
+        "reference_id": 225,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B 6K+ HF LIM",
+        "label": "2B 6-15kHz HF Limiter",
+        "x": 13,
+        "y": 196,
+        "w": 105,
+        "id": 1395,
+        "reference_id": 218,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B HF CLIP B3 THR",
+        "label": "2B High Frequency Clip Threshold",
+        "x": 13,
+        "y": 226,
+        "w": 105,
+        "id": 1396,
+        "reference_id": 223,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 248,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Final Clipping",
+    "path": "FM",
+    "width": 195,
+    "height": 145,
+    "reference_dialog": 245,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "FINAL CLIP DRV",
+        "label": "Final Clip Drive",
+        "x": 13,
+        "y": 46,
+        "w": 105,
+        "id": 3206,
+        "reference_id": 125,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DRIVE W2",
+        "label": "Overshoot Compensator Drive",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3202,
+        "reference_id": 128,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP DRIVE",
+        "label": "MPX Drive",
+        "x": 13,
+        "y": 76,
+        "w": 105,
+        "id": 3210,
+        "reference_id": 121,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 128,
+        "text": ""
+      }
+    ]
+  },
+  {
+    "title": "Clipper Options",
+    "path": "FM",
+    "width": 188,
+    "height": 177,
+    "reference_dialog": 381,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "INPUT LPF",
+        "label": "Input Low Pass Filter",
+        "x": 13,
+        "y": 16,
+        "w": 105,
+        "id": 3371,
+        "reference_id": 176,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP DRIVE",
+        "label": "MPX Limit Drive",
+        "x": 13,
+        "y": 106,
+        "w": 105,
+        "id": 3210,
+        "reference_id": 121,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMPOSITE MODE",
+        "label": "MPX Limit Mode",
+        "x": 13,
+        "y": 136,
+        "w": 105,
+        "id": 3213,
+        "reference_id": 122,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "LIMITER BYPASS",
+        "label": "L/R Peak Limiter",
+        "x": 106,
+        "y": 82,
+        "w": 52,
+        "id": 1414,
+        "reference_id": 178,
+        "options": [
+          "Out",
+          "In"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 14,
+        "y": 48,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 13,
+        "y": 76,
+        "w": 147,
+        "h": 17,
+        "text": ""
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "w": 166,
+        "h": 161,
+        "text": ""
+      }
+    ]
+  }
+]

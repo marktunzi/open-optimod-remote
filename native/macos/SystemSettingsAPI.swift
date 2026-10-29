@@ -88,6 +88,26 @@ struct DevicePresetPayload: Codable, Sendable {
     let kind: String
 }
 
+/// What a processor offers, as reported by its adapter. A window that needs a
+/// capability the processor lacks shows that instead of guessing.
+struct DeviceCapabilitiesPayload: Codable, Equatable, Sendable {
+    let parameterReads: Bool
+    let parameterWrites: Bool
+    let liveMeters: Bool
+    let presetCatalog: Bool
+    var presetStore: Bool?
+    var presetDelete: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case parameterReads = "parameter_reads"
+        case parameterWrites = "parameter_writes"
+        case liveMeters = "live_meters"
+        case presetCatalog = "preset_catalog"
+        case presetStore = "preset_store"
+        case presetDelete = "preset_delete"
+    }
+}
+
 struct DeviceSnapshotPayload: Codable, Sendable {
     let connected: Bool
     let firmware: String
@@ -99,13 +119,41 @@ struct DeviceSnapshotPayload: Codable, Sendable {
     let sessionID: String?
     let presets: [DevicePresetPayload]
     let adapterID: String?
+    let deviceID: String?
+    let revision: Int?
+    var capabilities: DeviceCapabilitiesPayload?
+    /// What the session may change at its access level; absent from older
+    /// services, where `writeEnabled` stands for every right.
+    var access: DeviceAccessPayload?
+    /// System fields shown but never written (the 5500i's network file).
+    var readOnlyFields: [String]?
+
+    /// One right of the session's access level (the client's Security levels).
+    func allows(_ right: KeyPath<DeviceAccessPayload, Bool>) -> Bool {
+        connected && (access.map { $0[keyPath: right] } ?? writeEnabled)
+    }
 
     enum CodingKeys: String, CodingKey {
-        case connected, firmware, host, system, processing, error, presets
+        case connected, firmware, host, system, processing, error, presets, revision, capabilities, access
+        case deviceID = "device_id"
         case writeEnabled = "write_enabled"
         case sessionID = "session_id"
         case adapterID = "adapter_id"
+        case readOnlyFields = "read_only_fields"
     }
+}
+
+struct DeviceAccessPayload: Codable, Sendable, Equatable {
+    let level: Int
+    let recall: Bool
+    let modify: Bool
+    let presets: Bool
+    /// Absent from older services: then the presets right decides.
+    let delete: Bool?
+    let setup: Bool
+    let automation: Bool
+    let security: Bool
+    let memory: Bool
 }
 
 struct IntegerRangePayload: Codable, Sendable {
@@ -191,18 +239,50 @@ private extension Optional {
     }
 }
 
+/// One control of an original client's System Setup page (profile `system_layouts`).
+struct SystemLayoutControl: Codable, Equatable, Sendable {
+    let kind: String
+    let name: String
+    let label: String
+    let x: Double
+    let y: Double
+    let options: [String]
+}
+
+struct SystemLayoutGroup: Codable, Equatable, Sendable {
+    let x: Double
+    let y: Double
+    let w: Double
+    let h: Double
+    let text: String
+}
+
+struct SystemLayoutPage: Codable, Equatable, Sendable {
+    let title: String
+    let controls: [SystemLayoutControl]
+    let groups: [SystemLayoutGroup]
+}
+
 struct DeviceProfilePayload: Codable, Sendable {
     let model: String
     let firmware: String
     let fields: [DeviceDefinitionPayload]
+    let systemLayouts: [SystemLayoutPage]?
+
+    enum CodingKeys: String, CodingKey {
+        case model, firmware, fields
+        case systemLayouts = "system_layouts"
+    }
 }
 
 struct SystemSettingsContext: Sendable {
     let snapshot: DeviceSnapshotPayload
     let definitions: [String: DeviceDefinitionPayload]
+    /// The original client's Setup pages for this model, where extracted.
+    var pages: [SystemLayoutPage] = []
 
     var editable: Bool {
-        snapshot.connected && snapshot.writeEnabled && snapshot.sessionID != nil
+        snapshot.allows(\.setup) && snapshot.sessionID != nil
     }
 }
 
@@ -225,11 +305,16 @@ final class SystemSettingsAPI {
     private let encoder = JSONEncoder()
     private var cachedProfile: DeviceProfilePayload?
     private var cachedAdapterID: String?
+    /// The processor whose session this reads and writes.
+    let deviceID: String?
 
-    init() {
+    init(deviceID: String?) {
+        self.deviceID = deviceID
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 5
-        configuration.timeoutIntervalForResource = 8
+        // A change waits up to 4 s for its response boundary and may then read
+        // the document back (4 s). Checked by an orban-web test.
+        configuration.timeoutIntervalForRequest = 20
+        configuration.timeoutIntervalForResource = 25
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         session = URLSession(configuration: configuration)
     }
@@ -249,7 +334,8 @@ final class SystemSettingsAPI {
                     let systemDefinitions = Dictionary(uniqueKeysWithValues: profile.fields
                         .filter { $0.scope == "System" }
                         .map { ($0.name, $0) })
-                    self.finish(.success(SystemSettingsContext(snapshot: snapshot, definitions: systemDefinitions)), completion: completion)
+                    self.finish(.success(SystemSettingsContext(snapshot: snapshot, definitions: systemDefinitions,
+                                                               pages: profile.systemLayouts ?? [])), completion: completion)
                     return
                 }
                 self.get(path: "profile", as: DeviceProfilePayload.self) { profileResult in
@@ -261,7 +347,8 @@ final class SystemSettingsAPI {
                         let systemDefinitions = Dictionary(uniqueKeysWithValues: profile.fields
                             .filter { $0.scope == "System" }
                             .map { ($0.name, $0) })
-                        self.finish(.success(SystemSettingsContext(snapshot: snapshot, definitions: systemDefinitions)), completion: completion)
+                        self.finish(.success(SystemSettingsContext(snapshot: snapshot, definitions: systemDefinitions,
+                                                                   pages: profile.systemLayouts ?? [])), completion: completion)
                     }
                 }
             }
@@ -275,8 +362,7 @@ final class SystemSettingsAPI {
         requestedText: String?,
         completion: @escaping (Result<Void, Error>) -> Void
     ) {
-        guard context.snapshot.connected,
-              context.snapshot.writeEnabled,
+        guard context.snapshot.allows(\.setup),
               let sessionID = context.snapshot.sessionID,
               let expected = context.snapshot.system?.fields[fieldName]
         else {
@@ -302,7 +388,7 @@ final class SystemSettingsAPI {
     }
 
     private func get<T: Decodable & Sendable>(path: String, as type: T.Type, completion: @escaping (Result<T, Error>) -> Void) {
-        let request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!, cachePolicy: .reloadIgnoringLocalCacheData)
+        let request = URLRequest(url: BackendHealth.api(path, device: deviceID), cachePolicy: .reloadIgnoringLocalCacheData)
         session.dataTask(with: request) { [decoder] data, response, error in
             if let error { completion(.failure(error)); return }
             guard let response = response as? HTTPURLResponse, response.statusCode == 200, let data else {
@@ -315,7 +401,7 @@ final class SystemSettingsAPI {
 
     private func post<T: Encodable>(path: String, body: T, completion: @escaping (Result<Void, Error>) -> Void) {
         do {
-            var request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!)
+            var request = URLRequest(url: BackendHealth.api(path, device: deviceID))
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue(BackendHealth.origin, forHTTPHeaderField: "Origin")

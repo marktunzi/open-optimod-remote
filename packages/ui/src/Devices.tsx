@@ -3,6 +3,7 @@ import { api } from "./api";
 import {
   filterConnections,
   maskedCode,
+  savedCodeSurvivesEdit,
   nextSelectionAfterDelete,
   shouldDisconnectBeforeDelete,
 } from "./connection-behavior";
@@ -17,7 +18,7 @@ export type Device = {
   model: ProcessorModel;
 };
 
-type ProcessorModel = 'auto' | 'optimod-5700i' | 'optimod-5500i' | 'optimod-5500' | 'optimod-5700-fm' | 'optimod-5700-hd' | 'optimod-8500' | 'optimod-6300' | 'optimod-8600' | 'optimod-8700i' | 'optimod-8700hd' | 'optimod-9300' | 'optimod-9400';
+type ProcessorModel = 'auto' | 'optimod-5700i' | 'optimod-5500i' | 'optimod-5500' | 'optimod-5700-fm' | 'optimod-5700-hd' | 'optimod-8500' | 'optimod-2300' | 'optimod-6300' | 'optimod-8400' | 'optimod-8600' | 'optimod-8700i' | 'optimod-8700hd' | 'optimod-9300' | 'optimod-9400';
 
 const PROCESSOR_MODELS: { value: ProcessorModel; label: string }[] = [
   { value: 'auto', label: 'Auto Detect' },
@@ -27,7 +28,9 @@ const PROCESSOR_MODELS: { value: ProcessorModel; label: string }[] = [
   { value: 'optimod-5700-fm', label: 'OPTIMOD 5700 FM' },
   { value: 'optimod-5700-hd', label: 'OPTIMOD 5700 HD' },
   { value: 'optimod-8500', label: 'OPTIMOD 8500' },
+  { value: 'optimod-2300', label: 'OPTIMOD 2300' },
   { value: 'optimod-6300', label: 'OPTIMOD 6300' },
+  { value: 'optimod-8400', label: 'OPTIMOD-FM 8400' },
   { value: 'optimod-8600', label: 'OPTIMOD 8600' },
   { value: 'optimod-8700i', label: 'OPTIMOD 8700i' },
   { value: 'optimod-8700hd', label: 'OPTIMOD-FM 8700HD' },
@@ -44,6 +47,10 @@ type Edit = {
   model: ProcessorModel;
 };
 
+/** The 8400 speaks PC Remote on TCP 51200, every other model on 6201; a port left at the other default follows the model. */
+const defaultPort = (model: ProcessorModel) => model === 'optimod-8400' ? 51200 : 6201;
+const withModel = (edit: Edit, model: ProcessorModel): Edit =>
+  ({ ...edit, model, port: [6201, 51200].includes(edit.port) ? defaultPort(model) : edit.port });
 const blank = (): Edit => ({ name: "", host: "", port: 6201, terminal_port: 23, model: 'auto' });
 
 function ComputerIcon() {
@@ -208,6 +215,7 @@ export function Devices({ connected, activeId, activeHost, busy, action, onConne
 
   const showEditor = editor !== null;
   const existing = editor?.id ? devices.find(device => device.id === editor.id) : undefined;
+  const keepsCode = editor ? savedCodeSurvivesEdit(existing, editor) : false;
 
   return <section className="connections" aria-label="Connection manager">
     <aside className="connection-sources" aria-label="Connection sources">
@@ -276,11 +284,11 @@ export function Devices({ connected, activeId, activeHost, busy, action, onConne
             </div>
             <div className="connection-form-grid">
               <label>Name<input name="connection-name" required maxLength={80} autoFocus autoComplete="off" value={editor.name} disabled={locked} onChange={event => setEditor({ ...editor, name: event.target.value })}/></label>
-              <label>Processor<select name="connection-model" value={editor.model} disabled={locked} onChange={event => setEditor({ ...editor, model: event.target.value as ProcessorModel })}>{PROCESSOR_MODELS.map(model => <option key={model.value} value={model.value}>{model.label}</option>)}</select></label>
+              <label>Processor<select name="connection-model" value={editor.model} disabled={locked} onChange={event => setEditor(withModel(editor, event.target.value as ProcessorModel))}>{PROCESSOR_MODELS.map(model => <option key={model.value} value={model.value}>{model.label}</option>)}</select></label>
               <label>IP address<input name="connection-host" required value={editor.host} disabled={locked} placeholder="192.168.1.100" autoComplete="off" spellCheck={false} onChange={event => setEditor({ ...editor, host: event.target.value })}/></label>
               <label>PC Remote port<input name="connection-port" required type="number" min={1} max={65535} value={editor.port} disabled={locked} onChange={event => setEditor({ ...editor, port: Number(event.target.value) })}/></label>
               <label>Status port<input name="status-port" required type="number" min={1} max={65535} value={editor.terminal_port} disabled={locked} onChange={event => setEditor({ ...editor, terminal_port: Number(event.target.value) })}/></label>
-              <label className="connection-code-field">Access code<input name="connection-code" type="password" required={!existing?.has_code} value={code} disabled={locked} placeholder={maskedCode(Boolean(existing?.has_code)) || "Enter access code"} autoComplete="off" onChange={event => setCode(event.target.value)}/><small>{existing?.has_code ? "A code is saved. Leave blank to keep it." : "The code is stored privately on this Mac."}</small></label>
+              <label className="connection-code-field">Access code<input name="connection-code" type="password" required={!keepsCode} value={code} disabled={locked} placeholder={maskedCode(keepsCode) || "Enter access code"} autoComplete="off" onChange={event => setCode(event.target.value)}/><small>{keepsCode ? "A code is saved. Leave blank to keep it." : existing?.has_code ? "A new IP address or processor needs the access code again." : "The code is stored privately on this Mac."}</small></label>
             </div>
             <div className="connection-form-actions">
               <button type="button" disabled={locked} onClick={() => { setEditor(null); setCode(""); }}>Cancel</button>

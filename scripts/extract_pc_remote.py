@@ -67,6 +67,11 @@ CONFIGS = {
         meter=dict(subclass=0x51A87D, init=0x436F80, chan=0x438C90, curve=0x437620,
                    dialogs=[247, 373, 399], primary=247, max_values=79),
         overrides={},
+        # The Setup tabs in the order the client's property sheet adds them
+        # (0x447220: AddPage 212, 218, 214, 215, 371, 213, 216, 219), the
+        # 5500i's order without its last two tabs; dialog 219 is titled "Dialog".
+        system_pages=[212, 218, 214, 215, 371, 213, 216, 219],
+        system_titles={219: "Diversity Delay"},
     ),
     "63def9bbe3ea4cc5714b958a330f511e9f8540b973f0cedaf596dd7956054b43": dict(
         model="5700i", adapter="pc-remote-5700i-3.0.1.20", firmware="3.0.1.20",
@@ -77,7 +82,12 @@ CONFIGS = {
         ctor=0x4B2E20, assign=0x47C400, sprintf=0x52A3D8, itoa=0x530481,
         binders={0x4293D0: ("slider", 5), 0x429580: ("radio", 7), 0x429750: ("combo", 3)},
         processing_dialogs=[232, 233, 234, 235, 240, 244, 245, 246, 362, 368, 370, 375, 377, 380,
-                            387, 388, 393, 394, 395, 396, 399, 400],
+                            387, 388, 393, 394, 395, 396, 399, 400, 406],
+        # Edit boxes the client binds with DDX_Text/DDV_MaxChars instead of a
+        # binder (the preset RDS page 406, handlers 0x40c400-0x40cd30): control
+        # id, field, the client's maximum length.
+        text_controls={406: [(3468, "RDS DYNAMIC PS", 255), (2548, "RDS RADIO TEXT", 128), (2549, "RDS PROGRAM ID", 4),
+                             (2550, "RDS PROGRAM TYPE", 2), (2551, "RDS PROGRAM NAME", 8), (2552, "RDS EAS", 64)]},
         meter=dict(subclass=0x546767, init=0x442810, chan=0x4447F0, curve=0x442EB0,
                    getbyte=0x4B8EB0, setvalue=0x442D70,
                    dialogs=[247, 373, 378], primary=247, max_values=112),
@@ -89,6 +99,89 @@ CONFIGS = {
             ("BS1770 LDNES CTRL THR", 426): dict(count=201, default=0x82, conv=0x498070),
             ("FM BS1770 LDNES CTRL THR", 428): dict(count=201, default=0x82, conv=0x498070),
         },
+    ),
+    "d702cc2d27178a87e63e67bc88c54ee690279b4b31b68b5c272b9edea88dda72": dict(
+        # 5500i 3.1.0.2: every address found by matching the functions of the
+        # 5500 1.2.8.24 and 8700HD 1.0.2.161 builds (same results from both).
+        model="5500i", adapter="pc-remote-5500i-3.1.0.2", firmware="3.1.0.2",
+        banner="5500i V 3.1.0.2", document_family="5500.",
+        ctor=0x49B9B0, assign=0x476160, sprintf=0x50B138, itoa=0x5111CC,
+        binders={0x4207F0: ("slider", 5), 0x4209A0: ("radio", 7), 0x420B70: ("combo", 3)},
+        processing_dialogs=[232, 233, 234, 235, 240, 243, 245, 246, 377, 387, 400, 381],
+        meter=dict(subclass=0x5274B7, init=0x43ACD0, chan=0x43CB80, curve=0x43B370,
+                   dialogs=[247, 373, 399], primary=247, max_values=86),
+        overrides={},
+        # The Setup tabs as the running client 3.1.0.2 shows them, in its
+        # order and with its captions (dialog 219 is titled "Dialog"); its
+        # Kantar and Nielsen dialogs are not among them.
+        system_pages=[212, 218, 214, 215, 371, 213, 216, 219, 404, 405],
+        system_titles={219: "Diversity Delay"},
+    ),
+    "492867138ebe47559890dc7e45237993cad45cd0dce4f5130b4757c7814369cf": dict(
+        # 6300 4.1.1.19: addresses matched from the 5500i and 8700HD builds (identical results).
+        model="6300", adapter="pc-remote-6300-4.1.1.19", firmware="4.1.1.19",
+        banner="6300 V 4.1.1.19", document_family="6300.",
+        ctor=0x48D8E0, assign=0x471B00, sprintf=0x503527, itoa=0x509864,
+        binders={0x41F900: ("slider", 5), 0x41FAB0: ("radio", 7), 0x41FC80: ("combo", 3)},
+        processing_dialogs=[232, 233, 234, 235, 240, 243, 245, 246, 370, 377, 380, 387],
+        # getbyte/setvalue: the meter-store read (value[k] at +0x28) and the bar
+        # update (0x4787b0, 0x438bf0). AGC and five-band bars get their value
+        # index only in the per-frame update functions (0x43b540, 0x43c670,
+        # 0x43d8d0, 0x43ebe0). The strip is chosen at 0x42bdce: 247 stereo
+        # five-band, 373 stereo other structures, 392/389 the same in Dual Mono.
+        meter=dict(subclass=0x51FB47, init=0x438690, chan=0x43A4B0, curve=0x438D30,
+                   getbyte=0x4787B0, setvalue=0x438BF0,
+                   dialogs=[247, 373, 389, 392], primary=247, max_values=111),
+        # Dialog 380 ("Dialog") holds the five-band compressor attacks and releases.
+        page_titles={380: "Compressors"},
+        overrides={},
+        # The Setup property sheet the client builds (0x44c190), in its order;
+        # its Stereo Encoder dialog 213 is never added to it.
+        system_pages=[212, 218, 367, 214, 215, 371, 385, 216],
+    ),
+    "ce8333a7242563aca5b88b27fe39eaabf2306deb488e80596617a0e0db449ad7": dict(
+        # 2300 2.0.3.85: an older build. sprintf, itoa, the radio and combo
+        # binders and three meter functions matched the 5500i and 8700HD
+        # builds; the constructor (186 registrations), the slider binder (121
+        # calls with control IDs) and the curve setter (the same body, curve
+        # at member 0x9C) were found by their call patterns.
+        model="2300", adapter="pc-remote-2300-2.0.3.85", firmware="2.0.3.85",
+        banner="2300 V 2.0.3.85", document_family="2300.",
+        ctor=0x484180, assign=0x465D30, sprintf=0x4EBB97, itoa=0x4F1B4F,
+        string_copy=0x465E50, string_free=0x4099E0, seh_frames=True,
+        binders={0x41D1C0: ("slider", 5), 0x41D350: ("radio", 7), 0x41D520: ("combo", 3)},
+        processing_dialogs=[232, 233, 234, 235, 240, 243, 245, 246, 377, 380, 381, 387],
+        # getbyte 0x46cb30 reads value[k] (+0x2c), setvalue 0x4354a0. The AGC
+        # bars read 0x46cbb0, which combines two values: id 11 = max(3, 10)
+        # (0x46cd1e) and id 12 = max(4, 11) (0x46cd5d), the larger of the L and
+        # R AGC bass and master gain reductions. The client shows dialog 373
+        # unless the unit reports another structure than 2, when it shows the
+        # stereo-encoder strip 247 (0x42910d via 0x461780).
+        meter=dict(subclass=0x507BA7, init=0x434FE0, chan=0x436D90, curve=0x4355B0,
+                   getbyte=0x46CB30, setvalue=0x4354A0, derived={0x46CBB0: {11: [3, 10], 12: [4, 11]}},
+                   dialogs=[373, 247], primary=373, max_values=59),
+        overrides={},
+    ),
+    "bd1fdde1849217ff7830024c8ea2a369438a8ab6d5fd96aabfec74063df7c851": dict(
+        # 8700i 1.5.1.11: addresses matched from the 5500i and 8700HD builds
+        # (identical results); the combo binder is the 8700HD body with a stack
+        # cookie (found by its call count with control IDs).
+        model="8700i", adapter="pc-remote-8700i-1.5.1.11", firmware="1.5.1.11",
+        banner="8700i V 1.5.1.11", document_family="8700.",
+        ctor=0x4C0360, assign=0x4843A0, sprintf=0x55F4E8, itoa=0x566032,
+        binders={0x42CE20: ("slider", 5), 0x42CFD0: ("radio", 7), 0x42D1A0: ("combo", 3)},
+        processing_dialogs=[232, 233, 234, 235, 240, 244, 245, 246, 362, 368, 370, 375, 377, 380,
+                            387, 388, 393, 394, 395, 396, 399, 400, 409, 410],
+        # getbyte 0x4c6f80 (value[k] at +0x3c), setvalue 0x447c90: as on the
+        # 8700HD, the AGC and band bars get their value index in the update
+        # functions (0x44c4d0 for strip 247, 0x44af10 for strip 373).
+        meter=dict(subclass=0x58365E, init=0x447730, chan=0x4497B0, curve=0x447DD0,
+                   getbyte=0x4C6F80, setvalue=0x447C90,
+                   dialogs=[247, 373, 378], primary=247, max_values=112),
+        overrides={},
+        # The Setup property sheet the client builds (0x460400), in its order;
+        # its Xponential page (409) is a processing page.
+        system_pages=[212, 218, 213, 214, 215, 371, 367, 216, 162, 402, 404, 405, 408, 407, 411],
     ),
     "6ff1f203b45345553459e70f043ae681514c98ba130058d677e70170a72ee5b5": dict(
         model="8700hd", adapter="pc-remote-8700hd-1.0.2.161", firmware="1.0.2.161",
@@ -110,12 +203,16 @@ CONFIGS = {
     ),
 }
 # Page titles where the dialog caption is empty, generic or shared by variants.
-PAGE_TITLES = {246: "Less More", 381: "Clipper Options", 393: "Equalizer", 396: "MX Distortion Control",
+PAGE_TITLES = {246: "Less More", 244: "Final Clip", 381: "Clipper Options", 393: "Equalizer", 396: "MX Distortion Control",
                388: "2 Band", 395: "Speech Mode", 399: "MX Speech Mode", 370: "Speech Mode",
                368: "Distortion Control"}
+# Dialogs the original clients show in place of another page while the MX
+# structure is on (`MX SWITCH` 1): they can hold a subset of that page's
+# controls and must still be kept (8700HD session, 28 October 2026).
+MX_VARIANT_DIALOGS = {244, 396, 399, 400}
 PAGE_ORDER = ["Less More", "Stereo Enhancer", "AGC", "Equalizer", "Multiband", "Compressors", "Band Mix",
               "2 Band", "Distortion Control", "2 Band Distortion", "Final Clipping", "Clipper Options",
-              "Speech Mode", "HD Limiting"]
+              "Speech Mode", "HD Limiting", "RDS"]
 
 md = Cs(CS_ARCH_X86, CS_MODE_32)
 
@@ -146,8 +243,20 @@ class Image:
                 break
         return out
 
-    def linear(self):
-        return list(md.disasm(self.text, self.text_start))
+    def linear(self, complete: bool = False):
+        """The code section in order. Capstone stops at the first byte it
+        cannot decode (data inside the section); `complete` steps over it and
+        goes on, which the 5500i's Setup pages need (0x43f6f0 and on)."""
+        if not complete:
+            return list(md.disasm(self.text, self.text_start))
+        out, offset = [], 0
+        while offset < len(self.text):
+            end = offset + 1
+            for ins in md.disasm(self.text[offset:], self.text_start + offset):
+                out.append(ins)
+                end = ins.address + ins.size - self.text_start
+            offset = end
+        return out
 
     def function_start(self, va: int) -> int:
         offset = va - self.base
@@ -240,7 +349,17 @@ class Emulator:
         self.uc.mem_write(image.base, bytes(image.mem))
         for area in (STACK - 0x100000, OUT, HEAP, STOP):
             self.uc.mem_map(area, 0x100000)
+        # Builds whose conversions open an exception frame (fs:[0]) get a page
+        # at FS base 0 for it; others keep address 0 unmapped.
+        if config.get("seh_frames"):
+            self.uc.mem_map(0, 0x1000)
         self.hooks = {config["assign"]: (self._assign, 4), config["sprintf"]: (self._sprintf, 0), config["itoa"]: (self._itoa, 0)}
+        # Builds with a string class instead of MFC's CString build a temporary
+        # from char* (the "assign" hook), copy it into the result and free it.
+        if config.get("string_copy"):
+            self.hooks[config["string_copy"]] = (self._string_copy, 4)
+        if config.get("string_free"):
+            self.hooks[config["string_free"]] = (self._string_free, 0)
         self.strings: dict[int, str] = {}
         self.error = None
         self.uc.hook_add(UC_HOOK_CODE, self._code)
@@ -275,6 +394,14 @@ class Emulator:
         pointer = self.arg(0)
         self.strings[this] = self.cstr(pointer) if pointer else ""
         return this
+
+    def _string_copy(self):
+        this = self.uc.reg_read(UC_X86_REG_ECX)
+        self.strings[this] = self.strings.get(self.arg(0), "")
+        return this
+
+    def _string_free(self):
+        return 0
 
     def _sprintf(self):
         buffer, fmt, cursor = self.arg(0), self.cstr(self.arg(1)), [2]
@@ -546,8 +673,8 @@ def dialogs(image: Image):
     return out
 
 
-def binder_calls(image: Image, binders: dict):
-    instructions = image.linear()
+def binder_calls(image: Image, binders: dict, complete: bool = False):
+    instructions = image.linear(complete)
     calls = collections.defaultdict(list)
     for k, ins in enumerate(instructions):
         if ins.mnemonic != "call" or not ins.op_str.startswith("0x"):
@@ -575,12 +702,90 @@ def title_case(name: str) -> str:
     return " ".join(words)
 
 
-def build_layouts(image: Image, config: dict, profile_fields, raw):
+def row_label(dialog, item):
+    """The static text just left of a control on its row, else right above
+    it, as the client lays it out."""
+    statics = [i for i in dialog["items"] if i["cls"] == "Static" and i["text"].strip()]
+    left = [i for i in statics if abs(i["y"] - item["y"]) <= 8 and 0 <= item["x"] - (i["x"] + i["w"]) < 40]
+    above = [i for i in statics if abs(i["x"] - item["x"]) <= 6 and 0 < item["y"] - i["y"] <= 20]
+    labels = sorted(left, key=lambda i: abs(i["y"] - item["y"])) or sorted(above, key=lambda i: item["y"] - i["y"])
+    return labels[0]["text"].replace("&", "").strip().rstrip(":").strip() if labels else None
+
+
+def dialog_controls(dialog, binds, by_id, names, raw_values=None, row_labels=False):
+    """The controls one dialog binds to fields in `names`, with the dialog's own labels.
+    With `row_labels`, a control without a label of its own takes the static
+    text on its row (dialogs laid out as a form)."""
+    raw_values = raw_values or {}
+    items = {i["id"]: i for i in dialog["items"]}
+    controls = []
+    for _, kind, args in sorted(binds):
+        name = by_id.get(args[0])
+        if not name or name not in names:
+            continue
+        if kind == "slider":
+            edit, label, track, _ = args[1:5]
+            item = items.get(track) or items.get(edit)
+            if not item:
+                continue
+            text = items.get(label, {}).get("text", "").strip() or (row_labels and row_label(dialog, item)) or title_case(name)
+            controls.append(dict(kind="slider", name=name, label=text.replace("&", ""), x=item["x"], y=item["y"], w=item["w"],
+                                 id=item["id"], reference_id=args[0], options=[]))
+        elif kind == "radio":
+            # Only real radio buttons are options; another control in the
+            # binder arguments is the caption of the group.
+            referenced = [items[c] for c in args[1:] if c and c in items]
+            buttons = [i for i in referenced if i["cls"] == "Button" and i["style"] & 0xF in (4, 9)]
+            captions = [i["text"].replace("&", "").strip() for i in referenced if i not in buttons and i["text"].strip()]
+            if not buttons:
+                # A single check box (the preset RDS page's "Use System RDS
+                # Values"): its own text is the label, unchecked/checked the
+                # field's two values.
+                boxes = [i for i in referenced if i["cls"] == "Button" and i["style"] & 0xF in (2, 3) and i["text"].strip()]
+                if boxes and len(raw_values.get(name, ())) == 2:
+                    box = boxes[0]
+                    controls.append(dict(kind="radio", name=name, label=box["text"].replace("&", "").strip(), x=box["x"], y=box["y"],
+                                         w=box["w"], id=box["id"], reference_id=args[0], options=list(raw_values[name])))
+                continue
+            x, y = min(b["x"] for b in buttons), min(b["y"] for b in buttons)
+            boxes = sorted((g for g in dialog["items"] if g["cls"] == "Button" and g["style"] & 0xF == 7 and g["text"].strip()
+                            and g["x"] <= x <= g["x"] + g["w"] and g["y"] <= y <= g["y"] + g["h"]), key=lambda g: g["w"] * g["h"])
+            label = captions[0] if captions else (row_labels and row_label(dialog, buttons[0])) or (
+                boxes[0]["text"].replace("&", "").strip() if boxes else title_case(name))
+            controls.append(dict(kind="radio", name=name, label=label, x=x, y=y, w=max(b["x"] + b["w"] for b in buttons) - x,
+                                 id=buttons[0]["id"], reference_id=args[0], options=[b["text"].replace("&", "").strip() for b in buttons]))
+        else:
+            item = items.get(args[1]) or items.get(args[2])
+            if item:
+                controls.append(dict(kind="slider", name=name, label=title_case(name), x=item["x"], y=item["y"], w=item["w"],
+                                     id=item["id"], reference_id=args[0], options=[]))
+    return controls
+
+
+def text_controls(dialog, entries):
+    """Edit boxes bound as text, labelled by the static text on their row."""
+    items = {i["id"]: i for i in dialog["items"]}
+    controls = []
+    for identifier, name, length in entries:
+        item = items.get(identifier)
+        if not item:
+            continue
+        label = row_label(dialog, item) or title_case(name)
+        controls.append(dict(kind="text", name=name, label=label, x=item["x"], y=item["y"], w=item["w"], id=identifier,
+                             max_length=length, options=[]))
+    return controls
+
+
+def build_layouts(image: Image, config: dict, profile_fields, raw, reference=()):
     resources = dialogs(image)
-    names = {f["name"] for f in profile_fields if f["scope"] == "Processing"}
+    # A supplement may place fields its own conversion could not confirm but
+    # the hardware-verified profile next to it has.
+    names = {f["name"] for f in profile_fields if f["scope"] == "Processing"} | set(reference)
     by_id = {r["id"]: r["name"] for r in raw}
+    raw_values = {f["name"]: [str(v["value"]) for v in f.get("values", [])] for f in profile_fields
+                  if f["scope"] == "Processing" and all(v.get("type") == "Choice" for v in f.get("values", []))}
     pages = []
-    for function, binds in binder_calls(image, config["binders"]).items():
+    for function, binds in binder_calls(image, config["binders"], complete=True).items():
         controls_used = {c for _, _, args in binds for c in args[1:] if c}
         best = None
         for dialog_id, dialog in resources.items():
@@ -590,39 +795,9 @@ def build_layouts(image: Image, config: dict, profile_fields, raw):
         if not best or best[1] not in config["processing_dialogs"]:
             continue
         dialog = resources[best[1]]
-        items = {i["id"]: i for i in dialog["items"]}
-        controls = []
-        for _, kind, args in sorted(binds):
-            name = by_id.get(args[0])
-            if not name or name not in names:
-                continue
-            if kind == "slider":
-                edit, label, track, _ = args[1:5]
-                item = items.get(track) or items.get(edit)
-                if not item:
-                    continue
-                text = items.get(label, {}).get("text", "").strip() or title_case(name)
-                controls.append(dict(kind="slider", name=name, label=text.replace("&", ""), x=item["x"], y=item["y"], w=item["w"],
-                                     id=item["id"], reference_id=args[0], options=[]))
-            elif kind == "radio":
-                # Only real radio buttons are options; another control in the
-                # binder arguments is the caption of the group.
-                referenced = [items[c] for c in args[1:] if c and c in items]
-                buttons = [i for i in referenced if i["cls"] == "Button" and i["style"] & 0xF in (4, 9)]
-                captions = [i["text"].replace("&", "").strip() for i in referenced if i not in buttons and i["text"].strip()]
-                if not buttons:
-                    continue
-                x, y = min(b["x"] for b in buttons), min(b["y"] for b in buttons)
-                boxes = sorted((g for g in dialog["items"] if g["cls"] == "Button" and g["style"] & 0xF == 7 and g["text"].strip()
-                                and g["x"] <= x <= g["x"] + g["w"] and g["y"] <= y <= g["y"] + g["h"]), key=lambda g: g["w"] * g["h"])
-                label = captions[0] if captions else boxes[0]["text"].replace("&", "").strip() if boxes else title_case(name)
-                controls.append(dict(kind="radio", name=name, label=label, x=x, y=y, w=max(b["x"] + b["w"] for b in buttons) - x,
-                                     id=buttons[0]["id"], reference_id=args[0], options=[b["text"].replace("&", "").strip() for b in buttons]))
-            else:
-                item = items.get(args[1]) or items.get(args[2])
-                if item:
-                    controls.append(dict(kind="slider", name=name, label=title_case(name), x=item["x"], y=item["y"], w=item["w"],
-                                         id=item["id"], reference_id=args[0], options=[]))
+        texts = config.get("text_controls", {}).get(best[1])
+        controls = dialog_controls(dialog, binds, by_id, names, raw_values, row_labels=bool(texts))
+        controls += text_controls(dialog, texts or [])
         if not controls:
             continue
         hd = sum(c["name"].startswith(("HD ", "IBOC")) for c in controls)
@@ -632,13 +807,18 @@ def build_layouts(image: Image, config: dict, profile_fields, raw):
         pages.append(dict(title=dialog["title"].strip() or "Settings", path=path, width=dialog["w"], height=dialog["h"],
                           reference_dialog=best[1], controls=controls, groups=groups))
     # Drop pages that only repeat a subset of a larger page on the same path.
+    # A page with exactly the controls of an earlier page is the same page.
     kept = []
-    for page in pages:
+    for index, page in enumerate(pages):
         names_here = {c["name"] for c in page["controls"]}
-        if not any(other is not page and other["path"] == page["path"] and names_here < {c["name"] for c in other["controls"]} for other in pages):
+        larger = page["reference_dialog"] not in MX_VARIANT_DIALOGS and any(
+            other is not page and other["path"] == page["path"] and names_here < {c["name"] for c in other["controls"]} for other in pages)
+        repeated = any(other["path"] == page["path"] and names_here == {c["name"] for c in other["controls"]} for other in pages[:index])
+        if not larger and not repeated:
             kept.append(page)
+    titles = {**PAGE_TITLES, **config.get("page_titles", {})}
     for page in kept:
-        page["title"] = PAGE_TITLES.get(page["reference_dialog"], page["title"])
+        page["title"] = titles.get(page["reference_dialog"], page["title"])
         names_here = {c["name"] for c in page["controls"]}
         if page["reference_dialog"] == 400 and any(n.startswith("MX ") for n in names_here):
             page["title"] = "MX 2 Band Distortion"
@@ -657,6 +837,61 @@ def build_layouts(image: Image, config: dict, profile_fields, raw):
         path_rank = {"Shared": 0, "FM": 1}.get(page["path"], 2)
         order = next((i for i, t in enumerate(PAGE_ORDER) if page["title"].startswith(t) or page["title"].endswith(t)), 99)
         return path_rank, order, page["title"]
+
+    return sorted(kept, key=rank)
+
+
+# The order of the original clients' Setup pages (their property sheet).
+SYSTEM_ORDER = ["Input", "AES67 Input", "Output", "Output 1", "Output 2", "AES67 Output", "Analog Output", "Digital Output",
+                "Stereo Encoder", "Digital MPX", "HD Digital Radio", "Utility", "Test", "Remote Interface", "Network", "RDS",
+                "RDS Alternate Frequencies"]
+
+
+def build_system_layouts(image: Image, config: dict, profile_fields, raw):
+    """The original client's System Setup pages: every dialog outside the
+    processing and meter dialogs whose binders reach System fields, with the
+    dialog's own title, labels and group boxes. A page that only repeats a
+    subset of another page with its title is a variant for other hardware."""
+    resources = dialogs(image)
+    names = {f["name"] for f in profile_fields if f["scope"] == "System"}
+    by_id = {r["id"]: r["name"] for r in raw}
+    skip = set(config["processing_dialogs"]) | set(config["meter"].get("dialogs", []))
+    pages = {}
+    for function, binds in binder_calls(image, config["binders"], complete=True).items():
+        controls_used = {c for _, _, args in binds for c in args[1:] if c}
+        best = None
+        for dialog_id, dialog in resources.items():
+            overlap = len(controls_used & {i["id"] for i in dialog["items"]})
+            if overlap and (best is None or overlap > best[0] or (overlap == best[0] and len(dialog["items"]) < best[2])):
+                best = (overlap, dialog_id, len(dialog["items"]))
+        if not best or best[1] in skip:
+            continue
+        dialog = resources[best[1]]
+        controls = dialog_controls(dialog, binds, by_id, names)
+        if not controls:
+            continue
+        page = pages.setdefault(best[1], dict(title=dialog["title"].strip() or "Setup", width=dialog["w"], height=dialog["h"],
+                                              reference_dialog=best[1], controls=[], groups=[
+                                                  dict(x=g["x"], y=g["y"], w=g["w"], h=g["h"], text=g["text"].replace("&", ""))
+                                                  for g in dialog["items"] if g["cls"] == "Button" and g["style"] & 0xF == 7]))
+        known = {c["name"] for c in page["controls"]}
+        page["controls"] += [c for c in controls if c["name"] not in known]
+    if "system_pages" in config:
+        order = config["system_pages"]
+        for dialog_id, page in pages.items():
+            page["title"] = config.get("system_titles", {}).get(dialog_id, page["title"])
+        return [pages[d] for d in order if d in pages]
+    kept = []
+    for page in pages.values():
+        here = {c["name"] for c in page["controls"]}
+        if any(other is not page and other["title"] == page["title"] and here < {c["name"] for c in other["controls"]}
+               for other in pages.values()):
+            continue
+        kept.append(page)
+
+    def rank(page):
+        order = next((i for i, t in enumerate(SYSTEM_ORDER) if page["title"].startswith(t)), len(SYSTEM_ORDER))
+        return order, page["reference_dialog"]
 
     return sorted(kept, key=rank)
 
@@ -713,21 +948,43 @@ def _meter_members(image: Image, start: int, meter: dict):
 
 
 def _update_channels(image: Image, meter: dict):
+    """Per update function: {member: channel} for bars fed with a constant value index.
+
+    A channel is an int (``getbyte(k)``) or, for a getter in ``meter["derived"]``
+    that combines several values, a tuple of value indexes. Under the key
+    ``"members"`` every map also lists all members the function updates, so that
+    an update function whose constant indexes never meet an initialised channel
+    can still be paired with its dialog class.
+    """
     if not meter.get("getbyte"):
         return []
+    getters = {hex(meter["getbyte"]): None, **{hex(g): ids for g, ids in meter.get("derived", {}).items()}}
     maps = []
-    for start in image.callers(meter["getbyte"]):
+    starts = sorted({s for g in [meter["getbyte"], *meter.get("derived", {})] for s in image.callers(g)})
+    for start in starts:
         instructions = image.dis(start, 0x4000 // 3)
-        channels = {}
-        for k in range(len(instructions) - 8):
+        channels, members = {}, set()
+        for k in range(len(instructions)):
             if instructions[k].mnemonic == "ret":
                 break
+            w = instructions[k]
+            if (w.mnemonic == "call" and w.op_str == hex(meter["setvalue"]) and k >= 1 and instructions[k - 1].mnemonic == "add"
+                    and instructions[k - 1].op_str.startswith("ecx, 0x")):
+                members.add(("this", int(instructions[k - 1].op_str.split(", ")[1], 16)))
+            if k + 8 >= len(instructions):
+                continue
             w = instructions[k:k + 9]
             if (w[0].mnemonic == "push" and (w[0].op_str.startswith("0x") or w[0].op_str.isdigit()) and w[4].mnemonic == "call"
-                    and w[4].op_str == hex(meter["getbyte"]) and w[8].mnemonic == "call" and w[8].op_str == hex(meter["setvalue"]) and w[7].mnemonic == "add"):
-                channels[("this", int(w[7].op_str.split(", ")[1], 16))] = int(w[0].op_str, 0)
+                    and w[4].op_str in getters and w[8].mnemonic == "call" and w[8].op_str == hex(meter["setvalue"]) and w[7].mnemonic == "add"):
+                index = int(w[0].op_str, 0)
+                combined = getters[w[4].op_str]
+                if combined is not None:
+                    if index not in combined:
+                        continue
+                    index = tuple(combined[index])
+                channels[("this", int(w[7].op_str.split(", ")[1], 16))] = index
         if channels:
-            maps.append(channels)
+            maps.append(dict(channels, members=members))
     return maps
 
 
@@ -737,21 +994,58 @@ def _curve(image: Image, table: int, count: int):
     return [stored[count - 1 - raw] for raw in range(count)]  # reference uses table[max - raw]
 
 
-def extract_meter_bars(image: Image, meter: dict):
+def _unit_labels(image: Image, raw):
+    """Static controls the client fills with the current LDNES METER UNITS text, at its default.
+
+    The meter update functions read the system parameter "LDNES METER UNITS"
+    ("LU" or "Lk") and write its text into the loudness lane captions, whose
+    dialog text ("lK" or "Lk") is only a placeholder.
+    """
+    field = next((f for f in raw or [] if f["name"] == "LDNES METER UNITS" and f.get("values")), None)
+    if not field:
+        return {}
+    text = field["values"][field["default"] if 0 <= field["default"] < len(field["values"]) else 0]["value"]
+    name = image.mem.find(b"\0LDNES METER UNITS\0")
+    if name < 0:
+        return {}
+    labels = {}
+    for match in re.finditer(rb"\x68" + re.escape(struct.pack("<I", image.base + name + 1)), image.text):
+        for ins in image.dis(image.text_start + match.start(), 60):
+            if ins.mnemonic == "ret":
+                break
+            if ins.mnemonic == "push" and ins.op_str.startswith("0x") and 0x100 <= int(ins.op_str, 16) < 0x10000:
+                labels[int(ins.op_str, 16)] = text
+    return labels
+
+
+def extract_meter_bars(image: Image, meter: dict, raw=None):
     resources = dialogs(image)
+    unit_labels = _unit_labels(image, raw)
     updates = _update_channels(image, meter)
     helper_bodies, bars = {}, []
     for start in image.callers(meter["subclass"]):
         members, helpers = _meter_members(image, start, meter)
         own = {k: v for k, v in members.items() if k[0] == "this"}
         if updates and own:
+            def channels(update):
+                return {k: ch for k, ch in update.items() if k != "members"}
+
             def score(update):
-                if any(k in own and "chan" in own[k] and own[k]["chan"] != ch for k, ch in update.items()):
+                if any(k in own and "chan" in own[k] and own[k]["chan"] != ch for k, ch in channels(update).items()):
                     return -1
-                return sum(1 for k, ch in update.items() if k in own and own[k].get("chan") == ch)
+                return sum(1 for k, ch in channels(update).items() if k in own and own[k].get("chan") == ch)
+
+            def overlap(update):
+                # Members the update function and this dialog class share (Jaccard).
+                return len(update["members"] & own.keys()) / len(update["members"] | own.keys())
             best = max(updates, key=score)
-            if score(best) >= 1:
-                for key, channel in best.items():
+            if score(best) < 1:
+                # No constant index coincides with an initialised channel: pair by
+                # the members both functions update (classes sharing a layout differ).
+                candidates = [u for u in updates if score(u) == 0 and overlap(u) >= 0.75]
+                best = max(candidates, key=overlap) if candidates else None
+            if best is not None:
+                for key, channel in channels(best).items():
                     if key in own and "chan" not in own[key]:
                         own[key]["chan"] = channel
         if ("arg", 0) in members:
@@ -782,13 +1076,16 @@ def extract_meter_bars(image: Image, meter: dict):
         entries = []
         for bar in per_function[owner]:
             item = items.get(bar["ctl"])
-            if not item or item["cls"] != "msctls_progress32" or not isinstance(bar.get("chan"), int) or any(e["ctl"] == bar["ctl"] for e in entries):
+            if not item or item["cls"] != "msctls_progress32" or not isinstance(bar.get("chan"), (int, tuple)) or any(e["ctl"] == bar["ctl"] for e in entries):
                 continue
             init = bar.get("init") or [None, None, None]
             curve = _curve(image, bar["curve"][0], bar["curve"][1]) if bar.get("curve") and isinstance(bar["curve"][0], int) else None
-            entries.append(dict(ctl=bar["ctl"], channel=bar["chan"], x=item["x"], y=item["y"], h=item["h"],
+            # A combined bar (see "derived") shows the larger of several values: one lane per value.
+            ids = list(bar["chan"]) if isinstance(bar["chan"], tuple) else [bar["chan"]]
+            entries.append(dict(ctl=bar["ctl"], channel=ids[0], ids=ids, x=item["x"], y=item["y"], h=item["h"],
                                 orientation={1: "down", 2: "up"}.get(init[1] if isinstance(init[1], int) else None), curve=curve))
-        labels = [dict(text=s["text"].strip(), x=s["x"], y=s["y"], w=s["w"]) for s in dialog["items"]
+        labels = [dict(text=unit_labels[s["id"]] if s["id"] in unit_labels and s["text"].strip().lower() in ("lk", "lu") else s["text"].strip(),
+                       x=s["x"], y=s["y"], w=s["w"]) for s in dialog["items"]
                   if s["cls"] == "Static" and s["text"].strip() and "--" not in s["text"]]
         views[dialog_id] = dict(title=dialog["title"], labels=labels, bars=sorted(entries, key=lambda e: e["x"]))
     return views
@@ -800,8 +1097,11 @@ def _meter_kind(title: str, bars) -> str:
         return "enhance"
     if "comp" in lower:
         return "composite"
-    if "loudness level" in lower or lower in ("loudness", "mpx") or "power" in lower:
+    # The 2300's "MPX" group is only the MPX power controller's gain reduction, drawn from the top.
+    if ("loudness level" in lower or lower in ("loudness", "mpx") or "power" in lower) and not all(b["orientation"] == "down" for b in bars):
         return "loudness"
+    if lower.endswith("output"):  # 6300 "Limiter 1 Output": a level after the limiter
+        return "level"
     if any(k in lower for k in ("reduction", "agc", "limit", "g/r")):
         return "reduction"
     if "input" in lower or "output" in lower:
@@ -811,7 +1111,7 @@ def _meter_kind(title: str, bars) -> str:
 
 def _meter_groups(view):
     titles = sorted((l for l in view["labels"] if l["y"] < 10 or (l["y"] < 100 and len(l["text"]) > 5 and not l["text"].endswith("Gate"))), key=lambda l: l["x"])
-    lane_labels = [l for l in view["labels"] if l["y"] >= 60 and len(l["text"]) <= 5]
+    lane_labels = [l for l in view["labels"] if l["y"] >= 60 and len(l["text"]) <= 6]
     bars = sorted((b for b in view["bars"] if b["h"] >= 50), key=lambda b: b["x"])  # 6 px bars are gate LEDs
     clusters = []
     for bar in bars:
@@ -824,7 +1124,10 @@ def _meter_groups(view):
     grouped = []
     for cluster in clusters:
         center = (cluster[0]["x"] + cluster[-1]["x"] + 10) / 2
-        title = min(titles, key=lambda l: abs(l["x"] + l["w"] / 2 - center))["text"] if titles else "Meters"
+        # A caption inside the bars' height names short bars above it ("HF Limiting"), never a full-height cluster.
+        bottom = max(b["y"] + b["h"] for b in cluster)
+        eligible = [l for l in titles if l["y"] < 10 or l["y"] >= bottom] or titles
+        title = min(eligible, key=lambda l: abs(l["x"] + l["w"] / 2 - center))["text"] if titles else "Meters"
         group = next((g for g in grouped if g["name"] == title), None)
         if not group:
             group = {"name": title, "bars": []}
@@ -835,13 +1138,16 @@ def _meter_groups(view):
         ordered, channels, i = sorted(group["bars"], key=lambda b: b["x"]), [], 0
         while i < len(ordered):
             pair = [ordered[i]]
-            if i + 1 < len(ordered) and ordered[i + 1]["x"] - ordered[i]["x"] <= 8:
+            gap = ordered[i + 1]["x"] - ordered[i]["x"] if i + 1 < len(ordered) else None
+            middle = (ordered[i]["x"] + ordered[i + 1]["x"]) / 2 + 5 if gap is not None else None
+            # Adjacent lanes, or two lanes 12 px apart under one centred caption (6300 "dB", "Lk").
+            if gap is not None and (gap <= 8 or (gap <= 12 and any(abs(l["x"] + l["w"] / 2 - middle) <= 4 for l in lane_labels))):
                 pair.append(ordered[i + 1])
                 i += 1
             i += 1
             under = [l["text"] for l in lane_labels if abs(l["x"] - pair[0]["x"]) <= 10]
             label = under[0] if under and (len(pair) == 2 or under[0] not in ("L", "R")) else ""
-            channels.append({"label": label, "ids": [b["channel"] for b in pair], "bars": pair})
+            channels.append({"label": label, "ids": [value for b in pair for value in b["ids"]], "bars": pair})
         if len(channels) == 2 and all(len(c["ids"]) == 1 for c in channels):
             under = [[l["text"] for l in lane_labels if abs(l["x"] - c["bars"][0]["x"]) <= 10][:1] for c in channels]
             if under == [["L"], ["R"]]:
@@ -854,8 +1160,89 @@ def _meter_groups(view):
     return result
 
 
-def build_meters(image: Image, meter: dict):
-    views = extract_meter_bars(image, meter)
+# The processing structure on air, read from the processor's on-air document: a
+# 5-band document carries the band fields, a 2-band document the 2-band fields,
+# never both (every factory preset of the 5500i, 6300, 5700i, 8700HD and 8700i).
+STRUCTURE = {
+    "FM 5": {"field": "B1 ATTACK", "present": True},
+    "FM 2": {"field": "2B DRIVE", "present": True},
+    "HD 5": {"field": "HD B1 ATTACK", "present": True},
+    "HD 2": {"field": "HD 2B DRIVE", "present": True},
+}
+# Groups the original client draws only in its 2-band meter dialog.
+TWO_BAND_ONLY = ("HF Limiting", "Overshoot Limit")
+
+
+def structure_conditions(groups):
+    """Shows each band group only while its structure is on air.
+
+    A model with both a 5-band and a 2-band gain-reduction group switches
+    between them; one without a 2-band group (the 2300 is 2-band only) is
+    left as it is.
+    """
+    names = {g["name"] for g in groups}
+    for path, prefix in (("FM", ""), ("HD", "HD ")):
+        if f"2-Band {prefix}Gain Reduction" not in names or f"{prefix}Gain Reduction" not in names:
+            continue
+        for group in groups:
+            if group["name"] == f"{prefix}Gain Reduction":
+                group["when"] = dict(STRUCTURE[f"{path} 5"])
+            elif group["name"] == f"2-Band {prefix}Gain Reduction" or (path == "FM" and group["name"] in TWO_BAND_ONLY):
+                group["when"] = dict(STRUCTURE[f"{path} 2"])
+    # The 2-band groups take the place of the 5-band ones.
+    order = [g["name"] for g in groups]
+    for prefix, followers in (("", ("2-Band Gain Reduction",) + TWO_BAND_ONLY), ("HD ", ("2-Band HD Gain Reduction",))):
+        anchor = f"{prefix}Gain Reduction"
+        moving = [g for g in groups if g["name"] in followers and g.get("when")]
+        if anchor not in order or not moving:
+            continue
+        rest = [g for g in groups if g not in moving]
+        at = next(i for i, g in enumerate(rest) if g["name"] == anchor) + 1
+        groups[:] = rest[:at] + moving + rest[at:]
+    return groups
+
+
+def client_gate_lamps(image: Image) -> dict:
+    """The client's gate lamps: {symbol: meter value index}.
+
+    Every meter dialog registers its controls as ``push INDEX; push "o_name";
+    call register``; the gate lamps are the ``o_gateIndicate*`` symbols (A = AGC,
+    M = multiband, HD = HD multiband). Checked on the 5700i, whose lamps were
+    proven on firmware: A 62, M 63, HD 38.
+    """
+    lamps = {}
+    for match in re.finditer(rb"(?<=\0)o_gateIndicate[A-Za-z]*(?=\0)", bytes(image.mem)):
+        name, va = match.group().decode(), image.base + match.start()
+        for ref in re.finditer(re.escape(b"\x68" + struct.pack("<I", va)), image.text):
+            at = ref.start()
+            if at >= 2 and image.text[at - 2] == 0x6A:
+                index = image.text[at - 1]
+            elif at >= 5 and image.text[at - 5] == 0x68:
+                index = struct.unpack_from("<I", image.text, at - 4)[0]
+            else:
+                continue
+            if 0 < index < 512:
+                lamps.setdefault(name, index)
+    return lamps
+
+
+# Which lamp a meter group carries, by the group's name in the profile.
+GATE_GROUPS = (
+    (lambda name: name == "AGC", "o_gateIndicateA", {"label": "GATED", "vertical": True}),
+    (lambda name: name in ("Gain Reduction", "2-Band Gain Reduction"), "o_gateIndicateM", {"label": "GATED"}),
+    (lambda name: name in ("HD Gain Reduction", "2-Band HD Gain Reduction"), "o_gateIndicateHD", {"label": "GATED"}),
+)
+
+
+def attach_gates(groups: list, lamps: dict) -> None:
+    for group in groups:
+        for matches, symbol, style in GATE_GROUPS:
+            if matches(group["name"]) and symbol in lamps:
+                group["gate"] = {"id": lamps[symbol], **style}
+
+
+def build_meters(image: Image, meter: dict, raw=None):
+    views = extract_meter_bars(image, meter, raw)
     primary = _meter_groups(views[meter["primary"]])
     seen = {i for g in primary for c in g["channels"] for i in c["ids"]}
     extra = []
@@ -869,13 +1256,15 @@ def build_meters(image: Image, meter: dict):
                 name = group["name"] if group["name"] not in taken else ("2-Band " + group["name"] if group["name"].endswith("Gain Reduction") else group["name"] + " (alt)")
                 extra.append(dict(group, name=name))
                 seen |= ids
-    groups, orientation, curves = primary + extra, {}, {}
+    groups, orientation, curves = structure_conditions(primary + extra), {}, {}
     for group in groups:
         for channel in group["channels"]:
             for bar in channel.pop("bars"):
-                orientation[str(bar["channel"])] = bar["orientation"]
-                if bar["curve"]:
-                    curves[str(bar["channel"])] = bar["curve"]
+                for value in bar["ids"]:
+                    orientation[str(value)] = bar["orientation"]
+                    if bar["curve"]:
+                        curves[str(value)] = bar["curve"]
+    attach_gates(groups, client_gate_lamps(image))
     return {"banks": [1, 2], "max_values": meter["max_values"], "groups": groups, "orientation": orientation, "curves": curves}
 
 
@@ -888,7 +1277,19 @@ def reference_scopes(repository: Path):
     return scopes
 
 
+def update_gates(client: Path, meters_path: Path) -> None:
+    """Adds the client's gate lamps to an existing meters.json (nothing else changes)."""
+    meters = json.loads(meters_path.read_text())
+    lamps = client_gate_lamps(Image(client))
+    attach_gates(meters["groups"], lamps)
+    meters_path.write_text(json.dumps(meters, indent=1) + "\n")
+    print(f"{meters_path}: {lamps}")
+
+
 def main():
+    if len(sys.argv) == 4 and sys.argv[1] == "--gates":
+        update_gates(Path(sys.argv[2]), Path(sys.argv[3]))
+        return
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("installer", type=Path)
     parser.add_argument("output", type=Path)
@@ -924,9 +1325,13 @@ def main():
             "status": "Statically derived from the official PC Remote conversion routines and cross-checked against the "
                       "factory presets in the same installer. Not verified on hardware.",
             "fields": fields}, indent=2) + "\n")
-        layouts = build_layouts(image, config, fields, raw)
+        reference = [n for n, scopes in reference_scopes(repository).items() if "Processing" in scopes] \
+            if config.get("supplement") else ()
+        layouts = build_layouts(image, config, fields, raw, reference)
         (args.output / f"{prefix}layouts.json").write_text(json.dumps(layouts, indent=2) + "\n")
-        meters = build_meters(image, config["meter"])
+        system_layouts = build_system_layouts(image, config, fields, raw)
+        (args.output / f"{prefix}system-layouts.json").write_text(json.dumps(system_layouts, indent=2) + "\n")
+        meters = build_meters(image, config["meter"], raw)
         (args.output / f"{prefix}meters.json").write_text(json.dumps({**header, **meters}, indent=1) + "\n")
         (args.output / f"{prefix}report.json").write_text(json.dumps({
             **header, "installer_sha256": sha256(args.installer), "banner": config["banner"],

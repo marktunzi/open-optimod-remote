@@ -19,7 +19,9 @@ An unknown PC Remote build stops with its SHA-256. Add a `CONFIGS` entry for tha
 - `meter`: the subclass, init, channel and curve setters of the meter bars, their dialogs, and the channel limit from the meter store (`cmp [ebp+8], N`).
 - `overrides`: constructor calls whose arguments are pushed from registers.
 
-Use the existing 5500, 5700i and 8700HD entries as templates. For a model that already has a hardware-verified profile, set `supplement=True`: the extractor then writes `static-*.json` next to it, and the app adds only the fields and pages the verified profile lacks. Never commit anything from the installer; only the generated JSON files.
+`scripts/match_pc_remote_functions.py` finds most of these addresses by matching the functions of a known build (the 5500i entry was found this way from both the 5500 and the 8700HD build, with identical results). Dialog IDs come from the new executable's dialog resources. Measure `max_values` on the unit: the meter record count of the 228 message.
+
+Use the existing 5500, 5500i, 5700i and 8700HD entries as templates. For a model that already has a hardware-verified profile, set `supplement=True`: the extractor then writes `static-*.json` next to it, and the app adds only the fields and pages the verified profile lacks. Never commit anything from the installer; only the generated JSON files.
 
 The extractor rejects a constant offset between PC Remote and the factory presets. On the hardware-verified 5700i such an offset was wrong, because the presets came from older firmware.
 
@@ -29,6 +31,7 @@ Read `report.json`:
 
 - Every excluded field must be understood.
 - `transform x100` fields need a plausible reason. The runtime check refuses a write if the processor reports the other unit.
+- In `meters.json`, a model with both a 5-band and a 2-band gain-reduction group gets a `when` condition on each band group (`structure_conditions` in the extractor): the 5-band groups show while the on-air document has `B1 ATTACK`, the 2-band groups while it has `2B DRIVE` (`HD B1 ATTACK` and `HD 2B DRIVE` for HD). Check this against the model's factory presets: every `TWOBAND PRESET` must carry the 2-band field and no 5-band field.
 - `preset_families` must match the model's own document family. Presets from another model, such as the 8600 presets in the 8700HD package, make the cross-check weaker; say so in the documentation.
 
 ## 3. Register the model

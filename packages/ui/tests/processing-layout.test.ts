@@ -19,7 +19,7 @@ test('Less More is the first shared page and binds the verified field', () => {
 test('controls are assigned to named reference groups by their center point', () => {
   const page = layouts.find(candidate => candidate.path === 'FM' && candidate.title === 'Multiband')!;
   const groups = groupProcessingPage(page);
-  assert.deepEqual(groups.map(group => group.title), ['Multiband', 'Multiband Coupling', 'Multiband Max Delta Gr']);
+  assert.deepEqual(groups.map(group => group.title), ['Multiband', 'Multiband Coupling', 'Multiband Max Delta GR']);
   assert.deepEqual(groups.map(group => group.controls.length), [7, 5, 5]);
 });
 
@@ -49,4 +49,30 @@ test('binary processing choices identify the affirmative toggle position', () =>
   assert.equal(binaryOnIndex(['Out', 'In']), 1);
   assert.equal(binaryOnIndex(['Slow', 'Fast']), 1);
   assert.equal(binaryOnIndex(['One', 'Two', 'Three']), null);
+});
+
+test('extracted pages read the original dialog column by column; group titles keep their acronyms', async () => {
+  const { readingOrder } = await import('../src/processing-layout.ts');
+  const control = (name: string, x: number, y: number) => ({ kind: 'slider', name, label: name, x, y, w: 105, id: 0, options: [] });
+  const order = readingOrder([control('C', 182, 16), control('B', 13, 76), control('D', 182, 46), control('A', 13, 46)]).map(c => c.name);
+  assert.deepEqual(order, ['A', 'B', 'C', 'D']);
+  const page = { title: 'Equalizer', path: 'FM', width: 300, height: 200, reference_dialog: 393, groups: [{ x: 0, y: 0, w: 150, h: 200, text: ' LF SHELF EQUALIZER' }],
+    controls: [control('BASS GAIN', 13, 46)] };
+  assert.equal(groupProcessingPage(page)[0].title, 'LF Shelf Equalizer');
+});
+
+test('the 5700i preset RDS page has the client text boxes and keeps its nested RDS Modulator box', () => {
+  const supplement = JSON.parse(readFileSync(`${root}/profiles/5700i/3.0.1.20/static-layouts.json`, 'utf8')) as LayoutPage[];
+  const rds = supplement.find(page => page.title === 'RDS')!;
+  const texts = rds.controls.filter(control => control.kind === 'text');
+  assert.deepEqual(texts.map(control => [control.name, control.max_length]), [
+    ['RDS DYNAMIC PS', 255], ['RDS RADIO TEXT', 128], ['RDS PROGRAM ID', 4],
+    ['RDS PROGRAM TYPE', 2], ['RDS PROGRAM NAME', 8], ['RDS EAS', 64]]);
+  const groups = groupProcessingPage(rds);
+  const modulator = groups.find(group => group.title === 'RDS Modulator')!;
+  assert.deepEqual(modulator.controls.map(control => control.name).sort(), ['RDS ACTIVE', 'RDS LEVEL']);
+  const names = groups.flatMap(group => group.controls.map(control => control.name));
+  assert.equal(names.length, new Set(names).size);
+  for (const [title, name] of [['Distortion Control', 'B3 CLIP THRSH'], ['Final Clipping', 'MPX PWR OFFSET']])
+    assert.ok(supplement.find(page => page.title === title)!.controls.some(control => control.name === name), name);
 });

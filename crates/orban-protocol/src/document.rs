@@ -28,14 +28,47 @@ impl Document {
         bytes: &[u8],
         model: crate::adapter::DeviceModel,
     ) -> Result<Self, String> {
-        let prefix = match model {
+        let prefix = Self::version_prefix(model)?;
+        match Self::older_family(model) {
+            Some(older) if bytes.starts_with(older.as_bytes()) => {
+                Self::parse_with_prefix(bytes, older)
+            }
+            _ => Self::parse_with_prefix(bytes, prefix),
+        }
+    }
+
+    /// `parse_prefix` for the document family of `model`.
+    pub fn parse_prefix_for_model(
+        bytes: &[u8],
+        model: crate::adapter::DeviceModel,
+    ) -> Result<Self, String> {
+        let prefix = Self::version_prefix(model)?;
+        match Self::older_family(model) {
+            Some(older) if bytes.starts_with(older.as_bytes()) => Self::parse_prefix(bytes, older),
+            _ => Self::parse_prefix(bytes, prefix),
+        }
+    }
+
+    /// A second family the model's files can carry: the 5500's installer
+    /// keeps its factory presets as 8300.10 documents, while its firmware
+    /// 1.2.8.24 writes 5500.50 (the only version string in `_optimod.exe`).
+    fn older_family(model: crate::adapter::DeviceModel) -> Option<&'static str> {
+        (model == crate::adapter::DeviceModel::Optimod5500).then_some("OptimodVersion=<8300.")
+    }
+
+    fn version_prefix(model: crate::adapter::DeviceModel) -> Result<&'static str, String> {
+        Ok(match model {
             crate::adapter::DeviceModel::Optimod5700i
             | crate::adapter::DeviceModel::Optimod5700Fm
             | crate::adapter::DeviceModel::Optimod5700Hd => "OptimodVersion=<5700.",
+            // The 5500i 3.1.0.2 and 5500 1.2.8.24 firmware write 5500.50 documents.
             crate::adapter::DeviceModel::Optimod5500i
-            | crate::adapter::DeviceModel::Optimod5500 => "OptimodVersion=<8300.",
+            | crate::adapter::DeviceModel::Optimod5500 => "OptimodVersion=<5500.",
             crate::adapter::DeviceModel::Optimod8500 => "OptimodVersion=<8500.",
             crate::adapter::DeviceModel::Optimod6300 => "OptimodVersion=<6300.",
+            crate::adapter::DeviceModel::Optimod2300 => "OptimodVersion=<2300.",
+            // The 8400 3.0.5 writes 00.08 documents that end `End Preset`.
+            crate::adapter::DeviceModel::Optimod8400 => "OptimodVersion=<00.08>",
             crate::adapter::DeviceModel::Optimod8600 => "OptimodVersion=<8600.",
             crate::adapter::DeviceModel::Optimod8700i
             | crate::adapter::DeviceModel::Optimod8700Hd => "OptimodVersion=<8700.",
@@ -44,8 +77,21 @@ impl Document {
             crate::adapter::DeviceModel::Auto => {
                 return Err("A detected processor model is required".into());
             }
-        };
-        Self::parse_with_prefix(bytes, prefix)
+        })
+    }
+
+    /// The complete lines at the start of a document that arrived cut: the
+    /// preset name and the fields before the cut. Its `raw` is that text.
+    pub fn parse_prefix(bytes: &[u8], version_prefix: &str) -> Result<Self, String> {
+        let text = std::str::from_utf8(bytes).unwrap_or_else(|error| {
+            std::str::from_utf8(&bytes[..error.valid_up_to()]).unwrap_or_default()
+        });
+        // The pushed file ends its lines with \n, terminal documents with \r\n.
+        let complete = text.rfind('\n').map_or("", |end| &text[..=end]);
+        if !complete.starts_with(version_prefix) {
+            return Err("Invalid or unsupported Optimod document".into());
+        }
+        Self::parse_lines(complete, true)
     }
 
     fn parse_with_prefix(bytes: &[u8], version_prefix: &str) -> Result<Self, String> {
@@ -53,9 +99,18 @@ impl Document {
             return Err("Oversized document".into());
         }
         let raw = std::str::from_utf8(bytes).map_err(|_| "Unsupported document encoding")?;
-        if !raw.starts_with(version_prefix) || !raw.ends_with("End Preset<end>\r\n") {
+        let end = if version_prefix == "OptimodVersion=<00.08>" {
+            raw.ends_with("End Preset\n") || raw.ends_with("End Preset\r\n")
+        } else {
+            raw.ends_with("End Preset<end>\r\n")
+        };
+        if !raw.starts_with(version_prefix) || !end {
             return Err("Invalid or unsupported Optimod document".into());
         }
+        Self::parse_lines(raw, false)
+    }
+
+    fn parse_lines(raw: &str, partial: bool) -> Result<Self, String> {
         let mut fields = BTreeMap::new();
         let mut name = None;
         for line in raw.lines() {
@@ -89,12 +144,19 @@ impl Document {
                 } else {
                     return Err("Unsupported field type".into());
                 };
-                if fields.insert(key.into(), Field { value, index }).is_some() {
-                    return Err("Duplicate field".into());
+                let field = Field { value, index };
+                match fields.get(key) {
+                    // The 8700HD 1.0.2.161 firmware writes `PILOT SYNC` twice,
+                    // identically, in its setup file.
+                    Some(existing) if *existing == field => {}
+                    Some(_) => return Err("Duplicate field".into()),
+                    None => {
+                        fields.insert(key.into(), field);
+                    }
                 }
             }
         }
-        if fields.is_empty() {
+        if fields.is_empty() && !partial {
             return Err("Document has no fields".into());
         }
         Ok(Self {

@@ -1,0 +1,173 @@
+{
+  "model": "8700i",
+  "firmware": "1.5.1.11",
+  "reference_sha256": "bd1fdde1849217ff7830024c8ea2a369438a8ab6d5fd96aabfec74063df7c851",
+  "firmware_sha256": "6853c61e66aa7816551237970673780c6d0e7f2550088b6599a7872b926ee0f9",
+  "installer_sha256": "13f73e8fee2b6c595717cbc2ff4a86e242c63e740a44a67a9e6d5ea19cedf4ab",
+  "banner": "8700i V 1.5.1.11",
+  "document_family": "8700.",
+  "registrations": 652,
+  "factory_presets": 644,
+  "preset_families": {
+    "OptimodVersion=<8700.51>": 644
+  },
+  "preset_fields": 269,
+  "field_evidence": {
+    "not-convertible": 18,
+    "text": 34,
+    "confirmed": 254,
+    "unobserved": 312,
+    "conflict": 8
+  },
+  "excluded": [
+    {
+      "name": "AGC BASS COUPLE",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 1",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 2",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 3",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 4",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 5",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 6",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 7",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 8",
+      "reason": "not convertible"
+    },
+    {
+      "name": "DIVERSITY DELAY ADJ",
+      "reason": "not convertible"
+    },
+    {
+      "name": "DIVERSITY DELAY HD",
+      "reason": "not convertible"
+    },
+    {
+      "name": "DIVERSITY DELAY FM",
+      "reason": "not convertible"
+    },
+    {
+      "name": "DAB+ DIVERSITY DELAY HD",
+      "reason": "not convertible"
+    },
+    {
+      "name": "DAB+ DIVERSITY DELAY FM",
+      "reason": "not convertible"
+    },
+    {
+      "name": "BS1770 LDNES CTRL THR",
+      "reason": "not convertible"
+    },
+    {
+      "name": "FM BS1770 LDNES CTRL THR",
+      "reason": "not convertible"
+    },
+    {
+      "name": "CURRENT PASSCODES",
+      "reason": "not convertible"
+    },
+    {
+      "name": "TIME SERVER",
+      "reason": "not convertible"
+    },
+    {
+      "name": "MONITOR DRIVE",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "B3 CLIP THRSH",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "EXP LF TRIM",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "EXP HF TRIM",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "EXP MID1 TRIM",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "EXP MID2 TRIM",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "EXP PROFILE",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "EXPO LDNES CTLR",
+      "reason": "conflicts with factory presets"
+    }
+  ],
+  "pages": [
+    "Less More (Shared)",
+    "AGC (Shared)",
+    "Stereo Enhancer (FM)",
+    "Equalizer (FM)",
+    "Multiband (FM)",
+    "Compressors (FM)",
+    "Compressors (B4/5 Linked) (FM)",
+    "Band Mix (FM)",
+    "2 Band (FM)",
+    "2 Band Distortion (FM)",
+    "Distortion Control (FM)",
+    "MX Distortion Control (FM)",
+    "MX 2 Band Distortion (FM)",
+    "Final Clipping (FM)",
+    "MX Speech Mode (FM)",
+    "Speech Mode (FM)",
+    "Final Clip (FM)",
+    "Xponential Loudness (FM)",
+    "Equalizer (HD)",
+    "Multiband (HD)",
+    "Compressors (HD)",
+    "Band Mix (HD)",
+    "2 Band (HD)",
+    "Speech Mode (HD)",
+    "HD Limiting (HD)"
+  ],
+  "meter_groups": [
+    "Input",
+    "AGC",
+    "HF Enhance",
+    "Gain Reduction",
+    "Loudness",
+    "Output",
+    "Comp.",
+    "HD HF Enhance",
+    "HD Gain Reduction",
+    "HD Limiting",
+    "Loudness GR",
+    "Loudness Level",
+    "HD Output",
+    "2-Band Gain Reduction",
+    "HF Limiting",
+    "2-Band HD Gain Reduction"
+  ]
+}

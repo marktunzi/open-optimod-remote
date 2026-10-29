@@ -1,6 +1,6 @@
 # Interface reference
 
-The approved visual target is the supplied full-interface reference at 2264×2108 (not included in the repository), supplemented by the user's meter-edge and header close-ups. The main window is a physical-looking 5700i control surface, while Connections uses a native macOS window, Presets is a workspace of the interface (the native Presets window is only a fallback) and the native System Settings window serves the 5700i.
+The approved visual target is the supplied full-interface reference at 2264×2108 (not included in the repository), supplemented by the user's meter-edge and header close-ups. In the macOS app, Meters, Processing Settings and Presets are separate native windows on one processor session, and System Settings is always a native window: the 5700i worksheet, or the System fields of the connected model's own profile. Connections is a native window. The browser keeps one combined page.
 
 ## Main instrument
 

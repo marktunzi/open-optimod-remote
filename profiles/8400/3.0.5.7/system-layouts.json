@@ -1,0 +1,776 @@
+[
+  {
+    "title": "Input/Output 1",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4267889,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INPUT A OR D",
+        "label": "Set input to",
+        "x": 115,
+        "y": 53,
+        "w": 60,
+        "id": 4267962,
+        "reference_id": 166,
+        "options": [
+          "Analog",
+          "Digital",
+          "Dig+J17"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AI CLIP LEVEL",
+        "label": "Clip Level",
+        "x": 115,
+        "y": 90,
+        "w": 60,
+        "id": 4267993,
+        "reference_id": 172,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI BALANCE",
+        "label": "Right Channel Balance",
+        "x": 115,
+        "y": 109,
+        "w": 60,
+        "id": 4268025,
+        "reference_id": 173,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF LEVEL",
+        "label": "Ref. Lev VU",
+        "x": 115,
+        "y": 128,
+        "w": 60,
+        "id": 4268060,
+        "reference_id": 170,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF PPM LEVEL",
+        "label": "PPM",
+        "x": 228,
+        "y": 128,
+        "w": 60,
+        "id": 4268097,
+        "reference_id": 171,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI BALANCE",
+        "label": "Right Channel Balance",
+        "x": 115,
+        "y": 162,
+        "w": 60,
+        "id": 4268132,
+        "reference_id": 174,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF LEVEL",
+        "label": "Ref. Lev VU",
+        "x": 115,
+        "y": 181,
+        "w": 60,
+        "id": 4268167,
+        "reference_id": 168,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF PPM LEVEL",
+        "label": "PPM",
+        "x": 228,
+        "y": 181,
+        "w": 60,
+        "id": 4268204,
+        "reference_id": 169,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 110,
+        "y": 85,
+        "w": 123,
+        "h": 48,
+        "text": "Analog Input"
+      },
+      {
+        "x": 110,
+        "y": 157,
+        "w": 123,
+        "h": 29,
+        "text": "Digital Input"
+      }
+    ]
+  },
+  {
+    "title": "Input/Output 2",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4268355,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "ANALOG OUT",
+        "label": "Out Level",
+        "x": 105,
+        "y": 68,
+        "w": 60,
+        "id": 4268427,
+        "reference_id": 175,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AO PRE-OUT",
+        "label": "Pre-Emph",
+        "x": 207,
+        "y": 68,
+        "w": 60,
+        "id": 4268462,
+        "reference_id": 157,
+        "options": [
+          "Flat",
+          "Pre"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "LOW LATENCY",
+        "label": "Out Feeds",
+        "x": 105,
+        "y": 87,
+        "w": 60,
+        "id": 4268494,
+        "reference_id": 176,
+        "options": [
+          "Xmitter",
+          "Monitor"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO LEVEL",
+        "label": "Out Level",
+        "x": 105,
+        "y": 128,
+        "w": 60,
+        "id": 4268528,
+        "reference_id": 186,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DO SAMPLE RATE",
+        "label": "Samp Rate",
+        "x": 105,
+        "y": 146,
+        "w": 60,
+        "id": 4268563,
+        "reference_id": 158,
+        "options": [
+          "32kHz",
+          "44.1kHz",
+          "48kHz"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO WORD LGTH",
+        "label": "Word Leng",
+        "x": 207,
+        "y": 146,
+        "w": 60,
+        "id": 4268601,
+        "reference_id": 188,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DO DITHER",
+        "label": "Dither",
+        "x": 207,
+        "y": 164,
+        "w": 60,
+        "id": 4268638,
+        "reference_id": 189,
+        "options": [
+          "In",
+          "Out"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO PRE-EMPH",
+        "label": "Pre-Emph",
+        "x": 207,
+        "y": 128,
+        "w": 60,
+        "id": 4268676,
+        "reference_id": 187,
+        "options": [
+          "Flat",
+          "Pre-e",
+          "J.17",
+          "Pre+J17"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO SYNC",
+        "label": "SR SYNC",
+        "x": 105,
+        "y": 164,
+        "w": 60,
+        "id": 4268711,
+        "reference_id": 159,
+        "options": [
+          "Internal",
+          "SYNC IN",
+          "INPUT"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO FORMAT",
+        "label": "Format",
+        "x": 105,
+        "y": 182,
+        "w": 60,
+        "id": 4268745,
+        "reference_id": 160,
+        "options": [
+          "AES",
+          "SPDIF"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 100,
+        "y": 63,
+        "w": 112,
+        "h": 10,
+        "text": "Analog Output"
+      },
+      {
+        "x": 100,
+        "y": 123,
+        "w": 112,
+        "h": 64,
+        "text": "Digital Output"
+      }
+    ]
+  },
+  {
+    "title": "Input/Output 3",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4268896,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "MODULATION",
+        "label": "Modulation",
+        "x": 105,
+        "y": 53,
+        "w": 60,
+        "id": 4268968,
+        "reference_id": 202,
+        "options": [
+          "Stereo",
+          "Mono-L",
+          "Mono-R",
+          "Mono-Sum"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "PILOT",
+        "label": "Pilot",
+        "x": 105,
+        "y": 71,
+        "w": 60,
+        "id": 4269000,
+        "reference_id": 201,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "MOD REDUCE 1",
+        "label": "Mod. Red. 1",
+        "x": 105,
+        "y": 89,
+        "w": 60,
+        "id": 4269032,
+        "reference_id": 179,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "PILOT LEVEL",
+        "label": "Pilot Level",
+        "x": 207,
+        "y": 71,
+        "w": 60,
+        "id": 4269066,
+        "reference_id": 184,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MOD REDUCE 2",
+        "label": "Mod. Red. 2",
+        "x": 207,
+        "y": 89,
+        "w": 60,
+        "id": 4269101,
+        "reference_id": 180,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "COMP1 OUT",
+        "label": "Level",
+        "x": 105,
+        "y": 137,
+        "w": 60,
+        "id": 4269136,
+        "reference_id": 177,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "COMP2 SET",
+        "label": "Set to",
+        "x": 207,
+        "y": 137,
+        "w": 60,
+        "id": 4269173,
+        "reference_id": 183,
+        "options": [
+          "Comp. Out",
+          "Pilot Ref."
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "COMP2 OUT",
+        "label": "Level",
+        "x": 207,
+        "y": 155,
+        "w": 60,
+        "id": 4269211,
+        "reference_id": 178,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Input/Output 4",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4269387,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "STUDIO CHASSIS",
+        "label": "Studio Chassis",
+        "x": 112,
+        "y": 90,
+        "w": 60,
+        "id": 4269456,
+        "reference_id": 161,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "CLIP DEFEAT",
+        "label": "Final Clip Defeat",
+        "x": 112,
+        "y": 118,
+        "w": 60,
+        "id": 4269487,
+        "reference_id": 190,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "PRE-E",
+        "label": "Process Pre-Emphasis",
+        "x": 112,
+        "y": 146,
+        "w": 60,
+        "id": 4269522,
+        "reference_id": 194,
+        "options": [
+          "50us",
+          "75us"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "ITU412 THR",
+        "label": "Multiplex Power Threshold",
+        "x": 112,
+        "y": 174,
+        "w": 60,
+        "id": 4269557,
+        "reference_id": 185,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Input/Output 5",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4269721,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "IBOC PHONE SOURCE",
+        "label": "Phone Src.",
+        "x": 105,
+        "y": 49,
+        "w": 60,
+        "id": 4269794,
+        "reference_id": 205,
+        "options": [
+          "HD",
+          "FM"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC HF EQ",
+        "label": "HD Hf Eq",
+        "x": 207,
+        "y": 49,
+        "w": 60,
+        "id": 4269828,
+        "reference_id": 207,
+        "options": [
+          "Pre",
+          "Post"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC METER",
+        "label": "Meter Sel.",
+        "x": 105,
+        "y": 67,
+        "w": 60,
+        "id": 4269860,
+        "reference_id": 206,
+        "options": [
+          "FM Output",
+          "HD GR"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC AO SOURCE",
+        "label": "Out Srce",
+        "x": 105,
+        "y": 99,
+        "w": 60,
+        "id": 4269892,
+        "reference_id": 208,
+        "options": [
+          "HD pre ",
+          "HD post",
+          "FM Mon"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC AO LEVEL",
+        "label": "Out Level",
+        "x": 207,
+        "y": 99,
+        "w": 60,
+        "id": 4269926,
+        "reference_id": 209,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC DO SOURCE",
+        "label": "St/Mono",
+        "x": 105,
+        "y": 132,
+        "w": 60,
+        "id": 4269961,
+        "reference_id": 210,
+        "options": [
+          "Stereo",
+          "Mono-L",
+          "Mono-R",
+          "Mono-Sum"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC DO LEVEL",
+        "label": "Out Level",
+        "x": 207,
+        "y": 132,
+        "w": 60,
+        "id": 4269999,
+        "reference_id": 211,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC DO SR",
+        "label": "Samp Rate",
+        "x": 105,
+        "y": 150,
+        "w": 60,
+        "id": 4270033,
+        "reference_id": 212,
+        "options": [
+          "32kHz",
+          "44.1kHz",
+          "48kHz"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "IBOC DO WORD LG",
+        "label": "Word Length",
+        "x": 207,
+        "y": 150,
+        "w": 60,
+        "id": 4270071,
+        "reference_id": 213,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC DO SYNC",
+        "label": "Sync",
+        "x": 105,
+        "y": 168,
+        "w": 60,
+        "id": 4270106,
+        "reference_id": 215,
+        "options": [
+          "Internal",
+          "SYNC IN"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC DO DITHER",
+        "label": "Dither",
+        "x": 207,
+        "y": 168,
+        "w": 60,
+        "id": 4270143,
+        "reference_id": 214,
+        "options": [
+          "In",
+          "Out"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "IBOC DO FORMAT",
+        "label": "Format",
+        "x": 105,
+        "y": 186,
+        "w": 60,
+        "id": 4270178,
+        "reference_id": 216,
+        "options": [
+          "AES",
+          "SPDIF"
+        ]
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Network/Remote",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4557420,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INTERFACE TYPE",
+        "label": "Serial Interface Type",
+        "x": 30,
+        "y": 53,
+        "w": 60,
+        "id": 4557488,
+        "reference_id": 144,
+        "options": [
+          "Direct",
+          "Modem"
+        ]
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Security",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4628504,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "SECURITY TIMEOUT",
+        "label": "Lockout",
+        "x": 110,
+        "y": 53,
+        "w": 60,
+        "id": 4628572,
+        "reference_id": 141,
+        "options": []
+      }
+    ],
+    "groups": []
+  },
+  {
+    "title": "Test Modes",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4648576,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "BYPASS",
+        "label": "Bypass",
+        "x": 103,
+        "y": 76,
+        "w": 60,
+        "id": 4648649,
+        "reference_id": 164,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "TONE",
+        "label": "Tone",
+        "x": 103,
+        "y": 124,
+        "w": 60,
+        "id": 4648680,
+        "reference_id": 165,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "BYPASS GAIN",
+        "label": "Gain",
+        "x": 106,
+        "y": 96,
+        "w": 60,
+        "id": 4648712,
+        "reference_id": 195,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "30 HZ HPF",
+        "label": "30 Hz HPF",
+        "x": 210,
+        "y": 96,
+        "w": 60,
+        "id": 4648747,
+        "reference_id": 196,
+        "options": [
+          "Off",
+          "On"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "FREQUENCY",
+        "label": "Frequency",
+        "x": 106,
+        "y": 143,
+        "w": 60,
+        "id": 4648781,
+        "reference_id": 197,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MOD LEVEL",
+        "label": "Mod. Level",
+        "x": 210,
+        "y": 143,
+        "w": 60,
+        "id": 4648819,
+        "reference_id": 198,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "MOD TYPE",
+        "label": "Mod. Type",
+        "x": 106,
+        "y": 164,
+        "w": 60,
+        "id": 4648854,
+        "reference_id": 200,
+        "options": [
+          "LEFT",
+          "RIGHT",
+          "L+R",
+          "L-R"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "OPERATE",
+        "label": "Operate",
+        "x": 103,
+        "y": 49,
+        "w": 60,
+        "id": 4648961,
+        "reference_id": 163,
+        "options": [
+          "Off",
+          "On"
+        ]
+      }
+    ],
+    "groups": []
+  }
+]

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Action, Definition, Field } from './model';
 import { couplingConfirmationIsStale, type CouplingConfirmation } from './coupling-state';
+import { FigmaIcon } from './FigmaIcon';
 
 function CouplingLabel() {
   return <strong aria-hidden="true"><span>FM</span><svg viewBox="603 78 8 7.2" focusable="false">
@@ -10,9 +11,11 @@ function CouplingLabel() {
   </svg><span>HD</span></strong>;
 }
 
-export function CouplingControl({ field, definition, connected, writeEnabled, busy, sessionId, presetName, action }: {
+export function CouplingControl({ field, definition, connected, writeEnabled, busy, sessionId, presetName, action, variant = 'instrument' }: {
   field?: Field; definition?: Definition; connected: boolean; writeEnabled: boolean;
   busy: boolean; sessionId?: string | null; presetName: string; action: Action;
+  /** 'figma': the icon button of the Meters window design. */
+  variant?: 'instrument' | 'figma';
 }) {
   const [confirmation, setConfirmation] = useState<CouplingConfirmation | null>(null);
   if (!field || !definition) return <section className="coupling-control" aria-label="FM to HD processing coupling">
@@ -35,12 +38,17 @@ export function CouplingControl({ field, definition, connected, writeEnabled, bu
     if (ok) setConfirmation(null);
   };
   return <section className={`coupling-control${confirmation?' confirming':''}`} aria-label="FM to HD processing coupling">
-    <button className={`coupling-trigger${coupled?' is-coupled':''}`} disabled={disabled} aria-pressed={coupled}
+    {variant === 'figma' ? <button className={`fx-action${coupled?' is-coupled':''}`} disabled={disabled} aria-pressed={coupled}
+      aria-label={coupled?'FM to HD linked; activate to decouple':'FM and HD independent; activate to couple'}
+      title={coupled?'FM and HD are linked. Click to decouple.':'FM and HD are independent. Click to couple.'}
+      onClick={() => setConfirmation({field,session:sessionId!,preset:presetName})}>
+      <span className="fx-action-face"><FigmaIcon name="link"/></span><span className="fx-action-label">FM HD</span>
+    </button> : <button className={`coupling-trigger${coupled?' is-coupled':''}`} disabled={disabled} aria-pressed={coupled}
       aria-label={coupled?'FM to HD linked; activate to decouple':'FM and HD independent; activate to couple'}
       title={coupled?'FM and HD are linked. Click to decouple.':'FM and HD are independent. Click to couple.'}
       onClick={() => setConfirmation({field,session:sessionId!,preset:presetName})}>
       <span className="status-pill" aria-hidden="true"><i/></span><CouplingLabel/>
-    </button>
+    </button>}
     {confirmation && <div className="coupling-confirmation" role="alert">
       <span>{coupled ? 'HD will stop following FM and become editable independently.' : 'HD will follow FM. Its current processing may change immediately.'}</span>
       {stale && <span>The device state changed. Cancel and review the current setting.</span>}

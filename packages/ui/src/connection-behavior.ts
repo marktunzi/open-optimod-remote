@@ -32,3 +32,18 @@ export function nextSelectionAfterDelete(
 export function maskedCode(hasCode: boolean): string {
   return hasCode ? '••••••••' : '';
 }
+
+export interface CodeIdentity {
+  host: string;
+  model?: string;
+  has_code?: boolean;
+}
+
+/** A saved code survives an edit of the name or either port. A new address or
+ *  processor model may be another device, so the service clears the code then
+ *  and the editor must ask for it again. */
+export function savedCodeSurvivesEdit(existing: CodeIdentity | undefined, edit: CodeIdentity): boolean {
+  return Boolean(existing?.has_code)
+    && existing!.host.trim() === edit.host.trim()
+    && (existing!.model || 'auto') === (edit.model || 'auto');
+}

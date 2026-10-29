@@ -4,6 +4,7 @@ import {
   filterConnections,
   maskedCode,
   nextSelectionAfterDelete,
+  savedCodeSurvivesEdit,
   shouldDisconnectBeforeDelete,
   type ConnectionSummary,
 } from '../src/connection-behavior.ts';
@@ -35,4 +36,15 @@ test('deleting a connection selects its next neighbor and then its previous neig
 test('saved codes render as bullets and unsaved codes remain empty', () => {
   assert.equal(maskedCode(true), '••••••••');
   assert.equal(maskedCode(false), '');
+});
+
+test('a saved code survives port and name edits but not a new address or model', () => {
+  const saved = { host: '192.0.2.115', model: 'optimod5700i', has_code: true };
+  assert.equal(savedCodeSurvivesEdit(saved, { host: '192.0.2.115', model: 'optimod5700i' }), true);
+  assert.equal(savedCodeSurvivesEdit(saved, { host: ' 192.0.2.115 ', model: 'optimod5700i' }), true);
+  assert.equal(savedCodeSurvivesEdit(saved, { host: '192.0.2.116', model: 'optimod5700i' }), false);
+  assert.equal(savedCodeSurvivesEdit(saved, { host: '192.0.2.115', model: 'auto' }), false);
+  assert.equal(savedCodeSurvivesEdit({ ...saved, has_code: false }, { host: '192.0.2.115', model: 'optimod5700i' }), false);
+  assert.equal(savedCodeSurvivesEdit(undefined, { host: '192.0.2.115' }), false);
+  assert.equal(savedCodeSurvivesEdit({ host: '192.0.2.115', has_code: true }, { host: '192.0.2.115', model: 'auto' }), true);
 });

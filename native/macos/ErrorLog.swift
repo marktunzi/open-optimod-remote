@@ -18,8 +18,10 @@ final class ErrorLogStore {
     private let fileURL: URL
 
     private init() {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("OpenOptimodRemote", isDirectory: true)
+        // OPTIMOD_DATA_DIR moves the log with the service's saved connections (as the service does).
+        let base = LaunchOverride.value("OPTIMOD_DATA_DIR").map { URL(fileURLWithPath: $0, isDirectory: true) }
+            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                .appendingPathComponent("OpenOptimodRemote", isDirectory: true)
         try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         fileURL = base.appendingPathComponent("errors.json")
         if let data = try? Data(contentsOf: fileURL),

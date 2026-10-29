@@ -42,7 +42,12 @@
       4
      ]
     }
-   ]
+   ],
+   "gate": {
+    "id": 36,
+    "label": "GATED",
+    "vertical": true
+   }
   },
   {
    "name": "HF Enhance",
@@ -90,7 +95,83 @@
       9
      ]
     }
-   ]
+   ],
+   "when": {
+    "field": "B1 ATTACK",
+    "present": true
+   },
+   "gate": {
+    "id": 37,
+    "label": "GATED"
+   }
+  },
+  {
+   "name": "2-Band Gain Reduction",
+   "kind": "reduction",
+   "channels": [
+    {
+     "label": "B",
+     "ids": [
+      38
+     ]
+    },
+    {
+     "label": "M",
+     "ids": [
+      39
+     ]
+    }
+   ],
+   "when": {
+    "field": "2B DRIVE",
+    "present": true
+   },
+   "gate": {
+    "id": 37,
+    "label": "GATED"
+   }
+  },
+  {
+   "name": "HF Limiting",
+   "kind": "reduction",
+   "channels": [
+    {
+     "label": "",
+     "ids": [
+      21,
+      22
+     ],
+     "laneLabels": [
+      "L",
+      "R"
+     ]
+    }
+   ],
+   "when": {
+    "field": "2B DRIVE",
+    "present": true
+   }
+  },
+  {
+   "name": "Overshoot Limit",
+   "kind": "reduction",
+   "channels": [
+    {
+     "label": "",
+     "ids": [
+      23,
+      24
+     ],
+     "laneLabels": [
+      "L",
+      "R"
+     ]
+    }
+   ],
+   "when": {
+    "field": "2B DRIVE",
+    "present": true
+   }
   },
   {
    "name": "MPX",
@@ -135,58 +216,6 @@
      "label": "",
      "ids": [
       29
-     ]
-    }
-   ]
-  },
-  {
-   "name": "2-Band Gain Reduction",
-   "kind": "reduction",
-   "channels": [
-    {
-     "label": "B",
-     "ids": [
-      38
-     ]
-    },
-    {
-     "label": "M",
-     "ids": [
-      39
-     ]
-    }
-   ]
-  },
-  {
-   "name": "HF Limiting",
-   "kind": "reduction",
-   "channels": [
-    {
-     "label": "",
-     "ids": [
-      21,
-      22
-     ],
-     "laneLabels": [
-      "L",
-      "R"
-     ]
-    }
-   ]
-  },
-  {
-   "name": "Overshoot Limit",
-   "kind": "reduction",
-   "channels": [
-    {
-     "label": "",
-     "ids": [
-      23,
-      24
-     ],
-     "laneLabels": [
-      "L",
-      "R"
      ]
     }
    ]

@@ -61,6 +61,20 @@ main[data-skin="optimod-8500"] {
   --skin-lcd-text: #80d3e9; --skin-accent-top: #289bbd; --skin-accent-bottom: #17657e;
 }
 
+main[data-skin="optimod-2300"] {
+  --skin-bg: #322f36; --skin-bg-top: #3f3b45; --skin-bg-bottom: #302d34;
+  --skin-panel-top: #221d28; --skin-panel-bottom: #2b2532;
+  --skin-lcd-top: #1c1408; --skin-lcd-mid: #3a2a10; --skin-lcd-bottom: #22180a;
+  --skin-lcd-text: #f0c46a; --skin-accent-top: #a45bc0; --skin-accent-bottom: #6d3484;
+}
+
+main[data-skin="optimod-8400"] {
+  --skin-bg: #2c3138; --skin-bg-top: #363c45; --skin-bg-bottom: #2a2f36;
+  --skin-panel-top: #172238; --skin-panel-bottom: #1d2a44;
+  --skin-lcd-top: #0b1730; --skin-lcd-mid: #16305c; --skin-lcd-bottom: #0d1c38;
+  --skin-lcd-text: #f2c44a; --skin-accent-top: #3f6fc4; --skin-accent-bottom: #23488c;
+}
+
 main[data-skin="optimod-6300"] {
   --skin-bg: #2d3330; --skin-bg-top: #39413d; --skin-bg-bottom: #2b312e;
   --skin-panel-top: #1b2520; --skin-panel-bottom: #222d28;
@@ -376,6 +390,13 @@ main:not(.connection-mode)::before {
   background: var(--skin-bg);
 }
 
+.processing-unknown {
+  display: grid;
+  place-items: center;
+  opacity: 0.7;
+  font-size: 13px;
+}
+
 .single-group-page .processing-group {
   grid-column: 1 / -1;
   width: 82.5%;
@@ -398,14 +419,14 @@ main:not(.connection-mode)::before {
   padding-left: 38px;
 }
 
-.single-group-page .control-well.dense > .processing-control:first-child {
+.single-group-page .control-well.dense > .processing-control.page-switch {
   margin: -8px -16px -9px;
   padding: 8px 16px 9px;
   border: 1px solid #50504e;
   border-radius: 4px;
 }
 
-.single-group-page .control-well.dense > .processing-control:first-child output {
+.single-group-page .control-well.dense > .processing-control.page-switch output {
   text-transform: uppercase;
 }
 
@@ -441,3 +462,521 @@ main:not(.connection-mode)::before {
   left: 30px !important;
   transform: none !important;
 }
+
+/*
+ * Native windows of the macOS app: every window is one page on one processor
+ * and fills its own window. The browser keeps the combined page above.
+ */
+main[data-window="meters"],
+main[data-window="processing"],
+main[data-window="presets"] {
+  min-width: 0;
+  min-height: 100vh;
+}
+
+main[data-window="processing"] .app-body,
+main[data-window="presets"] .app-body {
+  min-height: 100vh;
+}
+
+main[data-window="processing"] .processing {
+  min-height: 0;
+  padding-bottom: 18px;
+}
+
+main[data-window="meters"] > .development {
+  margin: 0;
+}
+
+main[data-window="processing"] .tabs {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/*
+ * The Figma design (Meters 150:2690, Processing Settings 150:3651), the same
+ * for every model in the macOS app's windows. Colours sampled from the frames;
+ * accents from the file's variables.
+ */
+main[data-skin="figma"] {
+  --fx-strip: #4c4c4c;
+  --fx-strip-line: #434343;
+  --fx-bar: #313131;
+  --fx-meters: #292929;
+  --fx-button: #4d4d4d;
+  --fx-icon: #d1d1d1;
+  --fx-muted: #8f8f8f;
+  --fx-text: rgba(255, 255, 255, 0.86);
+  --fx-processing: #535353;
+  --fx-tabs: #4c4c4c;
+  --fx-value: #4a4a4a;
+  --fx-track: #333333;
+  --fx-blue: #009dff;
+  --fx-cyan: #00c4e3;
+  --fx-green: #34c759;
+  --app-cyan: var(--fx-cyan);
+  --control-track-fill: var(--fx-track);
+  background: var(--fx-processing);
+  font-family: -apple-system, "SF Pro Text", BlinkMacSystemFont, sans-serif;
+}
+
+main[data-skin="figma"]::before {
+  display: none;
+}
+
+main[data-window="meters"][data-skin="figma"] {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--fx-meters);
+}
+
+/* The meters keep their real size; a smaller window scrolls them. */
+main[data-window="meters"][data-skin="figma"] > .meterstrip {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px 16px 10px;
+}
+
+main[data-window="meters"][data-skin="figma"] .meter-canvas-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  aspect-ratio: auto;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+}
+
+main[data-window="meters"][data-skin="figma"] > .development {
+  flex: 0 0 auto;
+}
+
+main[data-skin="figma"] > .fx-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 41px 82px;
+  justify-content: stretch;
+  align-items: stretch;
+  padding: 0;
+  border: 0;
+}
+
+.fx-status {
+  display: flex;
+  align-items: stretch;
+  padding: 0 24px;
+  background: var(--fx-strip);
+  color: var(--fx-text);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.fx-cell {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  border-left: 1px solid var(--fx-strip-line);
+  line-height: 41px;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+.fx-cell:first-child {
+  padding-left: 0;
+  border-left: 0;
+  text-align: left;
+}
+
+.fx-clock {
+  flex: 0 0 auto;
+  padding-left: 16px;
+  padding-right: 0;
+  text-align: right;
+}
+
+.fx-connection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fx-connection > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b6b6b;
+}
+
+.fx-connection.is-connected > i {
+  background: var(--fx-green);
+  box-shadow: 0 0 4px rgba(52, 199, 89, 0.7);
+}
+
+.fx-connection.is-reconnecting > i {
+  background: #ffcc00;
+}
+
+.fx-connection.is-connection > i {
+  background: #ff383c;
+}
+
+/* Connected, but no meter frame has arrived yet. */
+.fx-connection.is-connected:not(.is-live) > i {
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.fx-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--fx-bar);
+}
+
+.fx-logo {
+  width: 78px;
+  height: 37px;
+  margin-left: 11px;
+  object-fit: contain;
+}
+
+.fx-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.fx-action {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 56px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fx-icon);
+  font: inherit;
+  cursor: pointer;
+}
+
+.fx-action-face {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--fx-button);
+}
+
+.fx-action-face > svg {
+  width: 24px;
+  height: 24px;
+}
+
+.fx-action-label {
+  color: var(--fx-muted);
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.fx-action:hover .fx-action-face {
+  background: #5a5a5a;
+}
+
+.fx-action[aria-pressed="true"] .fx-action-face {
+  color: var(--fx-blue);
+}
+
+.fx-action:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.fx-action:focus-visible {
+  outline: none;
+}
+
+.fx-action:focus-visible .fx-action-face {
+  outline: 2px solid var(--fx-blue);
+  outline-offset: 2px;
+}
+
+main[data-skin="figma"] .coupling-control {
+  position: relative;
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+main[data-skin="figma"] .coupling-confirmation {
+  position: absolute;
+  z-index: 20;
+  top: 54px;
+  right: -60px;
+  width: 340px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #3a3a3a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+main[data-skin="figma"] .meterstrip {
+  padding: 0 16px;
+  border: 0;
+  background: var(--fx-meters);
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .meter-canvas-scroll {
+  border-radius: 0;
+  background: var(--fx-meters);
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .meter-canvas-scroll::after {
+  display: none;
+}
+
+/* Processing Settings */
+main[data-skin="figma"] .tabs {
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  min-height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid #444;
+  background: var(--fx-tabs);
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .tabs > button {
+  flex: 0 0 auto;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 12px;
+  white-space: nowrap;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  text-shadow: none;
+  box-shadow: none;
+}
+
+/* Tabs sit side by side from the left, 4 px apart; a model with more pages scrolls the bar. */
+main[data-skin="figma"] .tabs {
+  justify-content: flex-start;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* The design has no banner; the profile's evidence stays as a quiet line below the controls. */
+main[data-window="processing"] .workspace {
+  display: flex;
+  flex-direction: column;
+}
+/* The FM/HD choice stays in view while the tabs scroll under it. */
+main[data-skin="figma"] .tabs > .processing-path-selector {
+  position: sticky;
+  /* Past the tab bar's own 16 px padding, to its edge. */
+  right: -16px;
+  z-index: 1;
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  margin: 0 0 0 auto;
+  padding: 0 16px 0 8px;
+  box-shadow: -12px 0 12px var(--fx-tabs);
+  background: var(--fx-tabs);
+}
+
+main[data-skin="figma"] .tabs > button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+main[data-skin="figma"] .tabs > button[aria-pressed="true"] {
+  border: 0;
+  background: var(--fx-blue);
+  color: #fff;
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .tabs > button:disabled {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+main[data-skin="figma"] .app-body,
+main[data-skin="figma"] .workspace,
+main[data-skin="figma"] .processing {
+  background: var(--fx-processing);
+}
+
+main[data-skin="figma"] .control-well {
+  background: transparent;
+  box-shadow: none;
+}
+
+main[data-skin="figma"] .processing-group > h3 {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+main[data-skin="figma"] .single-group-page .control-well.dense > .processing-control.page-switch {
+  border-color: #6d6d6d;
+  border-radius: 6px;
+}
+
+main[data-skin="figma"] .control > label,
+main[data-skin="figma"] .toggle-control > label,
+main[data-skin="figma"] .control-value,
+main[data-skin="figma"] .toggle-control output {
+  font-family: inherit;
+}
+
+main[data-skin="figma"] .control-value,
+main[data-skin="figma"] .control-value:read-only,
+main[data-skin="figma"] .toggle-control output {
+  border-radius: 4px !important;
+  background: var(--fx-value) !important;
+}
+
+main[data-skin="figma"] .toggle-switch.on {
+  background: linear-gradient(164deg, #2cd96a, #13b250);
+}
+
+main[data-skin="figma"] .fx-action,
+main[data-skin="figma"] .fx-action.is-coupled {
+  background: transparent;
+  box-shadow: none;
+}
+
+/*
+ * Processing Settings keeps its tab bar in view: only the page scrolls when
+ * a model's page is taller than the window (the 8700HD Equalizer has six
+ * groups). Groups sit closer than in the browser so most pages fit the
+ * Figma height.
+ */
+main[data-window="processing"] {
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+main[data-window="processing"] .app-body {
+  height: 100vh;
+  min-height: 0;
+}
+main[data-window="processing"] .workspace {
+  min-height: 0;
+}
+main[data-window="processing"] .processing {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+main[data-skin="figma"] .processing-groups:not(.single-group-page) {
+  gap: 14px 38px;
+}
+main[data-skin="figma"] .processing-groups:not(.single-group-page) .processing-group > h3 {
+  margin: 0 0 2px;
+}
+main[data-skin="figma"] .processing-groups:not(.single-group-page) .control-well {
+  padding: 10px 40px 4px;
+  gap: 12px 30px;
+}
+
+/* A Band Mix section next to other sections (the 8400): level and on/mute per band side by side. */
+main[data-skin="figma"] .processing-groups.sectioned-page .band-mix-group {
+  grid-column: span 2;
+}
+main[data-skin="figma"] .processing-groups:not(.single-group-page) .band-mix-group .control-well {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Explicit sections (the 8400) keep column width: a page with one or two sections does not stretch them. */
+main[data-skin="figma"] .processing-groups.sectioned-page {
+  grid-template-columns: repeat(auto-fill, minmax(315px, 1fr));
+}
+
+/* Choice buttons (AGC Ratio, Bass Clip Mode…) share one row in equal widths. */
+main[data-skin="figma"] .processing .radio-control {
+  grid-template-columns: repeat(auto-fit, minmax(46px, 1fr));
+  gap: 6px;
+}
+main[data-skin="figma"] .processing .radio-control label {
+  padding: 7px 4px;
+}
+
+
+/* Text boxes of the original client (5700i preset RDS): full width, left aligned. */
+.text-control .text-value {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 22px;
+  padding: 2px 6px;
+  text-align: left;
+  border: 1px solid transparent;
+  color: inherit;
+}
+.text-control .text-value:focus-visible {
+  outline: 2px solid var(--fx-cyan);
+  outline-offset: 0;
+}
+.text-control .text-value[aria-invalid="true"] {
+  border-color: #ff5a4f;
+}
+.text-control small {
+  display: block;
+  font-size: 11px;
+  color: #ff8a80;
+}
+
+/* Processing Settings without a processor: the Meters status strip's look
+   (grey lamp, muted text) with one Figma button to the connections. */
+.fx-status.window-offline {
+  align-items: center;
+  gap: 12px;
+  height: 41px;
+  padding: 0 16px 0 24px;
+  border-bottom: 1px solid var(--fx-strip-line);
+  background: var(--fx-strip, #4c4c4c);
+}
+.window-offline .fx-connection {
+  flex: 1 1 auto;
+  color: var(--fx-muted, #8f8f8f);
+  font-size: 11px;
+  line-height: 41px;
+  cursor: default;
+}
+main[data-skin="figma"] .window-offline .fx-offline-open {
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--fx-track, #333333);
+  color: var(--fx-text, rgba(255, 255, 255, 0.86));
+  font: 500 11px -apple-system, "SF Pro Text", BlinkMacSystemFont, sans-serif;
+  cursor: pointer;
+}
+main[data-skin="figma"] .window-offline .fx-offline-open:hover { background: var(--fx-bar, #313131); }
+.window-offline .fx-offline-open:focus-visible { outline: 2px solid var(--fx-blue, #009dff); outline-offset: 1px; }

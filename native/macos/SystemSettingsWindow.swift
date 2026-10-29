@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate {
-    private let api = SystemSettingsAPI()
+    private let api: SystemSettingsAPI
     private let rootViewController = NSViewController()
     private var tabController = NSTabViewController()
     private var context: SystemSettingsContext?
@@ -10,15 +10,22 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
     private var statusText = "Loading settings…"
     private var detailText = ""
     private var selectedSections: [String: String] = [:]
+    /// The processor this window belongs to: one window per processor, each
+    /// reading and writing only that processor's session.
+    let device: DeviceRef
+    private var lastRevision: Int?
+    private var observer: NSObjectProtocol?
 
-    init() {
+    init(device: DeviceRef) {
+        self.device = device
+        api = SystemSettingsAPI(deviceID: device.id)
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1180, height: 820),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        window.title = "Optimod 5700i Settings"
+        window.title = "System Settings"
         window.minSize = NSSize(width: 980, height: 650)
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
@@ -26,8 +33,33 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
         super.init(window: window)
         window.delegate = self
         configureRoot()
-        window.setFrameAutosaveName("OpenOptimodRemoteSystemSettingsWindow")
         window.center()
+        window.setFrameAutosaveName("OpenOptimodRemoteSystemSettingsWindow.\(device.id)")
+        // The app's one reader of the service state tells every window about a
+        // change; this window adds no polling and no connection of its own.
+        observer = NotificationCenter.default.addObserver(
+            forName: .deviceSessionChanged, object: nil, queue: .main
+        ) { [weak self] _ in self?.sessionChanged() }
+    }
+
+    deinit {
+        if let observer { NotificationCenter.default.removeObserver(observer) }
+    }
+
+    private var isCurrentDevice: Bool { DeviceSessionStore.shared.device(for: device.id) != nil }
+
+    private func sessionChanged() {
+        let session = DeviceSessionStore.shared.session(for: device.id)
+        guard isCurrentDevice else {
+            if context != nil {
+                context = nil
+                setBusy(false, status: "Offline")
+                setDetail("")
+                renderTabs(selectedTitle: selectedTabTitle)
+            }
+            return
+        }
+        if context == nil || session?.revision != lastRevision { reload() }
     }
 
     @available(*, unavailable)
@@ -68,10 +100,18 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
         api.load { [weak self] result in
             guard let self else { return }
             switch result {
+            case let .success(context) where !self.isCurrentDevice || DeviceRef.identity(
+                deviceID: context.snapshot.deviceID, host: context.snapshot.host) != self.device.id:
+                // Another processor answered; this window shows none of its data.
+                self.context = nil
+                self.setBusy(false, status: "Offline")
+                self.setDetail("")
+                self.renderTabs(selectedTitle: self.selectedTabTitle)
             case let .success(context):
+                self.lastRevision = context.snapshot.revision
                 self.context = context
-                self.setBusy(false, status: context.snapshot.connected ? (context.snapshot.writeEnabled ? "Connected · Changes enabled" : "Connected · Read only") : "Not connected")
-                self.setDetail(context.snapshot.connected ? context.snapshot.firmware : (context.snapshot.error ?? "Connect in the main 5700i window."))
+                self.setBusy(false, status: context.snapshot.connected ? (context.snapshot.allows(\.setup) ? "Connected · Changes enabled" : "Connected · Read only") : "Not connected")
+                self.setDetail(context.snapshot.connected ? context.snapshot.firmware : (context.snapshot.error ?? "Connect in Connections."))
                 self.renderTabs(selectedTitle: self.selectedTabTitle)
             case let .failure(error):
                 self.setBusy(false, status: "Settings unavailable")
@@ -100,7 +140,7 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
     }
 
     private func updateWindowSubtitle() {
-        window?.subtitle = [statusText, detailText].filter { !$0.isEmpty }.joined(separator: " · ")
+        window?.subtitle = [device.subtitle, statusText, detailText].filter { !$0.isEmpty }.joined(separator: " · ")
     }
 
     private func renderTabs(selectedTitle: String?) {
@@ -117,7 +157,7 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
             replacement.view.bottomAnchor.constraint(equalTo: rootViewController.view.bottomAnchor),
         ])
 
-        for tab in SystemSettingsSpecification.tabs {
+        for tab in Self.tabs(for: context) {
             let controller = SystemSettingsTabController(
                 tab: tab,
                 context: context,
@@ -147,6 +187,15 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
         tabController = replacement
     }
 
+    /// The 5700i has its hand-made worksheet; every other model gets the
+    /// System fields of its own profile.
+    static func tabs(for context: SystemSettingsContext?) -> [SettingsTab] {
+        guard let adapter = context?.snapshot.adapterID, !adapter.hasPrefix("pc-remote-5700i-") else {
+            return SystemSettingsSpecification.tabs
+        }
+        return ProfileSystemSettings.tabs(context: context)
+    }
+
     private func commit(item: SettingsItem, index: Int, requestedText: String?) {
         guard !busy, let context, let fieldName = item.deviceField else { return }
         if case let .unavailable(reason) = item.writePolicy {
@@ -167,6 +216,12 @@ final class SystemSettingsWindowController: NSWindowController, NSWindowDelegate
                 self.reload()
             }
         }
+    }
+
+    /// Test hook: selects a tab as a click on it does.
+    func selectTab(at index: Int) {
+        guard tabController.tabViewItems.indices.contains(index) else { return }
+        tabController.selectedTabViewItemIndex = index
     }
 
     private func showValidationError(_ message: String) {
@@ -523,7 +578,7 @@ private final class SettingsControlRow: NSView, NSTextFieldDelegate {
     private var policyExplanation: String? {
         if case let .unavailable(reason) = item.writePolicy { return reason }
         if context?.snapshot.connected == false { return "Connect in the main window to load and edit this value." }
-        if context?.snapshot.writeEnabled == false { return "The active connection is read only." }
+        if context?.snapshot.allows(\.setup) == false { return "The active connection is read only." }
         if field == nil { return "This setting is not present in the connected unit's System document." }
         if item.writePolicy == .profile && definition == nil { return "This control is unavailable for the connected firmware profile." }
         return nil
@@ -646,7 +701,7 @@ private final class SettingsControlRow: NSView, NSTextFieldDelegate {
     }
 
     private func makeText(maxLength: Int?, validation: SettingsTextValidation) -> NSView {
-        let field = NSTextField(string: self.field?.value.value.text ?? "")
+        let field = NSTextField(string: Self.shownText(self.field?.value.value.text))
         field.placeholderString = validation == .ipAddress ? "0.0.0.0" : ""
         field.target = self
         field.action = #selector(textChanged(_:))
@@ -876,7 +931,18 @@ private final class SettingsControlRow: NSView, NSTextFieldDelegate {
             return
         }
         guard let field else { return }
-        commitHandler(item, field.index, text)
+        // The client writes an emptied box as the firmware's "undefined".
+        let written = text.isEmpty ? Self.undefinedText : text
+        if written == field.value.value.text { return }
+        commitHandler(item, field.index, written)
+    }
+
+    /// The firmware's value of an empty text field; the original client shows
+    /// it as an empty box (5700iPC.exe RDS pages).
+    static let undefinedText = "undefined"
+
+    static func shownText(_ text: String?) -> String {
+        text == undefinedText ? "" : text ?? ""
     }
 
     @objc private func integerChanged(_ sender: NSTextField) {

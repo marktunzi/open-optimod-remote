@@ -18,7 +18,10 @@ fn values_keep_their_types_and_device_indices() {
 #[test]
 fn document_families_are_parsed_only_for_the_detected_processor() {
     for (model, version) in [
-        (DeviceModel::Optimod5500i, "8300.10"),
+        // Observed on the 5500i 3.1.0.2 firmware; its installer's factory files are 8300.10.
+        (DeviceModel::Optimod5500i, "5500.50"),
+        // The 5500 firmware 1.2.8.24 writes 5500.50; its factory files are 8300.10.
+        (DeviceModel::Optimod5500, "5500.50"),
         (DeviceModel::Optimod5500, "8300.10"),
         (DeviceModel::Optimod5700Fm, "5700.50"),
         (DeviceModel::Optimod5700Hd, "5700.50"),
@@ -52,4 +55,20 @@ fn malformed_decrypted_documents_never_become_device_state() {
     ] {
         assert!(Document::parse(doc.as_bytes()).is_err());
     }
+}
+
+#[test]
+fn a_document_prefix_keeps_only_complete_lines() {
+    let text = "OptimodVersion=<5700.51>\nPreset Name=<GREGG> size=306\nC:<AGC>String:<On>;D:1;\nC:<AGC DRIVE>Int:15;D:2";
+    let start =
+        orban_protocol::document::Document::parse_prefix(text.as_bytes(), "OptimodVersion=<5700.")
+            .unwrap();
+    assert_eq!(start.name, "GREGG");
+    assert_eq!(start.fields.len(), 1);
+    assert!(start.fields.contains_key("AGC"));
+    // A cut inside the first line has no usable start.
+    assert!(
+        orban_protocol::document::Document::parse_prefix(b"OptimodVer", "OptimodVersion=<5700.")
+            .is_err()
+    );
 }

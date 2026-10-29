@@ -8,12 +8,18 @@ enum ProcessorModel: String, Codable, CaseIterable, Sendable {
     case optimod5700FM = "optimod-5700-fm"
     case optimod5700HD = "optimod-5700-hd"
     case optimod8500 = "optimod-8500"
+    case optimod2300 = "optimod-2300"
     case optimod6300 = "optimod-6300"
+    case optimod8400 = "optimod-8400"
     case optimod8600 = "optimod-8600"
     case optimod8700i = "optimod-8700i"
     case optimod8700HD = "optimod-8700hd"
     case optimod9300 = "optimod-9300"
     case optimod9400 = "optimod-9400"
+
+    /// The 8400 speaks PC Remote on TCP 51200, every other model on 6201.
+    var defaultPort: Int { self == .optimod8400 ? 51200 : 6201 }
+    static let defaultPorts: Set<Int> = [6201, 51200]
 
     var label: String {
         switch self {
@@ -24,7 +30,9 @@ enum ProcessorModel: String, Codable, CaseIterable, Sendable {
         case .optimod5700FM: "OPTIMOD 5700 FM"
         case .optimod5700HD: "OPTIMOD 5700 HD"
         case .optimod8500: "OPTIMOD 8500"
+        case .optimod2300: "OPTIMOD 2300"
         case .optimod6300: "OPTIMOD 6300"
+        case .optimod8400: "OPTIMOD-FM 8400"
         case .optimod8600: "OPTIMOD 8600"
         case .optimod8700i: "OPTIMOD 8700i"
         case .optimod8700HD: "OPTIMOD-FM 8700HD"
@@ -42,10 +50,12 @@ struct SavedConnection: Codable, Equatable, Sendable, Identifiable {
     let terminalPort: Int
     let hasCode: Bool
     let model: ProcessorModel?
+    /// The connection-list group, as in the original client.
+    var group: String? = nil
 
     var processorModel: ProcessorModel { model ?? .auto }
 
-    init(id: String, name: String, host: String, port: Int, terminalPort: Int, hasCode: Bool, model: ProcessorModel = .auto) {
+    init(id: String, name: String, host: String, port: Int, terminalPort: Int, hasCode: Bool, model: ProcessorModel = .auto, group: String? = nil) {
         self.id = id
         self.name = name
         self.host = host
@@ -53,10 +63,11 @@ struct SavedConnection: Codable, Equatable, Sendable, Identifiable {
         self.terminalPort = terminalPort
         self.hasCode = hasCode
         self.model = model
+        self.group = group
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, host, port, model
+        case id, name, host, port, model, group
         case terminalPort = "terminal_port"
         case hasCode = "has_code"
     }
@@ -64,6 +75,7 @@ struct SavedConnection: Codable, Equatable, Sendable, Identifiable {
 
 struct ConnectionsResponse: Codable, Sendable {
     let devices: [SavedConnection]
+    let groups: [String]?
 }
 
 struct ConnectionEdit: Codable, Sendable {
@@ -73,26 +85,54 @@ struct ConnectionEdit: Codable, Sendable {
     let port: Int
     let terminalPort: Int
     let model: ProcessorModel
+    let group: String?
 
-    init(id: String?, name: String, host: String, port: Int, terminalPort: Int, model: ProcessorModel = .auto) {
+    init(id: String?, name: String, host: String, port: Int, terminalPort: Int, model: ProcessorModel = .auto, group: String? = nil) {
         self.id = id
         self.name = name
         self.host = host
         self.port = port
         self.terminalPort = terminalPort
         self.model = model
+        self.group = group
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, host, port, model
+        case id, name, host, port, model, group
         case terminalPort = "terminal_port"
     }
 }
 
-struct ConnectionsContext: Sendable {
+struct ConnectionsContext: Sendable, Equatable {
     let devices: [SavedConnection]
-    let connected: Bool
-    let activeID: String?
+    /// The saved connections whose own session is connected; every processor
+    /// has its own, so any number can be connected at once.
+    var connectedIDs: Set<String> = []
+    var groups: [String] = []
+
+    func isConnected(_ id: String) -> Bool { connectedIDs.contains(id) }
+}
+
+/// New, Rename and Delete Group of the connection list.
+enum ConnectionGroupEdit: Encodable {
+    case create(String)
+    case rename(String, to: String)
+    case delete(String)
+
+    private enum Keys: String, CodingKey { case action, name, newName = "new_name" }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+        switch self {
+        case let .create(name):
+            try container.encode("create", forKey: .action); try container.encode(name, forKey: .name)
+        case let .rename(name, newName):
+            try container.encode("rename", forKey: .action); try container.encode(name, forKey: .name)
+            try container.encode(newName, forKey: .newName)
+        case let .delete(name):
+            try container.encode("delete", forKey: .action); try container.encode(name, forKey: .name)
+        }
+    }
 }
 
 enum ConnectionSelection {
@@ -105,8 +145,18 @@ enum ConnectionSelection {
         return nil
     }
 
-    static func mustDisconnect(connected: Bool, activeID: String?, deletingID: String) -> Bool {
-        connected && activeID == deletingID
+    static func mustDisconnect(connectedIDs: Set<String>, deletingID: String) -> Bool {
+        connectedIDs.contains(deletingID)
+    }
+
+    /// The service keeps a saved code across name and port edits only; a new
+    /// address or processor model may be another device.
+    static func savedCodeSurvivesEdit(
+        hasCode: Bool, savedHost: String, savedModel: ProcessorModel, host: String, model: ProcessorModel
+    ) -> Bool {
+        hasCode
+            && savedHost.trimmingCharacters(in: .whitespacesAndNewlines) == host.trimmingCharacters(in: .whitespacesAndNewlines)
+            && savedModel == model
     }
 }
 
@@ -129,8 +179,12 @@ final class ConnectionsAPI {
 
     init() {
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 8
-        configuration.timeoutIntervalForResource = 12
+        // Connecting can take up to 24 s on the service (login, the system
+        // document, the preset list, then the on-air archive when the status
+        // port did not give it); a shorter wait reports a failed connection
+        // that then succeeds. Checked by an orban-web test.
+        configuration.timeoutIntervalForRequest = 30
+        configuration.timeoutIntervalForResource = 35
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         session = URLSession(configuration: configuration)
     }
@@ -143,14 +197,14 @@ final class ConnectionsAPI {
             switch devicesResult {
             case let .failure(error): self.finish(.failure(error), completion: completion)
             case let .success(response):
-                self.get(path: "state", as: ConnectionState.self) { stateResult in
+                self.get(path: "sessions", as: SessionList.self) { stateResult in
                     switch stateResult {
                     case let .failure(error): self.finish(.failure(error), completion: completion)
-                    case let .success(state):
+                    case let .success(list):
                         self.finish(.success(ConnectionsContext(
                             devices: response.devices,
-                            connected: state.connected,
-                            activeID: state.deviceID
+                            connectedIDs: Set(list.sessions.filter(\.connected).compactMap(\.key)),
+                            groups: response.groups ?? []
                         )), completion: completion)
                     }
                 }
@@ -172,12 +226,19 @@ final class ConnectionsAPI {
         postWithoutResponse(path: "devices/code", body: ConnectionCodeRequest(id: id, code: code), completion: completion)
     }
 
+    /// Connects the saved connection in its own session; other processors
+    /// stay connected.
     func connect(id: String, completion: @escaping (Result<Void, Error>) -> Void) {
-        postWithoutResponse(path: "devices/connect", body: ConnectionCodeRequest(id: id, code: nil), completion: completion)
+        postWithoutResponse(path: "devices/connect", device: id, body: ConnectionCodeRequest(id: id, code: nil), completion: completion)
     }
 
-    func disconnect(completion: @escaping (Result<Void, Error>) -> Void) {
-        postWithoutResponse(path: "disconnect", body: EmptyRequest(), completion: completion)
+    /// Disconnects this processor only.
+    func disconnect(id: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        postWithoutResponse(path: "disconnect", device: id, body: EmptyRequest(), completion: completion)
+    }
+
+    func group(_ edit: ConnectionGroupEdit, completion: @escaping (Result<Void, Error>) -> Void) {
+        postWithoutResponse(path: "devices/groups", body: edit, completion: completion)
     }
 
     func delete(id: String, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -196,8 +257,9 @@ final class ConnectionsAPI {
         }.resume()
     }
 
-    private func postWithoutResponse<T: Encodable>(path: String, body: T, completion: @escaping (Result<Void, Error>) -> Void) {
-        post(path: path, body: body, response: EmptyResponse.self) { [weak self] result in
+    private func postWithoutResponse<T: Encodable>(path: String, device: String? = nil, body: T,
+                                                   completion: @escaping (Result<Void, Error>) -> Void) {
+        post(path: path, device: device, body: body, response: EmptyResponse.self) { [weak self] result in
             guard let self else { return }
             switch result {
             case .success: self.finish(.success(()), completion: completion)
@@ -206,9 +268,10 @@ final class ConnectionsAPI {
         }
     }
 
-    private func post<T: Encodable, R: Decodable & Sendable>(path: String, body: T, response: R.Type, completion: @escaping (Result<R, Error>) -> Void) {
+    private func post<T: Encodable, R: Decodable & Sendable>(path: String, device: String? = nil, body: T, response: R.Type,
+                                                            completion: @escaping (Result<R, Error>) -> Void) {
         do {
-            var request = URLRequest(url: URL(string: "\(BackendHealth.origin)/api/\(path)")!)
+            var request = URLRequest(url: BackendHealth.api(path, device: device))
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue(BackendHealth.origin, forHTTPHeaderField: "Origin")
@@ -240,14 +303,13 @@ final class ConnectionsAPI {
     }
 }
 
-private struct ConnectionState: Codable, Sendable {
-    let connected: Bool
-    let deviceID: String?
-
-    enum CodingKeys: String, CodingKey {
-        case connected
-        case deviceID = "device_id"
+private struct SessionList: Codable, Sendable {
+    struct Entry: Codable, Sendable {
+        let key: String?
+        let connected: Bool
     }
+
+    let sessions: [Entry]
 }
 
 private struct SavedConnectionEnvelope: Codable, Sendable {

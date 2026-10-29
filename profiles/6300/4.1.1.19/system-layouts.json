@@ -1,0 +1,1100 @@
+[
+  {
+    "title": "Input",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 212,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INPUT A OR D",
+        "label": "Input Source",
+        "x": 11,
+        "y": 17,
+        "w": 61,
+        "id": 2230,
+        "reference_id": 266,
+        "options": [
+          "Analog",
+          "Digital",
+          "Digital + J.17"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF LEVEL",
+        "label": "AI REF Level",
+        "x": 126,
+        "y": 30,
+        "w": 18,
+        "id": 2222,
+        "reference_id": 276,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI REF PPM LEVEL",
+        "label": "AI REF PPM Level",
+        "x": 143,
+        "y": 16,
+        "w": 40,
+        "id": 2547,
+        "reference_id": 277,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AI BALANCE",
+        "label": "AI Balance",
+        "x": 87,
+        "y": 173,
+        "w": 95,
+        "id": 2241,
+        "reference_id": 279,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF LEVEL",
+        "label": "DI REF Level",
+        "x": 234,
+        "y": 30,
+        "w": 18,
+        "id": 2224,
+        "reference_id": 274,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI REF PPM LEVEL",
+        "label": "DI REF PPM Level",
+        "x": 234,
+        "y": 30,
+        "w": 18,
+        "id": 2224,
+        "reference_id": 275,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DI BALANCE",
+        "label": "DI Balance",
+        "x": 195,
+        "y": 173,
+        "w": 95,
+        "id": 2242,
+        "reference_id": 280,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "EXT SYNC",
+        "label": "External Sync",
+        "x": 11,
+        "y": 68,
+        "w": 53,
+        "id": 2231,
+        "reference_id": 467,
+        "options": [
+          "AES",
+          "Word Clock"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 70,
+        "h": 45,
+        "text": "Input Source"
+      },
+      {
+        "x": 84,
+        "y": 7,
+        "w": 101,
+        "h": 187,
+        "text": "Analog Input Ref. Level"
+      },
+      {
+        "x": 192,
+        "y": 7,
+        "w": 101,
+        "h": 187,
+        "text": "Digital Input Ref. Level"
+      },
+      {
+        "x": 7,
+        "y": 55,
+        "w": 70,
+        "h": 45,
+        "text": "External Sync"
+      },
+      {
+        "x": 7,
+        "y": 103,
+        "w": 70,
+        "h": 32,
+        "text": "Input Mode"
+      }
+    ]
+  },
+  {
+    "title": "Output 1",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 218,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "AO1 LEVEL",
+        "label": "AO1 Level",
+        "x": 75,
+        "y": 17,
+        "w": 18,
+        "id": 2259,
+        "reference_id": 482,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 LEVEL",
+        "label": "DO1 Level",
+        "x": 177,
+        "y": 17,
+        "w": 18,
+        "id": 2266,
+        "reference_id": 497,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AO PRE-OUT",
+        "label": "Pre-emphasis",
+        "x": 18,
+        "y": 134,
+        "w": 66,
+        "id": 2260,
+        "reference_id": 484,
+        "options": [
+          "Flat",
+          "Pre-emphasized"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 PRE EMPH",
+        "label": "DO1 PRE Emph",
+        "x": 120,
+        "y": 136,
+        "w": 72,
+        "id": 2274,
+        "reference_id": 500,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AO1 SOURCE",
+        "label": "AO1 Source",
+        "x": 18,
+        "y": 169,
+        "w": 72,
+        "id": 3374,
+        "reference_id": 483,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 SOURCE",
+        "label": "DO1 Source",
+        "x": 120,
+        "y": 169,
+        "w": 72,
+        "id": 3375,
+        "reference_id": 499,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 SYNC",
+        "label": "DO1 Sync",
+        "x": 209,
+        "y": 25,
+        "w": 72,
+        "id": 3376,
+        "reference_id": 505,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DO1 EMITS",
+        "label": "Output Emits",
+        "x": 209,
+        "y": 166,
+        "w": 57,
+        "id": 3377,
+        "reference_id": 468,
+        "options": [
+          "Stereo/Dual",
+          "Mono Left"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO1 FORMAT",
+        "label": "Format",
+        "x": 209,
+        "y": 134,
+        "w": 48,
+        "id": 2270,
+        "reference_id": 502,
+        "options": [
+          "AES/EBU",
+          "SPDIF"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 SAMPLE RATE",
+        "label": "DO1 Sample Rate",
+        "x": 209,
+        "y": 57,
+        "w": 72,
+        "id": 2271,
+        "reference_id": 501,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO1 WORD_LENGTH",
+        "label": "DO1 Word_length",
+        "x": 209,
+        "y": 88,
+        "w": 72,
+        "id": 2272,
+        "reference_id": 503,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 97,
+        "h": 187,
+        "text": "Analog Output"
+      },
+      {
+        "x": 13,
+        "y": 124,
+        "w": 85,
+        "h": 32,
+        "text": "Pre-emphasis "
+      },
+      {
+        "x": 13,
+        "y": 156,
+        "w": 85,
+        "h": 32,
+        "text": "Output Source"
+      },
+      {
+        "x": 109,
+        "y": 7,
+        "w": 185,
+        "h": 187,
+        "text": "Digital Output"
+      },
+      {
+        "x": 115,
+        "y": 124,
+        "w": 85,
+        "h": 32,
+        "text": "Pre-emphasis "
+      },
+      {
+        "x": 204,
+        "y": 124,
+        "w": 85,
+        "h": 32,
+        "text": "Format "
+      },
+      {
+        "x": 204,
+        "y": 156,
+        "w": 85,
+        "h": 32,
+        "text": "Output Emits"
+      },
+      {
+        "x": 115,
+        "y": 156,
+        "w": 85,
+        "h": 32,
+        "text": "Output Source"
+      },
+      {
+        "x": 204,
+        "y": 12,
+        "w": 85,
+        "h": 32,
+        "text": "Synchronization"
+      },
+      {
+        "x": 204,
+        "y": 44,
+        "w": 85,
+        "h": 32,
+        "text": "Sample Rate"
+      },
+      {
+        "x": 204,
+        "y": 76,
+        "w": 85,
+        "h": 32,
+        "text": "Word Length"
+      }
+    ]
+  },
+  {
+    "title": "Output 2",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 367,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "DO2 LEVEL",
+        "label": "DO2 Level",
+        "x": 177,
+        "y": 17,
+        "w": 18,
+        "id": 2266,
+        "reference_id": 488,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO2 PRE EMPH",
+        "label": "DO2 PRE Emph",
+        "x": 120,
+        "y": 136,
+        "w": 72,
+        "id": 2274,
+        "reference_id": 491,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO2 SOURCE",
+        "label": "DO2 Source",
+        "x": 120,
+        "y": 169,
+        "w": 72,
+        "id": 3375,
+        "reference_id": 490,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO2 SYNC",
+        "label": "DO2 Sync",
+        "x": 209,
+        "y": 25,
+        "w": 72,
+        "id": 3376,
+        "reference_id": 496,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DO2 EMITS",
+        "label": "Output Emits",
+        "x": 209,
+        "y": 166,
+        "w": 57,
+        "id": 3377,
+        "reference_id": 469,
+        "options": [
+          "Stereo/Dual",
+          "Mono Right"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DO2 FORMAT",
+        "label": "Format",
+        "x": 209,
+        "y": 134,
+        "w": 48,
+        "id": 2270,
+        "reference_id": 493,
+        "options": [
+          "AES/EBU",
+          "SPDIF"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "DO2 SAMPLE RATE",
+        "label": "DO2 Sample Rate",
+        "x": 209,
+        "y": 57,
+        "w": 72,
+        "id": 2271,
+        "reference_id": 492,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DO2 WORD_LENGTH",
+        "label": "DO2 Word_length",
+        "x": 209,
+        "y": 88,
+        "w": 72,
+        "id": 2272,
+        "reference_id": 494,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 109,
+        "y": 7,
+        "w": 185,
+        "h": 187,
+        "text": "Digital Output"
+      },
+      {
+        "x": 115,
+        "y": 124,
+        "w": 85,
+        "h": 32,
+        "text": "Pre-emphasis "
+      },
+      {
+        "x": 204,
+        "y": 124,
+        "w": 85,
+        "h": 32,
+        "text": "Format "
+      },
+      {
+        "x": 204,
+        "y": 156,
+        "w": 85,
+        "h": 32,
+        "text": "Output Emits"
+      },
+      {
+        "x": 115,
+        "y": 156,
+        "w": 85,
+        "h": 32,
+        "text": "Output Source"
+      },
+      {
+        "x": 204,
+        "y": 12,
+        "w": 85,
+        "h": 32,
+        "text": "Synchronization"
+      },
+      {
+        "x": 204,
+        "y": 44,
+        "w": 85,
+        "h": 32,
+        "text": "Sample Rate"
+      },
+      {
+        "x": 204,
+        "y": 76,
+        "w": 85,
+        "h": 32,
+        "text": "Word Length"
+      }
+    ]
+  },
+  {
+    "title": "Test",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 214,
+    "controls": [
+      {
+        "kind": "slider",
+        "name": "BYPASS GAIN",
+        "label": "Bypass Gain",
+        "x": 96,
+        "y": 51,
+        "w": 18,
+        "id": 2239,
+        "reference_id": 319,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "ALGORITHM",
+        "label": "Algorithm",
+        "x": 12,
+        "y": 7,
+        "w": 179,
+        "id": 2257,
+        "reference_id": 264,
+        "options": [
+          "Operate",
+          "Bypass",
+          "Tone"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "MOD LEVEL",
+        "label": "MOD Level",
+        "x": 169,
+        "y": 51,
+        "w": 18,
+        "id": 2240,
+        "reference_id": 322,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "MOD TYPE",
+        "label": "Tone Channels",
+        "x": 226,
+        "y": 108,
+        "w": 36,
+        "id": 2246,
+        "reference_id": 323,
+        "options": [
+          "L-only",
+          "R-only",
+          "L+R",
+          "L-R"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "FREQUENCY",
+        "label": "Frequency",
+        "x": 222,
+        "y": 53,
+        "w": 59,
+        "id": 2523,
+        "reference_id": 320,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 80,
+        "y": 7,
+        "w": 66,
+        "h": 160,
+        "text": ""
+      },
+      {
+        "x": 153,
+        "y": 7,
+        "w": 140,
+        "h": 160,
+        "text": ""
+      },
+      {
+        "x": 215,
+        "y": 98,
+        "w": 71,
+        "h": 61,
+        "text": "Tone Channels"
+      },
+      {
+        "x": 215,
+        "y": 39,
+        "w": 71,
+        "h": 55,
+        "text": "Frequency"
+      }
+    ]
+  },
+  {
+    "title": "Utility",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 215,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "AES USER BITS",
+        "label": "AES User Bits",
+        "x": 159,
+        "y": 83,
+        "w": 100,
+        "id": 3380,
+        "reference_id": 419,
+        "options": [
+          "Block",
+          "Pass DO1"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "LIMITER 1 DELAY",
+        "label": "Limiter 1 Delay",
+        "x": 20,
+        "y": 173,
+        "w": 96,
+        "id": 3377,
+        "reference_id": 472,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "LIMITER 2 DELAY",
+        "label": "Limiter 2 Delay",
+        "x": 166,
+        "y": 173,
+        "w": 96,
+        "id": 3381,
+        "reference_id": 473,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "LDNES METER UNITS",
+        "label": "Loudness Meter Units",
+        "x": 173,
+        "y": 142,
+        "w": 92,
+        "id": 3598,
+        "reference_id": 407,
+        "options": [
+          "LU",
+          "Lk"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "DI ANALOG FALLBACK",
+        "label": "DI Analog Fallback",
+        "x": 26,
+        "y": 143,
+        "w": 92,
+        "id": 3340,
+        "reference_id": 271,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 139,
+        "h": 57,
+        "text": "Real-Time Clock "
+      },
+      {
+        "x": 153,
+        "y": 7,
+        "w": 139,
+        "h": 57,
+        "text": "Station ID "
+      },
+      {
+        "x": 7,
+        "y": 70,
+        "w": 139,
+        "h": 59,
+        "text": ""
+      },
+      {
+        "x": 153,
+        "y": 70,
+        "w": 139,
+        "h": 28,
+        "text": "AES User Bits"
+      },
+      {
+        "x": 153,
+        "y": 100,
+        "w": 139,
+        "h": 28,
+        "text": "AES Status Bits"
+      },
+      {
+        "x": 153,
+        "y": 156,
+        "w": 139,
+        "h": 38,
+        "text": "Limiter 2 Delay"
+      },
+      {
+        "x": 7,
+        "y": 156,
+        "w": 139,
+        "h": 38,
+        "text": "Limiter 1 Delay"
+      },
+      {
+        "x": 167,
+        "y": 130,
+        "w": 100,
+        "h": 24,
+        "text": "Loudness Meter Units"
+      },
+      {
+        "x": 20,
+        "y": 130,
+        "w": 100,
+        "h": 24,
+        "text": "DI Analog Fallback"
+      }
+    ]
+  },
+  {
+    "title": "Network",
+    "width": 300,
+    "height": 266,
+    "reference_dialog": 371,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "INTERFACE TYPE",
+        "label": "Network Settings",
+        "x": 14,
+        "y": 41,
+        "w": 78,
+        "id": 2540,
+        "reference_id": 352,
+        "options": [
+          "Direct (Null Modem)",
+          "Modem"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "START SNMP",
+        "label": "SNMP Settings",
+        "x": 161,
+        "y": 38,
+        "w": 107,
+        "id": 2549,
+        "reference_id": 378,
+        "options": [
+          "Disable SNMP on boot-up",
+          "Enable SNMP"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 3,
+        "y": 7,
+        "w": 140,
+        "h": 203,
+        "text": "Network Settings "
+      },
+      {
+        "x": 148,
+        "y": 7,
+        "w": 144,
+        "h": 259,
+        "text": "SNMP Settings "
+      },
+      {
+        "x": 155,
+        "y": 61,
+        "w": 133,
+        "h": 55,
+        "text": "Primary Manager"
+      },
+      {
+        "x": 155,
+        "y": 117,
+        "w": 133,
+        "h": 55,
+        "text": "Secondary Manager"
+      },
+      {
+        "x": 155,
+        "y": 175,
+        "w": 133,
+        "h": 86,
+        "text": "Community Strings"
+      }
+    ]
+  },
+  {
+    "title": "Misc",
+    "width": 300,
+    "height": 259,
+    "reference_dialog": 385,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "PRE-E",
+        "label": "Pre-Emphasis",
+        "x": 140,
+        "y": 16,
+        "w": 109,
+        "id": 3382,
+        "reference_id": 318,
+        "options": [
+          "Flat",
+          "50uS",
+          "75uS"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "LIM1 PRE-E",
+        "label": "Pre-Emphasis",
+        "x": 140,
+        "y": 36,
+        "w": 107,
+        "id": 3383,
+        "reference_id": 478,
+        "options": [
+          "Flat",
+          "Pre-Emphasized"
+        ]
+      },
+      {
+        "kind": "radio",
+        "name": "LIM2 PRE-E",
+        "label": "Pre-Emphasis",
+        "x": 140,
+        "y": 57,
+        "w": 107,
+        "id": 3384,
+        "reference_id": 479,
+        "options": [
+          "Flat",
+          "Pre-Emphasized"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "MAX LOW PASS",
+        "label": "MAX LOW Pass",
+        "x": 80,
+        "y": 155,
+        "w": 72,
+        "id": 3387,
+        "reference_id": 455,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "MAX LOW PASS 2",
+        "label": "MAX LOW Pass 2",
+        "x": 200,
+        "y": 153,
+        "w": 72,
+        "id": 3390,
+        "reference_id": 456,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "MODULATION",
+        "label": "Modulation Type",
+        "x": 114,
+        "y": 244,
+        "w": 89,
+        "id": 3388,
+        "reference_id": 327,
+        "options": [
+          "Stereo",
+          "Dual Mono"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "FINAL LIMIT 1 SOURCE",
+        "label": "Final Limit 1 Source",
+        "x": 80,
+        "y": 121,
+        "w": 72,
+        "id": 3391,
+        "reference_id": 460,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "FINAL LIMIT 2 SOURCE",
+        "label": "Final Limit 2 Source",
+        "x": 200,
+        "y": 121,
+        "w": 72,
+        "id": 3392,
+        "reference_id": 461,
+        "options": []
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 3,
+        "w": 286,
+        "h": 104,
+        "text": "Pre-Emphasis"
+      },
+      {
+        "x": 53,
+        "y": 72,
+        "w": 186,
+        "h": 27,
+        "text": "Note:"
+      },
+      {
+        "x": 7,
+        "y": 142,
+        "w": 286,
+        "h": 32,
+        "text": "Max Low Pass Filter"
+      },
+      {
+        "x": 43,
+        "y": 10,
+        "w": 209,
+        "h": 18,
+        "text": ""
+      },
+      {
+        "x": 43,
+        "y": 30,
+        "w": 209,
+        "h": 18,
+        "text": ""
+      },
+      {
+        "x": 43,
+        "y": 51,
+        "w": 209,
+        "h": 18,
+        "text": ""
+      },
+      {
+        "x": 7,
+        "y": 108,
+        "w": 286,
+        "h": 32,
+        "text": "Limiter Output Sources"
+      },
+      {
+        "x": 6,
+        "y": 176,
+        "w": 287,
+        "h": 55,
+        "text": "Global BS.1770"
+      },
+      {
+        "x": 82,
+        "y": 233,
+        "w": 125,
+        "h": 24,
+        "text": "Modulation Type"
+      }
+    ]
+  },
+  {
+    "title": "Remote Interface / Silence",
+    "width": 300,
+    "height": 201,
+    "reference_dialog": 216,
+    "controls": [
+      {
+        "kind": "radio",
+        "name": "ANALOG FALLBACK",
+        "label": "Analog Fallback",
+        "x": 227,
+        "y": 94,
+        "w": 61,
+        "id": 3340,
+        "reference_id": 268,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      },
+      {
+        "kind": "slider",
+        "name": "SILENCE THR",
+        "label": "Silence Threshold",
+        "x": 157,
+        "y": 138,
+        "w": 83,
+        "id": 3341,
+        "reference_id": 272,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "SILENCE DELAY",
+        "label": "Silence Delay",
+        "x": 157,
+        "y": 166,
+        "w": 83,
+        "id": 3325,
+        "reference_id": 273,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "DIGITAL FALLBACK",
+        "label": "Silence Detect",
+        "x": 228,
+        "y": 116,
+        "w": 60,
+        "id": 3351,
+        "reference_id": 269,
+        "options": [
+          "No",
+          "Yes"
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "x": 7,
+        "y": 7,
+        "w": 140,
+        "h": 187,
+        "text": "Remote Interface (GPI) Functions "
+      },
+      {
+        "x": 153,
+        "y": 7,
+        "w": 140,
+        "h": 62,
+        "text": "Tally Outputs"
+      },
+      {
+        "x": 154,
+        "y": 76,
+        "w": 140,
+        "h": 118,
+        "text": "Silence Detect"
+      },
+      {
+        "x": 157,
+        "y": 110,
+        "w": 133,
+        "h": 18,
+        "text": ""
+      },
+      {
+        "x": 157,
+        "y": 88,
+        "w": 133,
+        "h": 18,
+        "text": ""
+      }
+    ]
+  }
+]

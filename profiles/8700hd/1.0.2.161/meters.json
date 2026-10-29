@@ -44,7 +44,12 @@
       11
      ]
     }
-   ]
+   ],
+   "gate": {
+    "id": 62,
+    "label": "GATED",
+    "vertical": true
+   }
   },
   {
    "name": "HF Enhance",
@@ -98,7 +103,62 @@
       18
      ]
     }
-   ]
+   ],
+   "when": {
+    "field": "B1 ATTACK",
+    "present": true
+   },
+   "gate": {
+    "id": 63,
+    "label": "GATED"
+   }
+  },
+  {
+   "name": "2-Band Gain Reduction",
+   "kind": "reduction",
+   "channels": [
+    {
+     "label": "B",
+     "ids": [
+      64
+     ]
+    },
+    {
+     "label": "M",
+     "ids": [
+      65
+     ]
+    }
+   ],
+   "when": {
+    "field": "2B DRIVE",
+    "present": true
+   },
+   "gate": {
+    "id": 63,
+    "label": "GATED"
+   }
+  },
+  {
+   "name": "HF Limiting",
+   "kind": "reduction",
+   "channels": [
+    {
+     "label": "",
+     "ids": [
+      21,
+      22
+     ],
+     "laneLabels": [
+      "L",
+      "R"
+     ]
+    }
+   ],
+   "when": {
+    "field": "2B DRIVE",
+    "present": true
+   }
   },
   {
    "name": "Loudness",
@@ -117,7 +177,7 @@
      ]
     },
     {
-     "label": "lK",
+     "label": "LU",
      "ids": [
       58
      ]
@@ -205,7 +265,41 @@
       48
      ]
     }
-   ]
+   ],
+   "when": {
+    "field": "HD B1 ATTACK",
+    "present": true
+   },
+   "gate": {
+    "id": 38,
+    "label": "GATED"
+   }
+  },
+  {
+   "name": "2-Band HD Gain Reduction",
+   "kind": "reduction",
+   "channels": [
+    {
+     "label": "B",
+     "ids": [
+      49
+     ]
+    },
+    {
+     "label": "M",
+     "ids": [
+      50
+     ]
+    }
+   ],
+   "when": {
+    "field": "HD 2B DRIVE",
+    "present": true
+   },
+   "gate": {
+    "id": 38,
+    "label": "GATED"
+   }
   },
   {
    "name": "HD Limiting",
@@ -241,7 +335,7 @@
    "kind": "loudness",
    "channels": [
     {
-     "label": "lK",
+     "label": "LU",
      "ids": [
       55
      ]
@@ -261,59 +355,6 @@
      "laneLabels": [
       "L",
       "R"
-     ]
-    }
-   ]
-  },
-  {
-   "name": "2-Band Gain Reduction",
-   "kind": "reduction",
-   "channels": [
-    {
-     "label": "B",
-     "ids": [
-      64
-     ]
-    },
-    {
-     "label": "M",
-     "ids": [
-      65
-     ]
-    }
-   ]
-  },
-  {
-   "name": "HF Limiting",
-   "kind": "reduction",
-   "channels": [
-    {
-     "label": "",
-     "ids": [
-      21,
-      22
-     ],
-     "laneLabels": [
-      "L",
-      "R"
-     ]
-    }
-   ]
-  },
-  {
-   "name": "2-Band HD Gain Reduction",
-   "kind": "reduction",
-   "channels": [
-    {
-     "label": "B",
-     "ids": [
-      49
-     ]
-    },
-    {
-     "label": "M",
-     "ids": [
-      50
      ]
     }
    ]

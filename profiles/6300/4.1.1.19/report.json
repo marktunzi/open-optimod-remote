@@ -1,0 +1,113 @@
+{
+  "model": "6300",
+  "firmware": "4.1.1.19",
+  "reference_sha256": "492867138ebe47559890dc7e45237993cad45cd0dce4f5130b4757c7814369cf",
+  "firmware_sha256": "4a7eb4e26b4c95a3d1296bcb1dcbd5214a8bf8b75f7bfcdb7ffef0a6ff2e081e",
+  "installer_sha256": "f208b4dd43a7c1934062bfa03c11eb6d0b1dd49cfd57d41d50915a754b5e91bc",
+  "banner": "6300 V 4.1.1.19",
+  "document_family": "6300.",
+  "registrations": 292,
+  "factory_presets": 339,
+  "preset_families": {
+    "OptimodVersion=<6300.50>": 339
+  },
+  "preset_fields": 147,
+  "field_evidence": {
+    "not-convertible": 14,
+    "text": 13,
+    "confirmed": 142,
+    "unobserved": 118,
+    "conflict": 2
+  },
+  "excluded": [
+    {
+      "name": "DSP HIGH PASS",
+      "reason": "not convertible"
+    },
+    {
+      "name": "DIALNORM",
+      "reason": "not convertible"
+    },
+    {
+      "name": "DIALNORM 2",
+      "reason": "not convertible"
+    },
+    {
+      "name": "GLOBAL DIALNORM",
+      "reason": "not convertible"
+    },
+    {
+      "name": "GLOBAL DIALNORM 2",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 1",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 2",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 3",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 4",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 5",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 6",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 7",
+      "reason": "not convertible"
+    },
+    {
+      "name": "REMOTE CONTACT 8",
+      "reason": "not convertible"
+    },
+    {
+      "name": "TIME SERVER",
+      "reason": "not convertible"
+    },
+    {
+      "name": "LOUDNESS THR",
+      "reason": "conflicts with factory presets"
+    },
+    {
+      "name": "BS1770 LDNES CTRL THR",
+      "reason": "conflicts with factory presets"
+    }
+  ],
+  "pages": [
+    "Less More (Shared)",
+    "AGC (Shared)",
+    "Stereo Enhancer (FM)",
+    "Equalizer (FM)",
+    "Multiband (FM)",
+    "Compressors (FM)",
+    "Band Mix (FM)",
+    "2 Band (FM)",
+    "Distortion Control (FM)",
+    "Speech Mode (FM)"
+  ],
+  "meter_groups": [
+    "Input",
+    "AGC",
+    "Enhancers",
+    "Gain Reduction",
+    "Loudness GR",
+    "Limiter 1",
+    "Limiter 1 Output",
+    "Limiter 2",
+    "Limiter 2 Output",
+    "Loudness Level",
+    "2-Band Gain Reduction"
+  ]
+}

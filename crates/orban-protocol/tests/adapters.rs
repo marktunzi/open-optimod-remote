@@ -189,8 +189,7 @@ fn the_8700hd_is_its_own_model_and_is_found_by_its_terminal_banner() {
         "\"optimod-8700hd\""
     );
     assert_eq!(
-        AdapterRegistry::identify_terminal_banner("Welcome to the Orban Optimod-FM 8700HD.")
-            .unwrap(),
+        AdapterRegistry::identify_terminal_banner("Orban Optimod 8700HD V 1.0.2.161").unwrap(),
         DeviceModel::Optimod8700Hd
     );
     assert_ne!(
@@ -202,14 +201,57 @@ fn the_8700hd_is_its_own_model_and_is_found_by_its_terminal_banner() {
 }
 
 #[test]
-fn only_the_5500_has_documented_terminal_save_and_delete() {
-    for (banner, expected) in [
-        ("5500 V 1.2.8.24", true),
-        ("5700i V 3.0.1.20", false),
-        ("8700HD V 1.0.2.161", false),
+fn preset_save_and_delete_only_where_the_command_is_known() {
+    // The 5700i's own PC Remote saves and deletes with file messages
+    // (captured 28 October 2026); the 5500's does the same with ECh (its
+    // client and firmware 1.2.8.24, one opcode below the 5500i's EDh); the
+    // 8700HD's and 6300's clients have the 5500's file code (ECh), the
+    // 8700i's the 5500i's (EDh). The 2300's client deletes with EBh (captured
+    // 29 October 2026).
+    for (banner, expected, files) in [
+        ("5500 V 1.2.8.24", true, Some(236)),
+        ("5700i V 3.0.1.20", true, Some(237)),
+        ("8700HD V 1.0.2.161", true, Some(236)),
+        ("6300 V 4.1.1.19", true, Some(236)),
+        ("8700i V 1.5.1.11", true, Some(237)),
+        ("2300 V 2.0.3.85", true, Some(235)),
     ] {
         let adapter = AdapterRegistry::identify_banner(banner).unwrap();
         assert_eq!(adapter.capabilities.preset_store, expected, "{banner}");
         assert_eq!(adapter.capabilities.preset_delete, expected, "{banner}");
+        assert_eq!(adapter.wire.preset_file_delete, files, "{banner}");
+    }
+}
+
+/// Every file name a model's wire uses carries that model's own extension:
+/// orb55 for the 5500 and 5500i, orb57 for the 5700i, orb86 for the 8700HD,
+/// orb87 for the 8700i, orb63 for the 6300, orb23 for the 2300.
+#[test]
+fn each_model_uses_only_its_own_file_names() {
+    for (banner, adapter) in AdapterRegistry::exact() {
+        let own = match adapter.model {
+            DeviceModel::Optimod5500 | DeviceModel::Optimod5500i => "orb55",
+            DeviceModel::Optimod5700i => "orb57",
+            DeviceModel::Optimod8700Hd => "orb86",
+            DeviceModel::Optimod8700i => "orb87",
+            DeviceModel::Optimod6300 => "orb63",
+            DeviceModel::Optimod2300 => "orb23",
+            _ => continue,
+        };
+        let wire = adapter.wire;
+        let mut names = vec![wire.user_extension];
+        names.extend(wire.backup_kept);
+        names.extend(wire.restore_extensions);
+        names.extend(wire.restore_files.iter().map(|(n, _)| *n));
+        names.extend(wire.tool_files.map(|t| t.automation_name));
+        names.extend(wire.setup_presets);
+        for name in names {
+            // The 5500i's setup file is `Setup.orbsetup` (captured).
+            let lower = name.to_ascii_lowercase();
+            assert!(
+                lower.contains(own) || lower == ".orbsetup",
+                "{banner}: {name} is not an {own} file"
+            );
+        }
     }
 }

@@ -22,17 +22,22 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
     private let detailAddress = NSTextField(labelWithString: "")
     private let detailCode = NSTextField(labelWithString: "")
     private let progress = NSProgressIndicator()
-    private var context = ConnectionsContext(devices: [], connected: false, activeID: nil)
+    private var context = ConnectionsContext(devices: [])
     private var visibleDevices: [SavedConnection] = []
     private var selectedID: String?
     private var busy = false
     private var showingNetwork = false
+    /// The sidebar group whose connections are listed; nil lists all of them.
+    private var selectedGroup: String?
+    private let groupsHeader = NSTextField(labelWithString: "Groups")
+    private let groupsStack = NSStackView()
+    private var groupButtons: [SidebarSourceButton] = []
     private var discovered: [DiscoveredOptimod] = []
     private var discovery: OptimodNetworkDiscovery?
     private var connectionEditor: ConnectionEditorWindowController?
     private var statusTimer: Timer?
     private var statusRefreshInFlight = false
-    var onConnected: (() -> Void)?
+    var onConnected: ((String) -> Void)?
 
     init() {
         let window = NSWindow(
@@ -89,10 +94,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
             guard let self else { return }
             self.statusRefreshInFlight = false
             guard case let .success(updated) = result else { return }
-            guard updated.connected != self.context.connected
-                    || updated.activeID != self.context.activeID
-                    || updated.devices != self.context.devices
-            else { return }
+            guard updated.connectedIDs != self.context.connectedIDs || updated.devices != self.context.devices else { return }
             self.context = updated
             if let selectedID = self.selectedID,
                !updated.devices.contains(where: { $0.id == selectedID }) {
@@ -165,7 +167,13 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         networkButton.font = .systemFont(ofSize: 13)
         networkButton.contentTintColor = .labelColor
 
-        let sourceStack = NSStackView(views: [allButton, networkButton])
+        groupsHeader.font = .systemFont(ofSize: 11, weight: .semibold)
+        groupsHeader.textColor = .secondaryLabelColor
+        groupsStack.orientation = .vertical
+        groupsStack.spacing = 6
+        groupsStack.alignment = .leading
+        let sourceStack = NSStackView(views: [allButton, networkButton, groupsHeader, groupsStack])
+        sourceStack.setCustomSpacing(16, after: networkButton)
         sourceStack.orientation = .vertical
         sourceStack.spacing = 6
         sourceStack.alignment = .leading
@@ -174,6 +182,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
             button.widthAnchor.constraint(equalTo: sourceStack.widthAnchor).isActive = true
             button.heightAnchor.constraint(equalToConstant: 32).isActive = true
         }
+        groupsStack.widthAnchor.constraint(equalTo: sourceStack.widthAnchor).isActive = true
 
         addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: "Add Connection")
         addButton.title = ""
@@ -202,8 +211,8 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         sidebar.addSubview(sourceStack)
         sidebar.addSubview(sourceActions)
         NSLayoutConstraint.activate([
-            sourceStack.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 14),
-            sourceStack.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -14),
+            sourceStack.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 10),
+            sourceStack.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -10),
             sourceStack.topAnchor.constraint(equalTo: sidebar.topAnchor, constant: 54),
             sourceActions.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 12),
             sourceActions.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -12),
@@ -234,6 +243,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         scroll.documentView = tableView
         scroll.hasVerticalScroller = true
         scroll.drawsBackground = false
+        scroll.automaticallyAdjustsContentInsets = false
         scroll.translatesAutoresizingMaskIntoConstraints = false
 
         connectButton.title = "Connect"
@@ -255,10 +265,11 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         NSLayoutConstraint.activate([
             scroll.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
             scroll.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -16),
-            scroll.topAnchor.constraint(equalTo: content.topAnchor, constant: 14),
+            // Below the toolbar: scrolled rows never run under the title.
+            scroll.topAnchor.constraint(equalTo: content.safeAreaLayoutGuide.topAnchor, constant: 6),
             scroll.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -16),
             progress.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20),
-            progress.topAnchor.constraint(equalTo: content.topAnchor, constant: 16),
+            progress.topAnchor.constraint(equalTo: content.safeAreaLayoutGuide.topAnchor, constant: 8),
         ])
         return content
     }
@@ -354,6 +365,8 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
             switch result {
             case let .success(context):
                 self.context = context
+                if let group = self.selectedGroup, !context.groups.contains(group) { self.selectedGroup = nil }
+                self.rebuildGroups()
                 let wanted = preferredID ?? self.selectedID
                 self.selectedID = context.devices.contains(where: { $0.id == wanted }) ? wanted : context.devices.first?.id
                 self.filterAndReload()
@@ -369,7 +382,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         let query = searchField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let source = showingNetwork ? discovered.map {
             SavedConnection(id: "network:\($0.host)", name: $0.name, host: $0.host, port: 6201, terminalPort: 23, hasCode: false, model: ProcessorModel(rawValue: $0.model) ?? .auto)
-        } : context.devices
+        } : context.devices.filter { selectedGroup == nil || $0.group == selectedGroup }
         visibleDevices = query.isEmpty ? source : source.filter {
             $0.name.localizedStandardContains(query) || $0.host.localizedStandardContains(query)
         }
@@ -406,7 +419,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         detailName.stringValue = selected.name
         detailAddress.stringValue = "\(selected.processorModel.label) · \(selected.host):\(selected.port) · Status port \(selected.terminalPort)"
         detailCode.stringValue = selected.hasCode ? "Access code  ••••••••" : "Access code not saved"
-        let active = context.connected && context.activeID == selected.id
+        let active = context.isConnected(selected.id)
         let network = selected.id.hasPrefix("network:")
         connectButton.title = network ? "Add…" : active ? "Disconnect" : "Connect"
         connectButton.isEnabled = !busy && (network || selected.hasCode || active)
@@ -424,7 +437,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard visibleDevices.indices.contains(row) else { return nil }
         let device = visibleDevices[row]
-        let cell = NSTableCellView()
+        let cell = ConnectionCellView()
         let image = NSImageView(image: NSImage(systemSymbolName: "server.rack", accessibilityDescription: nil) ?? NSImage())
         image.contentTintColor = .secondaryLabelColor
         image.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 18, weight: .regular)
@@ -442,21 +455,23 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         labels.alignment = .leading
         labels.spacing = 2
 
-        let active = context.connected && context.activeID == device.id
+        let active = context.isConnected(device.id)
         let network = device.id.hasPrefix("network:")
         let status = NSTextField(labelWithString: network ? "Discovered on Network" : active ? "Connected" : device.hasCode ? "Disconnected" : "Access code required")
         status.font = .systemFont(ofSize: 13, weight: active ? .medium : .regular)
         status.textColor = active ? .systemGreen : .secondaryLabelColor
 
         let info = NSButton()
-        info.image = NSImage(systemSymbolName: "info", accessibilityDescription: "Connection Info")
+        info.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: "Connection Info")
+        info.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 15, weight: .regular)
         info.title = ""
-        info.bezelStyle = .texturedRounded
-        info.contentTintColor = .labelColor
+        info.isBordered = false
+        info.contentTintColor = .secondaryLabelColor
         info.target = self
         info.action = #selector(editFromInfo(_:))
         info.identifier = NSUserInterfaceItemIdentifier(device.id)
         info.toolTip = "Edit \(device.name)"
+        cell.parts = (image, address, status, info, status.textColor ?? .secondaryLabelColor)
 
         let rowView = NSStackView(views: [image, labels, NSView(), status, info])
         rowView.orientation = .horizontal
@@ -486,9 +501,151 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
 
     func controlTextDidChange(_ obj: Notification) { filterAndReload() }
 
+    /// Test hook: `all` or `group NAME`, as a click on that sidebar row;
+    /// `connect NAME` as a double-click on that saved processor.
+    func perform(_ command: String, attempts: Int = 40) {
+        if command == "all" { showAllConnections(); return }
+        if command.hasPrefix("connect ") {
+            // Opening the window reloads the list first.
+            if busy {
+                if attempts > 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.perform(command, attempts: attempts - 1) }
+                }
+                return
+            }
+            let name = String(command.dropFirst(8))
+            guard let device = context.devices.first(where: { $0.name == name }) else { return }
+            selectedID = device.id
+            connectSelected()
+            return
+        }
+        guard command.hasPrefix("group "),
+              let button = groupButtons.first(where: { $0.identifier?.rawValue == String(command.dropFirst(6)) }) else { return }
+        showGroup(button)
+    }
+
+    /// The sidebar's group rows, each with Rename and Delete in its menu.
+    private func rebuildGroups() {
+        groupButtons.forEach { $0.removeFromSuperview() }
+        groupButtons = context.groups.map { name in
+            let button = SidebarSourceButton()
+            button.title = name
+            button.image = NSImage(systemSymbolName: "folder", accessibilityDescription: "Group")
+            button.imagePosition = .imageLeading
+            button.alignment = .left
+            button.setButtonType(.toggle)
+            button.isBordered = false
+            button.font = .systemFont(ofSize: 13)
+            button.target = self
+            button.action = #selector(showGroup(_:))
+            button.state = name == selectedGroup ? .on : .off
+            button.identifier = NSUserInterfaceItemIdentifier(name)
+            let menu = NSMenu()
+            menu.addItem(withTitle: "Rename Group…", action: #selector(renameGroup(_:)), keyEquivalent: "").representedObject = name
+            menu.addItem(withTitle: "Delete Group…", action: #selector(deleteGroup(_:)), keyEquivalent: "").representedObject = name
+            menu.items.forEach { $0.target = self }
+            button.menu = menu
+            groupsStack.addArrangedSubview(button)
+            button.widthAnchor.constraint(equalTo: groupsStack.widthAnchor).isActive = true
+            button.heightAnchor.constraint(equalToConstant: 32).isActive = true
+            return button
+        }
+        groupsHeader.isHidden = groupButtons.isEmpty
+        if selectedGroup == nil, !showingNetwork { allButton.state = .on }
+    }
+
+    @objc private func showGroup(_ sender: NSButton) {
+        guard let name = sender.identifier?.rawValue else { return }
+        discovery?.cancel()
+        showingNetwork = false
+        selectedGroup = name
+        window?.title = name
+        toolbarTitle.stringValue = name
+        let count = context.devices.filter { $0.group == name }.count
+        subtitleLabel.stringValue = "\(count) saved processor\(count == 1 ? "" : "s")"
+        allButton.state = .off
+        networkButton.state = .off
+        groupButtons.forEach { $0.state = $0.identifier?.rawValue == name ? .on : .off }
+        filterAndReload()
+    }
+
+    /// Asks for a group name, as the client's "Please enter an alias for this group."
+    private func askGroupName(title: String, initial: String, action: String, completion: @escaping (String) -> Void) {
+        guard let window, !busy else { return }
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = "A group name cannot contain \\ / : * ? \" < > |."
+        let field = NSTextField(string: initial)
+        field.frame = NSRect(x: 0, y: 0, width: 260, height: 24)
+        alert.accessoryView = field
+        alert.addButton(withTitle: action)
+        alert.addButton(withTitle: "Cancel")
+        alert.window.initialFirstResponder = field
+        alert.beginSheetModal(for: window) { response in
+            let name = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            if response == .alertFirstButtonReturn, !name.isEmpty { completion(name) }
+        }
+    }
+
+    @objc private func newGroup() {
+        askGroupName(title: "New Group", initial: "", action: "Create") { [weak self] name in
+            guard let self else { return }
+            self.setBusy(true, subtitle: "Creating group…")
+            self.api.group(.create(name)) { result in self.finishMutation(result, selectedID: self.selectedID, success: "Group created") }
+        }
+    }
+
+    @objc private func renameGroup(_ sender: NSMenuItem) {
+        guard let name = sender.representedObject as? String else { return }
+        askGroupName(title: "Rename Group", initial: name, action: "Rename") { [weak self] newName in
+            guard let self, newName != name else { return }
+            self.setBusy(true, subtitle: "Renaming group…")
+            self.api.group(.rename(name, to: newName)) { result in
+                if case .success = result, self.selectedGroup == name { self.selectedGroup = newName }
+                self.finishMutation(result, selectedID: self.selectedID, success: "Group renamed")
+            }
+        }
+    }
+
+    /// The client removes the group and all its contents; so does this.
+    @objc private func deleteGroup(_ sender: NSMenuItem) {
+        guard let name = sender.representedObject as? String, let window, !busy else { return }
+        let members = context.devices.filter { $0.group == name }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Remove the group “\(name)” and all its contents?"
+        alert.informativeText = members.isEmpty
+            ? "The group is empty."
+            : "\(members.count) saved connection\(members.count == 1 ? "" : "s") and \(members.count == 1 ? "its" : "their") access codes will be removed from this Mac."
+        alert.addButton(withTitle: "Remove")
+        alert.addButton(withTitle: "Cancel")
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn, let self else { return }
+            let remove = {
+                self.setBusy(true, subtitle: "Removing group…")
+                self.api.group(.delete(name)) { result in
+                    if case .success = result, self.selectedGroup == name { self.selectedGroup = nil }
+                    self.finishMutation(result, selectedID: nil, success: "Group removed")
+                }
+            }
+            let connected = members.map(\.id).filter(self.context.isConnected)
+            if connected.isEmpty {
+                remove()
+            } else {
+                self.setBusy(true, subtitle: "Disconnecting…")
+                self.disconnectAll(connected) { result in
+                    if case let .failure(error) = result { self.finishMutation(.failure(error), selectedID: nil, success: "") }
+                    else { remove() }
+                }
+            }
+        }
+    }
+
     @objc private func showAllConnections() {
         discovery?.cancel()
         showingNetwork = false
+        selectedGroup = nil
+        groupButtons.forEach { $0.state = .off }
         window?.title = "All Connections"
         toolbarTitle.stringValue = "All Connections"
         let subtitle = "\(context.devices.count) saved processor\(context.devices.count == 1 ? "" : "s")"
@@ -500,6 +657,8 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
 
     @objc private func showNetworkConnections() {
         showingNetwork = true
+        selectedGroup = nil
+        groupButtons.forEach { $0.state = .off }
         window?.title = "Network"
         toolbarTitle.stringValue = "Network"
         allButton.state = .off
@@ -547,6 +706,9 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         menu.addItem(.separator())
         let add = menu.addItem(withTitle: "New Optimod…", action: #selector(addConnection), keyEquivalent: "")
         add.target = self
+        let group = menu.addItem(withTitle: "New Group…", action: #selector(newGroup), keyEquivalent: "")
+        group.target = self
+        group.isEnabled = !busy
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.height + 4), in: sender)
     }
 
@@ -569,14 +731,15 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
 
     private func presentEditor(connection: SavedConnection?, connectAfterSave: Bool) {
         guard let window, !busy else { return }
-        let editor = ConnectionEditorWindowController(connection: connection, connectAfterSave: connectAfterSave)
+        let editor = ConnectionEditorWindowController(connection: connection, connectAfterSave: connectAfterSave,
+                                                      groups: context.groups, group: connection?.group ?? selectedGroup)
         connectionEditor = editor
         editor.onCancel = { [weak self, weak editor, weak window] in
             guard let editor, let window else { return }
             window.endSheet(editor.window!)
             self?.connectionEditor = nil
         }
-        editor.onSave = { [weak self, weak editor, weak window] name, host, remote, terminal, code, model in
+        editor.onSave = { [weak self, weak editor, weak window] name, host, remote, terminal, code, model, group in
             guard let self, let editor, let window else { return }
             window.endSheet(editor.window!)
             self.connectionEditor = nil
@@ -586,7 +749,8 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
                 host: host,
                 port: remote,
                 terminalPort: terminal,
-                model: model
+                model: model,
+                group: group
             )
             self.save(edit: edit, code: code, connectAfterSave: connectAfterSave)
         }
@@ -626,27 +790,27 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
 
     @objc private func connectSelected() {
         guard let selected, !busy else { return }
-        let active = context.connected && context.activeID == selected.id
-        if active {
+        if context.isConnected(selected.id) {
             setBusy(true, subtitle: "Disconnecting…")
-            api.disconnect { [weak self] result in self?.finishMutation(result, selectedID: selected.id, success: "Disconnected") }
+            api.disconnect(id: selected.id) { [weak self] result in
+                self?.finishMutation(result, selectedID: selected.id, success: "Disconnected")
+            }
             return
         }
         if !selected.hasCode {
             presentEditor(connection: selected, connectAfterSave: true)
             return
         }
-        if context.connected {
-            setBusy(true, subtitle: "Switching processor…")
-            api.disconnect { [weak self] result in
-                guard let self else { return }
-                switch result {
-                case let .failure(error): self.finishMutation(.failure(error), selectedID: selected.id, success: "")
-                case .success: self.performConnect(selected)
-                }
-            }
-        } else {
-            performConnect(selected)
+        // Every processor has its own session: the others stay connected.
+        performConnect(selected)
+    }
+
+    /// Disconnects each of these processors, one after the other.
+    private func disconnectAll(_ ids: [String], completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let id = ids.first else { return completion(.success(())) }
+        api.disconnect(id: id) { [weak self] result in
+            if case .failure = result { return completion(result) }
+            self?.disconnectAll(Array(ids.dropFirst()), completion: completion)
         }
     }
 
@@ -655,10 +819,13 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         api.connect(id: device.id) { [weak self] result in
             guard let self else { return }
             switch result {
-            case let .failure(error): self.finishMutation(.failure(error), selectedID: device.id, success: "")
+            case let .failure(error):
+                self.setBusy(false, subtitle: "Not connected")
+                self.presentError(error.localizedDescription, title: "Could not connect to \(device.name)")
+                self.reload(select: device.id, message: "Not connected")
             case .success:
                 self.setBusy(false, subtitle: "Connected to \(device.name)")
-                self.onConnected?()
+                self.onConnected?(device.id)
                 self.reload(select: device.id, message: "Connected to \(device.name)")
             }
         }
@@ -675,9 +842,9 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn, let self else { return }
             let next = ConnectionSelection.next(afterDeleting: selected.id, from: self.context.devices)
-            if ConnectionSelection.mustDisconnect(connected: self.context.connected, activeID: self.context.activeID, deletingID: selected.id) {
+            if ConnectionSelection.mustDisconnect(connectedIDs: self.context.connectedIDs, deletingID: selected.id) {
                 self.setBusy(true, subtitle: "Disconnecting…")
-                self.api.disconnect { result in
+                self.api.disconnect(id: selected.id) { result in
                     switch result {
                     case let .failure(error): self.finishMutation(.failure(error), selectedID: selected.id, success: "")
                     case .success: self.performDelete(selected, nextID: next)
@@ -715,10 +882,21 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         }
     }
 
-    private func presentError(_ message: String) {
+    /// The reason is shown, not only logged: a reload right after a failure
+    /// replaces the subtitle, which left only a beep (issue #1).
+    private func presentError(_ message: String, title: String = "The operation failed") {
         ErrorLogStore.shared.record(source: "Connections", message: message)
         subtitleLabel.stringValue = "Operation failed · See Error Log"
-        NSSound.beep()
+        guard let window, window.attachedSheet == nil else {
+            NSSound.beep()
+            return
+        }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = title
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        alert.beginSheetModal(for: window)
     }
 }
 
@@ -729,25 +907,35 @@ private final class ConnectionEditorWindowController: NSWindowController {
     private let statusPortField: NSTextField
     private let codeField: NSSecureTextField
     private let modelPopup = NSPopUpButton()
+    private let groupPopup = NSPopUpButton()
+    private let groups: [String]
     private let validationLabel = NSTextField(wrappingLabelWithString: "")
     private let hasSavedCode: Bool
+    private let savedHost: String
+    private let savedModel: ProcessorModel
     var onCancel: (() -> Void)?
-    var onSave: ((String, String, Int, Int, String, ProcessorModel) -> Void)?
+    var onSave: ((String, String, Int, Int, String, ProcessorModel, String?) -> Void)?
 
-    init(connection: SavedConnection?, connectAfterSave: Bool) {
+    init(connection: SavedConnection?, connectAfterSave: Bool, groups: [String] = [], group: String? = nil) {
+        self.groups = groups
+        groupPopup.addItem(withTitle: "None")
+        groupPopup.addItems(withTitles: groups)
+        if let group, let index = groups.firstIndex(of: group) { groupPopup.selectItem(at: index + 1) }
         nameField = NSTextField(string: connection?.name ?? "")
         hostField = NSTextField(string: connection?.host ?? "")
         remotePortField = NSTextField(string: String(connection?.port ?? 6201))
         statusPortField = NSTextField(string: String(connection?.terminalPort ?? 23))
         codeField = NSSecureTextField(string: "")
         hasSavedCode = connection?.hasCode == true
+        savedHost = connection?.host ?? ""
+        savedModel = connection?.processorModel ?? .auto
         for model in ProcessorModel.allCases {
             modelPopup.addItem(withTitle: model.label)
         }
         modelPopup.selectItem(at: ProcessorModel.allCases.firstIndex(of: connection?.processorModel ?? .auto) ?? 0)
 
         let editorWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 620, height: 470),
+            contentRect: NSRect(x: 0, y: 0, width: 620, height: groups.isEmpty ? 470 : 516),
             styleMask: [.titled, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -782,8 +970,13 @@ private final class ConnectionEditorWindowController: NSWindowController {
         modelPopup.controlSize = .large
         modelPopup.font = .systemFont(ofSize: 14)
         modelPopup.widthAnchor.constraint(equalToConstant: 292).isActive = true
+        modelPopup.target = self
+        modelPopup.action = #selector(modelChanged)
 
-        let nameCard = makeCard(rows: [("Name", nameField)])
+        groupPopup.controlSize = .large
+        groupPopup.font = .systemFont(ofSize: 14)
+        groupPopup.widthAnchor.constraint(equalToConstant: 292).isActive = true
+        let nameCard = makeCard(rows: groups.isEmpty ? [("Name", nameField)] : [("Name", nameField), ("Group", groupPopup)])
         let connectionCard = makeCard(rows: [
             ("Processor", modelPopup),
             ("IP Address", hostField),
@@ -875,24 +1068,41 @@ private final class ConnectionEditorWindowController: NSWindowController {
 
     @objc private func cancelEditor() { onCancel?() }
 
+    /// A port left at one model's default follows the chosen model.
+    @objc private func modelChanged() {
+        guard ProcessorModel.allCases.indices.contains(modelPopup.indexOfSelectedItem),
+              let port = Int(remotePortField.stringValue),
+              ProcessorModel.defaultPorts.contains(port) else { return }
+        remotePortField.stringValue = String(ProcessorModel.allCases[modelPopup.indexOfSelectedItem].defaultPort)
+    }
+
     @objc private func saveEditor() {
         let name = nameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let host = hostField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let code = codeField.stringValue
+        let model = ProcessorModel.allCases.indices.contains(modelPopup.indexOfSelectedItem)
+            ? ProcessorModel.allCases[modelPopup.indexOfSelectedItem]
+            : .auto
+        // The service keeps a saved code across name and port edits only. A new
+        // address or processor model may be another device and needs the code again.
+        let keepsCode = ConnectionSelection.savedCodeSurvivesEdit(
+            hasCode: hasSavedCode, savedHost: savedHost, savedModel: savedModel, host: host, model: model
+        )
         guard !name.isEmpty, !host.isEmpty,
               let remote = Int(remotePortField.stringValue), (1...65_535).contains(remote),
               let terminal = Int(statusPortField.stringValue), (1...65_535).contains(terminal),
-              hasSavedCode || !code.isEmpty
+              keepsCode || !code.isEmpty
         else {
-            validationLabel.stringValue = "Enter a name, IP address, valid ports and an access code."
+            validationLabel.stringValue = hasSavedCode && !keepsCode
+                ? "A new IP address or processor needs the access code again."
+                : "Enter a name, IP address, valid ports and an access code."
             validationLabel.isHidden = false
             NSSound.beep()
             return
         }
-        let model = ProcessorModel.allCases.indices.contains(modelPopup.indexOfSelectedItem)
-            ? ProcessorModel.allCases[modelPopup.indexOfSelectedItem]
-            : .auto
-        onSave?(name, host, remote, terminal, code, model)
+        let position = groupPopup.indexOfSelectedItem - 1
+        let group = groups.indices.contains(position) ? groups[position] : nil
+        onSave?(name, host, remote, terminal, code, model, group)
     }
 }
 
@@ -911,6 +1121,11 @@ private final class ConnectionPortFormatter: NumberFormatter, @unchecked Sendabl
 }
 
 private final class SidebarSourceButton: NSButton {
+    override class var cellClass: AnyClass? {
+        get { SidebarSourceCell.self }
+        set {}
+    }
+
     override var state: NSControl.StateValue {
         didSet {
             contentTintColor = .labelColor
@@ -927,6 +1142,33 @@ private final class SidebarSourceButton: NSButton {
             NSBezierPath(roundedRect: bounds.insetBy(dx: 0, dy: 1), xRadius: 8, yRadius: 8).fill()
         }
         super.draw(dirtyRect)
+    }
+}
+
+/// The icon and title sit inside the selection, as in a Finder sidebar row,
+/// not on its rounded edge.
+private final class SidebarSourceCell: NSButtonCell {
+    static let padding: CGFloat = 12
+
+    override func drawInterior(withFrame frame: NSRect, in controlView: NSView) {
+        super.drawInterior(withFrame: frame.insetBy(dx: Self.padding, dy: 0), in: controlView)
+    }
+}
+
+/// On a selected (blue) row the secondary text, status and buttons turn white,
+/// as in Finder; otherwise the green status and the info button would vanish.
+private final class ConnectionCellView: NSTableCellView {
+    var parts: (image: NSImageView, address: NSTextField, status: NSTextField, info: NSButton, statusColor: NSColor)?
+
+    override var backgroundStyle: NSView.BackgroundStyle {
+        didSet {
+            guard let parts else { return }
+            let selected = backgroundStyle == .emphasized
+            parts.image.contentTintColor = selected ? .alternateSelectedControlTextColor : .secondaryLabelColor
+            parts.address.textColor = selected ? .alternateSelectedControlTextColor : .secondaryLabelColor
+            parts.status.textColor = selected ? .alternateSelectedControlTextColor : parts.statusColor
+            parts.info.contentTintColor = selected ? .alternateSelectedControlTextColor : .secondaryLabelColor
+        }
     }
 }
 
