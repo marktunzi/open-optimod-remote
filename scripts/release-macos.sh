@@ -14,6 +14,8 @@
 #   ASC_KEY_PATH       defaults to ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
 #   SPARKLE_ED_KEY_FILE  the update signing key (a file, never in the repository);
 #                      defaults to ~/.config/open-optimod-remote/sparkle-ed25519.key
+#                      (check it with scripts/check-update-key.sh, back it up encrypted
+#                      with scripts/backup-update-key.sh)
 #
 # Output in dist/release/VERSION/ (the dev build in dist/ is left alone).
 set -eu

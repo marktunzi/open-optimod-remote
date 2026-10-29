@@ -12,3 +12,12 @@
 *.app/
 
 *.tsbuildinfo
+
+# Signing keys never belong in the repository (the update key lives in
+# ~/.config/open-optimod-remote, see scripts/check-update-key.sh).
+*.key
+*ed25519*
+!*ed25519*.pub
+*.p8
+*.p12
+*.pem
