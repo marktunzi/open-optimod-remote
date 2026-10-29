@@ -920,3 +920,34 @@ main[data-skin="figma"] .processing-groups:not(.single-group-page) .control-well
   font-size: 11px;
   color: #ff8a80;
 }
+
+/* Processing Settings without a processor: the Meters status strip's look
+   (grey lamp, muted text) with one Figma button to the connections. */
+.fx-status.window-offline {
+  align-items: center;
+  gap: 12px;
+  height: 41px;
+  padding: 0 16px 0 24px;
+  border-bottom: 1px solid var(--fx-strip-line);
+  background: var(--fx-strip, #4c4c4c);
+}
+.window-offline .fx-connection {
+  flex: 1 1 auto;
+  color: var(--fx-muted, #8f8f8f);
+  font-size: 11px;
+  line-height: 41px;
+  cursor: default;
+}
+main[data-skin="figma"] .window-offline .fx-offline-open {
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--fx-track, #333333);
+  color: var(--fx-text, rgba(255, 255, 255, 0.86));
+  font: 500 11px -apple-system, "SF Pro Text", BlinkMacSystemFont, sans-serif;
+  cursor: pointer;
+}
+main[data-skin="figma"] .window-offline .fx-offline-open:hover { background: var(--fx-bar, #313131); }
+.window-offline .fx-offline-open:focus-visible { outline: 2px solid var(--fx-blue, #009dff); outline-offset: 1px; }

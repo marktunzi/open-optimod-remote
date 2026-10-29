@@ -487,8 +487,9 @@ function App() {
       <div className="workspace" id="main-workspace" tabIndex={-1}>
       {binding === 'other-device' && otherDeviceNotice}
       {reconnectBanner}
-      {windowed && !snapshot.connected && !snapshot.reconnect && binding !== 'other-device' && <div className="development window-offline" role="status">
-        Not connected. <button onClick={openConnections}>Connections…</button></div>}
+      {windowed && !snapshot.connected && !snapshot.reconnect && binding !== 'other-device' && <div className="fx-status window-offline" role="status">
+        <span className="fx-cell fx-connection"><i aria-hidden="true"/>Not connected</span>
+        <button type="button" className="fx-offline-open" onClick={openConnections}>Connections…</button></div>}
 
       {snapshot.connected && snapshot.sync_error && <div className="development" role="status">{snapshot.sync_error} <button disabled={busy} onClick={() => void action('refresh', {})}>Refresh</button></div>}
       {snapshot.connected && !snapshot.write_enabled && <div className="development">Read-only access: this connection does not allow changes.</div>}
