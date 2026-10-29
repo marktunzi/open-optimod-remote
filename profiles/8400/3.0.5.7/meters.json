@@ -3,7 +3,7 @@
   "firmware": "3.0.5.7",
   "reference_sha256": "92061d22d24ed5c3e023db55433a2149b003b7bb12120db648dd4fca30c125b3",
   "firmware_sha256": "8b278497a0496036e45be2c26e5a7f625a0e362c643e6fdb108fbc82d0e306ac",
-  "source": "UDP meter packet type 1 (34 bytes), value index = byte offset; bytes are bar heights 0-100 (firmware 0x13c343, PC Remote 0x13c3d0 twin); see docs/protocol/8400.md",
+  "source": "UDP meter packet type 1 (34 bytes), value index = byte offset; bytes are bar heights 0-100 (firmware 0x13c343, PC Remote 0x13c3d0 twin); see docs/protocol/8400.md; gates: byte 25 AGC, 26 multiband (non-zero = gated), drawn as the client's two GATE arrows on its 5-band meter screen (both lit on silence, 29 October 2026)",
   "banks": [
     1
   ],
@@ -100,7 +100,12 @@
           1.0,
           "25"
         ]
-      ]
+      ],
+      "gate": {
+        "id": 25,
+        "label": "GATE",
+        "vertical": true
+      }
     },
     {
       "name": "Multiband",
@@ -171,6 +176,10 @@
       "when": {
         "field": "2B/5B SWITCH",
         "value": "5band"
+      },
+      "gate": {
+        "id": 26,
+        "label": "GATE"
       }
     },
     {

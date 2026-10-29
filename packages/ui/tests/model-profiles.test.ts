@@ -181,6 +181,9 @@ test('the 8400 meters use the unit\'s own bar heights and scales', () => {
   assert.ok(input.ticks?.some(([position, label]) => label === '10' && position === 0.5));
   assert.equal(model.percent(1, 42), 42);
   assert.equal(model.groups.find(g => g.name === 'Out')?.ticks?.[1]?.[1], '0');
+  // The client's two GATE arrows: byte 25 (AGC) and 26 (multiband), lit on silence.
+  assert.equal(model.groups.find(g => g.name === 'AGC')?.gate?.id, 25);
+  assert.equal(model.groups.find(g => g.name === 'Multiband')?.gate?.id, 26);
 });
 
 test('the 8400 shows Less-More and the processing categories of the structure on air', () => {

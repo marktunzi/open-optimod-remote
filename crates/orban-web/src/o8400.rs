@@ -914,6 +914,11 @@ const PASSCODES_EVENT: u16 = 16390;
 /// The unit's passcode file (`kind` 230), or its automation events (235):
 /// every `AUTO_<n>.aut` in file order, one document after the other.
 pub async fn read_unit_file(unit: &mut Unit, kind: u16) -> Result<Option<String>, String> {
+    // The app gives the 8400's tools to the All Screens level only, as its
+    // writes (`orban_protocol::access`).
+    if kind == 235 && unit.session.login.access_level != 0 {
+        return Err("Automation is not available for this access level".into());
+    }
     if kind == 235 {
         let files = automation_files(unit).await?;
         if files.is_empty() {
