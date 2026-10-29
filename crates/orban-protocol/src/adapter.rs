@@ -258,6 +258,10 @@ pub struct Wire {
     /// Files the client's Restore sends with an opcode of their own instead
     /// of 231, by file name.
     pub restore_files: &'static [(&'static str, u16)],
+    /// The unit answers each named preset-file upload (231) with a boundary
+    /// answer of its own (5700i, 5500i firmware); the 6300 firmware does not
+    /// (virtual 6300 4.1.1.19, 29 October 2026).
+    pub restore_answered: bool,
 }
 
 /// Requests for the files behind the client's Automation and Security
@@ -299,6 +303,7 @@ pub const WIRE_PC_REMOTE: Wire = Wire {
     setup_presets: None,
     network_request: None,
     restore_files: &[],
+    restore_answered: false,
 };
 
 /// 5700i 3.0.1.20 (reference unit and virtual 5700i).
@@ -329,6 +334,7 @@ pub const WIRE_5700I: Wire = Wire {
         automation_name: "Automation.orb57autom",
         automation_file: 235,
     }),
+    restore_answered: true,
     ..WIRE_PC_REMOTE
 };
 
@@ -380,6 +386,7 @@ pub const WIRE_8700HD: Wire = Wire {
     // The client has no Open Setup or Save Setup As.
     setup_presets: None,
     network_request: None,
+    restore_answered: false,
 };
 
 /// 5500 1.2.8.24: the 8700HD generation. `5500PC.exe` 1.2.8.24 sends the same
@@ -422,6 +429,7 @@ pub const WIRE_5500: Wire = Wire {
     // The client has no Open Setup or Save Setup As.
     setup_presets: None,
     network_request: None,
+    restore_answered: true,
     ..WIRE_8700HD
 };
 
@@ -467,6 +475,7 @@ pub const WIRE_5500I: Wire = Wire {
     // The client's Restore sends these with their own opcodes, everything
     // else as 231 (0x44b978).
     restore_files: &[("Automation.orb55autom", 235), ("Network.orb55net", 234)],
+    restore_answered: true,
 };
 
 /// Preset names of the factory `.orb55f50` files of PC Remote 3.1.0.2.
@@ -538,6 +547,7 @@ pub const WIRE_6300: Wire = Wire {
     setup_presets: None,
     network_request: None,
     restore_files: &[("Automation.orb63autom", 234)],
+    restore_answered: false,
 };
 
 /// Preset names of the factory `.orb63f` files of PC Remote 4.1.1.19.
@@ -657,6 +667,7 @@ pub const WIRE_2300: Wire = Wire {
     setup_presets: None,
     network_request: None,
     restore_files: &[],
+    restore_answered: false,
 };
 
 /// Preset names of the factory `.orb23f75` files of PC Remote 2.0.3.85.
@@ -701,6 +712,7 @@ pub const WIRE_8700I: Wire = Wire {
     setup_presets: None,
     network_request: None,
     restore_files: &[("Automation.orb87autom", 235), ("Network.orb87net", 234)],
+    restore_answered: false,
     ..WIRE_5500I
 };
 

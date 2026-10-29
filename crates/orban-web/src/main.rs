@@ -3076,9 +3076,10 @@ async fn restore_preset_files(
             .send(opcode, &message)
             .await
             .map_err(OperationError::uncertain)?;
-        // The unit answers each preset-file upload with a boundary answer
-        // (FBh); automation and passcode uploads get none, nor does the 2300.
-        if opcode == 231 && named {
+        // The 5700i and 5500i answer each preset-file upload with a boundary
+        // answer (FBh); the 6300 and the 2300 do not, and automation and
+        // passcode uploads get none.
+        if opcode == 231 && device.session.adapter().wire.restore_answered {
             device.boundaries.sent();
         }
         let _ = device.session.send(222, b"").await;
@@ -6430,9 +6431,9 @@ mod tests {
                                         orban_protocol::message::encode(251, b"").unwrap()
                                     }
                                     218 => return,
-                                    // A preset file upload gets a boundary answer of its own,
-                                    // as the 5500i firmware gives it.
-                                    231 if m.wire.file_end.is_some() => {
+                                    // A preset file upload gets a boundary answer of its own
+                                    // where the firmware gives one (5700i, 5500i; not 6300).
+                                    231 if m.wire.restore_answered => {
                                         orban_protocol::message::encode(m.wire.boundary.1, b"")
                                             .unwrap()
                                     }
