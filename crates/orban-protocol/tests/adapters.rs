@@ -205,12 +205,15 @@ fn preset_save_and_delete_only_where_the_command_is_known() {
     // The 5700i's own PC Remote saves and deletes with file messages
     // (captured 28 October 2026); the 5500's does the same with ECh (its
     // client and firmware 1.2.8.24, one opcode below the 5500i's EDh); the
-    // 8700HD's client has the 5500's file code (ECh). The 6300 has neither yet.
+    // 8700HD's and 6300's clients have the 5500's file code (ECh), the
+    // 8700i's the 5500i's (EDh). The 2300's is not implemented.
     for (banner, expected, files) in [
         ("5500 V 1.2.8.24", true, Some(236)),
         ("5700i V 3.0.1.20", true, Some(237)),
         ("8700HD V 1.0.2.161", true, Some(236)),
-        ("6300 V 4.1.1.19", false, None),
+        ("6300 V 4.1.1.19", true, Some(236)),
+        ("8700i V 1.5.1.11", true, Some(237)),
+        ("2300 V 2.0.3.85", false, None),
     ] {
         let adapter = AdapterRegistry::identify_banner(banner).unwrap();
         assert_eq!(adapter.capabilities.preset_store, expected, "{banner}");

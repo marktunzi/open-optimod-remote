@@ -62,10 +62,11 @@ pub fn recall_command(name: &str, code: &str) -> Result<zeroize::Zeroizing<Strin
 }
 
 /// Longest preset name the model's own PC Remote accepts: 18 characters for
-/// the 5500, 20 for the 5700i and 8700HD.
+/// the 5500 and 6300 (`6300PC.exe` 0x42cbef), 20 for the 5700i, 8700HD and
+/// 8700i.
 pub fn max_store_name_length(model: crate::adapter::DeviceModel) -> usize {
     match model {
-        crate::adapter::DeviceModel::Optimod5500 => 18,
+        crate::adapter::DeviceModel::Optimod5500 | crate::adapter::DeviceModel::Optimod6300 => 18,
         _ => 20,
     }
 }

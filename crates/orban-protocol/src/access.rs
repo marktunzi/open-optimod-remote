@@ -9,6 +9,8 @@
 //! `8700PC.exe` 1.0.2.161 has the 5700i's bounds, Delete included (Recall
 //! 0x4370e0, Save/Save As/Delete 0x436cf0/0x436800/0x4378f0, Setup 0x437ab0,
 //! Automation 0x4399a0, Security 0x439a70, Backup/Restore 0x439b40/0x439ba0).
+//! `8700iPC.exe` 1.5.1.11 has the 5700i's bounds too (Delete 0x43c9c0);
+//! `6300PC.exe` 4.1.1.19 the 5500's (Delete level 1 or lower, 0x42e150).
 //! Other models keep full access at level 0 and read-only access otherwise
 //! until their clients are compared.
 use crate::adapter::DeviceModel;
@@ -40,6 +42,8 @@ pub fn access(model: DeviceModel, level: u8) -> Access {
             | DeviceModel::Optimod5500i
             | DeviceModel::Optimod5500
             | DeviceModel::Optimod8700Hd
+            | DeviceModel::Optimod8700i
+            | DeviceModel::Optimod6300
     ) {
         // 0 All screens, 1 … except Security, 2 … except Modify and Security,
         // 3 Presets, Modify, Save, Memory and Automation, 4 Presets and
@@ -50,7 +54,10 @@ pub fn access(model: DeviceModel, level: u8) -> Access {
             recall: level <= 5,
             modify: matches!(level, 0 | 1 | 3),
             presets: matches!(level, 0 | 1 | 3),
-            delete: if matches!(model, DeviceModel::Optimod5500i | DeviceModel::Optimod5500) {
+            delete: if matches!(
+                model,
+                DeviceModel::Optimod5500i | DeviceModel::Optimod5500 | DeviceModel::Optimod6300
+            ) {
                 level <= 1
             } else {
                 matches!(level, 0 | 1 | 3)
@@ -101,10 +108,16 @@ mod tests {
         assert!(a(3).modify && a(3).presets && !a(3).setup && !a(3).memory && a(3).automation);
         assert!(a(4).recall && a(4).automation && !a(4).modify);
         assert!(a(5).recall && !a(5).automation && !a(5).setup);
-        assert!(!access(DeviceModel::Optimod6300, 1).recall);
-        // The 8700HD client has the 5700i's bounds, Delete included.
+        assert!(!access(DeviceModel::Optimod2300, 1).recall);
+        // The 8700HD and 8700i clients have the 5700i's bounds, Delete included.
         for level in 0..=5 {
             assert_eq!(access(DeviceModel::Optimod8700Hd, level), a(level));
+            assert_eq!(access(DeviceModel::Optimod8700i, level), a(level));
+            // The 6300's are the 5500's.
+            assert_eq!(
+                access(DeviceModel::Optimod6300, level),
+                access(DeviceModel::Optimod5500, level)
+            );
         }
     }
 

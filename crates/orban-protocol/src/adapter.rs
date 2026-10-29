@@ -494,14 +494,18 @@ pub const WIRE_6300: Wire = Wire {
     login_seed: LoginSeed::Always,
     file_names: true,
     factory_recall: true,
-    preset_file_delete: None,
+    // `6300PC.exe` 4.1.1.19 has the 8700HD client's file code with `.orb63`
+    // names: Delete ECh (0x46a500), Backup EFh F2h F1h F9h (0x45dc00),
+    // Restore `Automation.orb63autom` as EAh, the rest as 231 (0x4480d0).
+    preset_file_delete: Some(236),
+    // Its Automation, Security and Diagnostics are not implemented yet.
     tool_files: None,
-    backup_requests: &[(240, 233)],
-    backup_kept: &[],
-    restore_extensions: &[],
+    backup_requests: &[(239, 232), (241, 234)],
+    backup_kept: &[".orb63user", ".orb63setup"],
+    restore_extensions: &[".orb63setup", ".orb63autom"],
     setup_presets: None,
     network_request: None,
-    restore_files: &[],
+    restore_files: &[("Automation.orb63autom", 234)],
 };
 
 /// Preset names of the factory `.orb63f` files of PC Remote 4.1.1.19.
@@ -627,15 +631,19 @@ const FACTORY_2300: [&str; 10] = [
 pub const WIRE_8700I: Wire = Wire {
     user_extension: ".orb87user",
     factory_presets: &FACTORY_8700I,
-    // The 5500i's file messages are not captured for the 8700i yet.
-    preset_file_delete: None,
+    // `8700iPC.exe` 1.5.1.11 has the 5500i client's file code with `.orb87`
+    // names: Delete EDh (0x47d5d0), Backup F0h F1h F2h F3h FAh (0x46fcd0),
+    // Restore `Automation.orb87autom` as EBh, `Network.orb87net` as EAh, the
+    // rest as 231 (0x45bf30). No Open Setup or Save Setup As.
+    preset_file_delete: Some(237),
+    // Its Automation, Security and Diagnostics are not implemented yet.
     tool_files: None,
-    backup_requests: &[(240, 233)],
-    backup_kept: &[],
-    restore_extensions: &[],
+    backup_requests: &[(240, 233), (241, 234), (242, 235)],
+    backup_kept: &[".orb87user", ".orb87setup"],
+    restore_extensions: &[".orb87setup", ".orb87autom", ".orb87net"],
     setup_presets: None,
     network_request: None,
-    restore_files: &[],
+    restore_files: &[("Automation.orb87autom", 235), ("Network.orb87net", 234)],
     ..WIRE_5500I
 };
 
@@ -829,8 +837,8 @@ const STATIC_FULL: Capabilities = Capabilities {
     preset_delete: false,
 };
 
-/// Save, Save As, Rename and Delete as the 5500's, 5500i's and 8700HD's own
-/// clients do them, with file messages (`Wire::preset_file_delete`).
+/// Save, Save As, Rename and Delete as the 5500's, 5500i's, 8700HD's, 6300's
+/// and 8700i's own clients do them, with file messages (`Wire::preset_file_delete`).
 const STATIC_FULL_WITH_PRESET_FILES: Capabilities = Capabilities {
     preset_store: true,
     preset_delete: true,
@@ -897,7 +905,7 @@ const EXACT: [(&str, AdapterDescriptor); 8] = [
             default_terminal_port: 23,
             product_mark: "6300 DIGITAL",
             firmware_prefix: "6300 V ",
-            capabilities: STATIC_FULL,
+            capabilities: STATIC_FULL_WITH_PRESET_FILES,
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
             on_air_archive: true,
@@ -935,7 +943,7 @@ const EXACT: [(&str, AdapterDescriptor); 8] = [
             default_terminal_port: 23,
             product_mark: "8700i FM+HD",
             firmware_prefix: "8700i V ",
-            capabilities: STATIC_FULL,
+            capabilities: STATIC_FULL_WITH_PRESET_FILES,
             meter_profile: Some(STATIC_METERS),
             // Like the 5700i, the 8700i cuts the on-air document it pushes after a
             // terminal RP while session meters are on (8.4 KB; virtual 8700i,

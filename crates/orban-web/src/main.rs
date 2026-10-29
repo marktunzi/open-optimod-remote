@@ -5476,6 +5476,17 @@ mod tests {
         setup: "Setup.orb63setup",
     };
 
+    const M8700I: FileModel = FileModel {
+        wire: orban_protocol::adapter::WIRE_8700I,
+        model: DeviceModel::Optimod8700i,
+        login: b"connect ok\n0\n8700i V 1.5.1.11\n123\n",
+        terminal: b"Orban Optimod 8700i V 1.5.1.11\n\r",
+        version: "8700.52",
+        user: ".ORB87USER",
+        on_air: "OnAir.orb87onair",
+        setup: "Setup.orb87setup",
+    };
+
     const M2300: FileModel = FileModel {
         wire: orban_protocol::adapter::WIRE_2300,
         model: DeviceModel::Optimod2300,
@@ -6212,6 +6223,110 @@ mod tests {
         for kind in [237, 244, 251] {
             assert!(unit.received(kind).is_empty(), "{kind}");
         }
+    }
+
+    /// Delete, Backup and Restore as the 6300 client (the 8700HD's code,
+    /// `.orb63`) and the 8700i client (the 5500i's code, `.orb87`) send them.
+    async fn preset_files_round_trip(
+        m: FileModel,
+        delete: u16,
+        backup: [u16; 3],
+        automation: (&str, u16),
+        user: &str,
+    ) {
+        let unit = FakeFileUnit::start(m).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let session = app.state.read().await.session_id.clone().unwrap();
+        let _ = command(&app, |r| {
+            Command::PresetFile(
+                PresetFile {
+                    action: PresetFileAction::Delete {
+                        name: "Late Night".into(),
+                    },
+                    expected_name: "Test01".into(),
+                    confirmed: true,
+                    expected_host: "127.0.0.1".into(),
+                    expected_session: session.clone(),
+                },
+                r,
+            )
+        })
+        .await;
+        assert_eq!(
+            unit.received(delete),
+            [format!("Late Night{user}\n").into_bytes()]
+        );
+        let before = backup.map(|k| unit.received(k).len());
+        let (reply, answer) = oneshot::channel();
+        app.commands
+            .send(Command::BackupFiles(reply))
+            .await
+            .unwrap();
+        let _ = answer.await.unwrap();
+        assert_eq!(
+            backup.map(|k| unit.received(k).len()),
+            before.map(|n| n + 1)
+        );
+        command(&app, |r| {
+            Command::RestorePresetFiles(
+                RestorePresetFiles {
+                    files: vec![
+                        BackupFile {
+                            name: automation.0.into(),
+                            document: format!(
+                                "OptimodVersion=<{}>\nPreset Name=<auto_event_00> size=0\nEnd Preset<end>\n",
+                                m.version
+                            ),
+                            modified: Some(0),
+                        },
+                        BackupFile {
+                            name: format!("LATE NIGHT{user}"),
+                            document: doc_with(m.version, "Late Night", 14),
+                            modified: Some(0),
+                        },
+                    ],
+                    confirmed: true,
+                    expected_host: "127.0.0.1".into(),
+                    expected_session: session.clone(),
+                },
+                r,
+            )
+        })
+        .await
+        .unwrap();
+        assert_eq!(unit.received(231).len(), 1);
+        assert!(
+            unit.received(automation.1)
+                .iter()
+                .any(|d| d.starts_with(format!("{}\n", automation.0).as_bytes()))
+        );
+    }
+
+    #[tokio::test]
+    async fn the_6300_deletes_backs_up_and_restores_as_its_client_does() {
+        preset_files_round_trip(
+            M6300,
+            236,
+            [239, 241, 242],
+            ("Automation.orb63autom", 234),
+            ".orb63user",
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn the_8700i_deletes_backs_up_and_restores_as_its_client_does() {
+        preset_files_round_trip(
+            M8700I,
+            237,
+            [240, 242, 243],
+            ("Automation.orb87autom", 235),
+            ".orb87user",
+        )
+        .await;
     }
 
     /// The 5500's tool files, Delete, Backup and Restore use its firmware's
@@ -7841,9 +7956,8 @@ mod tests {
 
     #[tokio::test]
     async fn models_without_a_documented_save_command_refuse_preset_changes() {
-        // The 5700i, 5500i, 5500 and 8700HD save and delete with their
-        // clients' file messages; the 6300's are not implemented.
-        for (banner, terminal_banner) in [("6300 V 4.1.1.19", "Orban Optimod 6300 V 4.1.1.19")] {
+        // Firmware without an exact profile has no file messages.
+        for (banner, terminal_banner) in [("6300 V 4.1.1.18", "Orban Optimod 6300 V 4.1.1.18")] {
             let outcome = simulated_preset_file(PresetFileCase {
                 banner,
                 terminal_banner,

@@ -76,19 +76,22 @@ struct PresetFileFormat: Equatable, Sendable {
         if id.hasPrefix("pc-remote-5500-") { return PresetFileFormat(model: "OPTIMOD 5500", fileExtension: "orb55user") }
         if id.hasPrefix("pc-remote-5500i-") { return PresetFileFormat(model: "OPTIMOD 5500i", fileExtension: "orb55user") }
         if id.hasPrefix("pc-remote-8700hd-") { return PresetFileFormat(model: "OPTIMOD-FM 8700HD", fileExtension: "orb86user") }
+        if id.hasPrefix("pc-remote-8700i-") { return PresetFileFormat(model: "OPTIMOD 8700i", fileExtension: "orb87user") }
+        if id.hasPrefix("pc-remote-6300-") { return PresetFileFormat(model: "OPTIMOD 6300", fileExtension: "orb63user") }
         if id.hasPrefix("pc-remote-5700i-") { return PresetFileFormat(model: "OPTIMOD 5700i", fileExtension: "orb57user") }
         return PresetFileFormat(model: "OPTIMOD", fileExtension: "orb")
     }
 
     /// Longest name the model's own PC Remote accepts for a new preset.
-    var maxNameLength: Int { fileExtension == "orb55user" ? 18 : 20 }
+    var maxNameLength: Int { ["orb55user", "orb63user"].contains(fileExtension) ? 18 : 20 }
 
     /// Models whose own PC Remote saves the on-air user preset under its own name (5700i, 5500i, 5500, 8700HD Save).
     static func replacesOnAir(_ adapterID: String?) -> Bool { backsUpFiles(adapterID) }
 
     /// Models whose original PC Remote backs up the unit's own files (setup and user presets).
     static func backsUpFiles(_ adapterID: String?) -> Bool {
-        ["pc-remote-5700i-", "pc-remote-5500i-", "pc-remote-5500-", "pc-remote-8700hd-"].contains { adapterID?.hasPrefix($0) == true }
+        ["pc-remote-5700i-", "pc-remote-5500i-", "pc-remote-5500-", "pc-remote-8700hd-", "pc-remote-8700i-", "pc-remote-6300-"]
+            .contains { adapterID?.hasPrefix($0) == true }
     }
 
     /// Files the 5500i, 5500 and 8700HD clients' Restore sends back as files, next to the user presets.
@@ -98,6 +101,9 @@ struct PresetFileFormat: Equatable, Sendable {
         if adapterID?.hasPrefix("pc-remote-5500-") == true { return [".orb55setup", ".orb55autom"] }
         // The 8700HD client's Restore is the 5500's, with .orb86 names.
         if adapterID?.hasPrefix("pc-remote-8700hd-") == true { return [".orb86setup", ".orb86autom"] }
+        // The 6300 client's is the 8700HD's; the 8700i client's the 5500i's (no setup presets).
+        if adapterID?.hasPrefix("pc-remote-6300-") == true { return [".orb63setup", ".orb63autom"] }
+        if adapterID?.hasPrefix("pc-remote-8700i-") == true { return [".orb87setup", ".orb87autom", ".orb87net"] }
         return []
     }
 }
