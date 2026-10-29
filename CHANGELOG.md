@@ -3,7 +3,7 @@
 ## Unreleased (after the 0.3.0 candidate)
 
 - 8700HD: Save As, Delete, Backup/Restore, Automation, Security and Diagnostics, from its original client's code (`8700PC.exe` 1.0.2.161 has the 5500 client's file code with `.orb86` names) and tested against a scripted unit; not yet confirmed on its firmware.
-- 6300 and 8700i: Save As, Delete and Backup/Restore from their original clients' code (`6300PC.exe` has the 8700HD client's file code, `8700iPC.exe` the 5500i client's), with each client's access levels and name limit; tested against a scripted unit, not yet confirmed on firmware. Their Automation, Security and Diagnostics are not implemented yet.
+- 6300 and 8700i: Save As, Delete, Backup/Restore, Security and Diagnostics from their original clients' code (`6300PC.exe` has the 8700HD client's file code, `8700iPC.exe` the 5500i client's), with each client's access levels and name limit; tested against a scripted unit, not yet confirmed on firmware. Their Automation is not offered yet (function lists unknown).
 
 ## 0.3.0 — release candidate, 29 October 2026
 

@@ -2368,6 +2368,12 @@ async fn read_unit_file_from(
             device.session.info.model.label()
         ));
     };
+    if reply == 235 && !automation::available(device.session.info.model) {
+        return Err(format!(
+            "Automation is not available for the {} in this version",
+            device.session.info.model.label()
+        ));
+    }
     // The passcodes are for a full-access session only, as their write is.
     let access = device.session.info.access();
     if (reply == 230 && !access.security) || (reply == 235 && !access.automation) {
@@ -2419,6 +2425,12 @@ async fn write_unit_file(
             device.session.info.model.label()
         )));
     };
+    if body.kind == 235 && !automation::available(device.session.info.model) {
+        return Err(OperationError::safe(format!(
+            "Automation is not available for the {} in this version",
+            device.session.info.model.label()
+        )));
+    }
     let access = device.session.info.access();
     if !(if body.kind == 230 {
         access.security
@@ -6225,8 +6237,9 @@ mod tests {
         }
     }
 
-    /// Delete, Backup and Restore as the 6300 client (the 8700HD's code,
-    /// `.orb63`) and the 8700i client (the 5500i's code, `.orb87`) send them.
+    /// Delete, Backup, Restore, Security and Diagnostics as the 6300 client
+    /// (the 8700HD's code, `.orb63`) and the 8700i client (the 5500i's code,
+    /// `.orb87`) send them; Automation is refused for both.
     async fn preset_files_round_trip(
         m: FileModel,
         delete: u16,
@@ -6303,6 +6316,51 @@ mod tests {
                 .iter()
                 .any(|d| d.starts_with(format!("{}\n", automation.0).as_bytes()))
         );
+        // Diagnostics at sync; Security reads and replaces the passcode file.
+        assert!(!unit.received(204).is_empty());
+        let (levels, version, extension) = crate::security::flavour(m.model);
+        let codes = [
+            crate::security::Passcode {
+                code: FILE_UNIT_CODE.into(),
+                level: levels[0].into(),
+            },
+            crate::security::Passcode {
+                code: "4321".into(),
+                level: levels[5].into(),
+            },
+        ];
+        let passcodes = crate::security::render(&codes, m.model).unwrap();
+        assert!(passcodes.starts_with(&format!("OptimodVersion=<{version}>")));
+        assert!(passcodes.contains(&format!("<Password.{extension}>")));
+        let write = |kind, document: String| {
+            let (app, session) = (app.clone(), session.clone());
+            async move {
+                command(&app, |r| {
+                    Command::WriteUnitFile(
+                        UnitFileWrite {
+                            kind,
+                            document: Zeroizing::new(document),
+                            expected_host: "127.0.0.1".into(),
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+                .await
+            }
+        };
+        write(230, passcodes).await.unwrap();
+        assert_eq!(unit.received(230).len(), 1);
+        // Automation is not offered: nothing is read or sent for it.
+        let uploads = unit.received(automation.1).len();
+        assert!(write(235, String::new()).await.is_err());
+        let (reply, answer) = oneshot::channel();
+        app.commands
+            .send(Command::ReadUnitFile(235, reply))
+            .await
+            .unwrap();
+        assert!(answer.await.unwrap().is_err());
+        assert_eq!(unit.received(automation.1).len(), uploads);
     }
 
     #[tokio::test]

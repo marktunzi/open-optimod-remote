@@ -48,6 +48,19 @@ pub const FUNCTIONS_5500I: [&str; 18] = [
     "Exit Mod. Reduction",
 ];
 
+/// Whether the model's client function list is known: the 6300's and
+/// 8700i's clients build theirs from tables that could not be read
+/// statically, so their Automation is not offered yet.
+pub fn available(model: DeviceModel) -> bool {
+    matches!(
+        model,
+        DeviceModel::Optimod5700i
+            | DeviceModel::Optimod5500i
+            | DeviceModel::Optimod5500
+            | DeviceModel::Optimod8700Hd
+    )
+}
+
 /// The model's functions, its document version and its file extension.
 pub fn flavour(model: DeviceModel) -> (&'static [&'static str], &'static str, &'static str) {
     match model {

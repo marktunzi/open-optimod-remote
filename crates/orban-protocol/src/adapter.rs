@@ -498,8 +498,16 @@ pub const WIRE_6300: Wire = Wire {
     // names: Delete ECh (0x46a500), Backup EFh F2h F1h F9h (0x45dc00),
     // Restore `Automation.orb63autom` as EAh, the rest as 231 (0x4480d0).
     preset_file_delete: Some(236),
-    // Its Automation, Security and Diagnostics are not implemented yet.
-    tool_files: None,
+    // Security reads F3h, Diagnostics is CCh at sync (0x45cd60). Its
+    // automation function list is not known, so the app offers no
+    // Automation window for it (`automation::flavour`).
+    tool_files: Some(ToolFiles {
+        prelude: None,
+        automation_request: 241,
+        passcodes_request: 243,
+        automation_name: "Automation.orb63autom",
+        automation_file: 234,
+    }),
     backup_requests: &[(239, 232), (241, 234)],
     backup_kept: &[".orb63user", ".orb63setup"],
     restore_extensions: &[".orb63setup", ".orb63autom"],
@@ -636,8 +644,16 @@ pub const WIRE_8700I: Wire = Wire {
     // Restore `Automation.orb87autom` as EBh, `Network.orb87net` as EAh, the
     // rest as 231 (0x45bf30). No Open Setup or Save Setup As.
     preset_file_delete: Some(237),
-    // Its Automation, Security and Diagnostics are not implemented yet.
-    tool_files: None,
+    // Security reads F4h, Diagnostics is CCh at sync (0x46ed10). Its
+    // automation function list is not known, so the app offers no
+    // Automation window for it (`automation::flavour`).
+    tool_files: Some(ToolFiles {
+        prelude: None,
+        automation_request: 242,
+        passcodes_request: 244,
+        automation_name: "Automation.orb87autom",
+        automation_file: 235,
+    }),
     backup_requests: &[(240, 233), (241, 234), (242, 235)],
     backup_kept: &[".orb87user", ".orb87setup"],
     restore_extensions: &[".orb87setup", ".orb87autom", ".orb87net"],
