@@ -1,6 +1,6 @@
 # Phase 9: platform QA of the 0.3.0 release candidate
 
-> **Evidence status:** run on 29 October 2026 on release candidate **0.3.0 build 9** (commit `168144a`, Developer ID, notarized; DMG SHA-256 `9274b4ad…e0e1`). Real-app tests used an identical twin of that commit with its own bundle identifier, data directory and port (`org.openoptimod.remote.p8test`, 15701), connected to three virtual units running original firmware without audio devices: 6300 4.1.1.19 at .173 and .188, and 8400 3.0.5.7 at .176. The owner's installed app, preferences, connections and credentials were not used, and their checksums were identical before and after. Nothing was published.
+> **Evidence status:** current candidate is **0.3.0 build 11** (`4a6f268`, see below). The matrix was run on 29 October 2026 on release candidate **0.3.0 build 9** (commit `168144a`, Developer ID, notarized; DMG SHA-256 `9274b4ad…e0e1`). Real-app tests used an identical twin of that commit with its own bundle identifier, data directory and port (`org.openoptimod.remote.p8test`, 15701), connected to three virtual units running original firmware without audio devices: 6300 4.1.1.19 at .173 and .188, and 8400 3.0.5.7 at .176. The owner's installed app, preferences, connections and credentials were not used, and their checksums were identical before and after. Nothing was published.
 
 ## Suites on the candidate source
 
@@ -37,7 +37,19 @@
 
 ## 8-hour multi-session soak
 
-Started 09:13:10 on the build-9 twin with the three sessions above, sampled every minute: app and service memory, threads, open files, TCP connections to the units, session state and revision per processor, the units' own login and connection counters, and error-log entries. Result: *to be added when the run ends*.
+Not a Phase 9 gate any more: the owner stopped it (29 October, "we gaan geen 8 uur testen"); endurance moves to the final acceptance. The run on the build-10 twin (10:38–11:55, 76 one-minute samples, three sessions: 6300 .173 and .188, 8400 .176) was stopped at 11:55:
+
+- Memory and handles: app RSS 135 → 162 MB, service 23.5 → 27.8 MB, service file descriptors 21 → 24; no growth trend over 77 minutes is claimed from this.
+- The two 6300 sessions stayed connected throughout (one login each).
+- **The 8400 session was lost six times between 10:40 and 11:08** (*not answered for 20 seconds*, once *Broken pipe*); each time the automatic reconnect brought it back, and it stayed up from 11:08 to the end. The virtual 8400 ran at about 230 % CPU next to the two 6300s; whether its slow answers are host load or a protocol issue is **open** and goes to the 8400 work in Phase 10.
+
+## Release candidate build 11
+
+Built 29 October 2026 from `4a6f268` (after the #18 fixes) with `release-macos.sh 0.3.0 11`: Developer ID, notarized and stapled (`spctl`: *Notarized Developer ID*; `stapler validate` OK), signed appcast. DMG SHA-256 `6b996313…d880`, ZIP `dab73329…2f46`. Build 10 is kept in `~/werk/oor-p8.noindex/rc-b10`. Nothing was published.
+
+Suites on `4a6f268`: Rust 94 + protocol tests PASS (including `one_meter_port_serves_every_8400_by_its_address`, re-run with UDP 16540 free), clippy `-D warnings` and rustfmt PASS, UI tests and build PASS, the ten Swift test programs PASS, documentation audit PASS.
+
+Changes since build 10: the 5700i runs over PC Remote alone when its status port does not answer (#18, closed), every change waits for a complete sync, and the Connections sidebar icons sit inside their selection.
 
 ## Screenshots
 
