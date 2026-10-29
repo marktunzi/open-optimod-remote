@@ -816,6 +816,8 @@ pub async fn backup_files(unit: &mut Unit) -> Result<Vec<BackupFile>, String> {
     presets.sort();
     let mut files = Vec::new();
     for (name, file) in presets {
+        // The name becomes a file name on the Mac.
+        restorable_name(&name).map_err(|e| format!("{name}: {e}"))?;
         let read = unit.session.read(o8400::USER_DIR, &file).await?;
         unit.last_sent = Instant::now();
         let text = std::str::from_utf8(o8400::document_text(&read)?)

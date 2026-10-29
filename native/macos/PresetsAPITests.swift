@@ -89,6 +89,9 @@ struct PresetsAPITests {
         precondition(PresetFileFormat.forAdapter("pc-remote-6300-4.1.1.19").maxNameLength == 18)
         precondition(PresetFileFormat.forAdapter("pc-remote-8700i-1.5.1.11").maxNameLength == 20)
         precondition(PresetBackup.crc32(Data("123456789".utf8)) == 0xcbf4_3926)
+        // A name from the processor never leaves the backup folder.
+        precondition(PresetBackup.entryName("../../evil.orb") == ".._.._evil.orb" && PresetBackup.entryName("..") == "_")
+        precondition(PresetBackup.entryName("a\\b.orb") == "a_b.orb" && PresetBackup.entryName("EURO AC .orb") == "EURO AC .orb")
         let zip = PresetBackup.zip(folder: "f", files: [("a.txt", Data("hi".utf8))])
         precondition(zip.prefix(4) == Data([0x50, 0x4b, 0x03, 0x04]) && zip.count == 30 + 7 + 2 + 46 + 7 + 22)
         // DOS date of 28 October 2026: (46 << 9) | (10 << 5) | 28.

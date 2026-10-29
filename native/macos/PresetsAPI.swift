@@ -161,6 +161,13 @@ enum PresetBackup {
         return system
     }
 
+    /// A file name the processor gave, as one plain ZIP entry name: no path
+    /// separators and no `.`/`..`, so unzipping stays inside the folder.
+    static func entryName(_ name: String) -> String {
+        let flat = name.replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "\\", with: "_")
+        return flat == "." || flat == ".." || flat.isEmpty ? "_" : flat
+    }
+
     /// An uncompressed ZIP of `files` in a folder named `folder`, as Finder opens it.
     /// Entries carry `date` (local time), so a restore from the unzipped
     /// folder sends the unit the backup's time, not 1980.
@@ -173,7 +180,7 @@ enum PresetBackup {
         func u16(_ value: Int, _ data: inout Data) { var v = UInt16(truncatingIfNeeded: value).littleEndian; data.append(Data(bytes: &v, count: 2)) }
         func u32(_ value: UInt32, _ data: inout Data) { var v = value.littleEndian; data.append(Data(bytes: &v, count: 4)) }
         for file in files {
-            let name = Data("\(folder)/\(file.name)".utf8)
+            let name = Data("\(entryName(folder))/\(entryName(file.name))".utf8)
             let crc = crc32(file.data)
             let offset = UInt32(local.count)
             let size = UInt32(file.data.count)
