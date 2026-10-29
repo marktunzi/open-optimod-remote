@@ -235,6 +235,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         process.currentDirectoryURL = Bundle.main.resourceURL
         var environment = ProcessInfo.processInfo.environment
         environment["OPEN_OPTIMOD_NO_BROWSER"] = "1"
+        // The service follows the app's port and data directory.
+        for key in ["OPEN_OPTIMOD_PORT", "OPTIMOD_DATA_DIR"] { environment[key] = LaunchOverride.value(key) }
         process.environment = environment
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
@@ -314,7 +316,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
     /// Test hook: OPEN_OPTIMOD_WINDOW_CONTROL names a file of window actions.
     private func startWindowControl() {
         guard windowControlTimer == nil,
-              let path = ProcessInfo.processInfo.environment["OPEN_OPTIMOD_WINDOW_CONTROL"]
+              let path = LaunchOverride.value("OPEN_OPTIMOD_WINDOW_CONTROL")
         else { return }
         FileManager.default.createFile(atPath: path, contents: nil)
         // Common modes: the hooks also run while an alert is open.
@@ -368,11 +370,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
                 }
                 self.windows.perform(control: control)
             }
+            let update = try? JSONSerialization.data(withJSONObject: AppUpdater.shared.state, options: [.prettyPrinted, .sortedKeys])
+            FileManager.default.createFile(atPath: path + ".update", contents: update)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 let state = try? JSONSerialization.data(withJSONObject: self.windows.windowList, options: [.prettyPrinted, .sortedKeys])
                 FileManager.default.createFile(atPath: path + ".state", contents: state)
-                let update = try? JSONSerialization.data(withJSONObject: AppUpdater.shared.state, options: [.prettyPrinted, .sortedKeys])
-                FileManager.default.createFile(atPath: path + ".update", contents: update)
             }
         }
         RunLoop.main.add(timer, forMode: .common)
@@ -387,8 +389,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
             for sub in view.subviews { if let hit = find(sub) { return hit } }
             return nil
         }
+        // The click runs after this callback returns: a click that opens an alert must not hold the hook timer.
         for window in ordered {
-            if let view = window.contentView, let button = find(view) { button.performClick(nil); return }
+            if let view = window.contentView, let button = find(view) {
+                RunLoop.main.perform(inModes: [.common]) { button.performClick(nil) }
+                return
+            }
         }
     }
 

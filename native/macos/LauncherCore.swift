@@ -1,9 +1,22 @@
 import Foundation
 
+/// Test and development settings: the environment, else this app's own
+/// preferences. A test build has its own bundle identifier, so settings
+/// written to its domain survive Sparkle's relaunch and never reach the
+/// installed app's domain.
+enum LaunchOverride {
+    static let keys = ["OPEN_OPTIMOD_PORT", "OPTIMOD_DATA_DIR", "OPEN_OPTIMOD_WINDOW_CONTROL", "OPEN_OPTIMOD_UPDATE_FEED"]
+
+    static func value(_ key: String, environment: [String: String] = ProcessInfo.processInfo.environment,
+                      defaults: UserDefaults = .standard) -> String? {
+        environment[key] ?? defaults.string(forKey: key)
+    }
+}
+
 enum BackendHealth {
     /// `OPEN_OPTIMOD_PORT` moves a development or test instance next to an
     /// installed app; the service reads the same variable.
-    static let port = servicePort(ProcessInfo.processInfo.environment["OPEN_OPTIMOD_PORT"])
+    static let port = servicePort(LaunchOverride.value("OPEN_OPTIMOD_PORT"))
     static let origin = "http://127.0.0.1:\(port)"
     static let endpoint = URL(string: "\(origin)/api/health")!
     static let expectedPrefix = "open-optimod-remote/"

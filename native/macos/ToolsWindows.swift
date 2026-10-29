@@ -736,7 +736,7 @@ enum SetupPresetsPanel {
     private static func report(_ title: String, _ message: String) {
         lastResult = message
         ErrorLogStore.shared.record(source: title, message: message)
-        guard ProcessInfo.processInfo.environment["OPEN_OPTIMOD_WINDOW_CONTROL"] == nil else { return }
+        guard LaunchOverride.value("OPEN_OPTIMOD_WINDOW_CONTROL") == nil else { return }
         let alert = NSAlert()
         alert.alertStyle = .warning
         alert.messageText = title

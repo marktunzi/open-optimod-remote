@@ -50,10 +50,10 @@ enum UpdateGate {
     }
 
     /// The feed the app reads. A test build may name another one with
-    /// OPEN_OPTIMOD_UPDATE_FEED; every update is still checked against the
+    /// OPEN_OPTIMOD_UPDATE_FEED (see LaunchOverride); every update is still checked against the
     /// EdDSA key in Info.plist, so another feed cannot install anything unsigned.
-    static func feedOverride(_ environment: [String: String] = ProcessInfo.processInfo.environment) -> URL? {
-        guard let value = environment["OPEN_OPTIMOD_UPDATE_FEED"], let url = URL(string: value),
+    static func feedOverride(_ value: String? = LaunchOverride.value("OPEN_OPTIMOD_UPDATE_FEED")) -> URL? {
+        guard let value, let url = URL(string: value),
               ["https", "http", "file"].contains(url.scheme ?? "")
         else { return nil }
         return url

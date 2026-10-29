@@ -28,9 +28,17 @@ struct UpdateCoreTests {
         precondition(two.title == "Disconnect 2 processors to install 0.3.1?")
         precondition(two.detail.contains("these sessions"))
 
-        precondition(UpdateGate.feedOverride([:]) == nil)
-        precondition(UpdateGate.feedOverride(["OPEN_OPTIMOD_UPDATE_FEED": "http://127.0.0.1:8765/appcast.xml"])?.port == 8765)
-        precondition(UpdateGate.feedOverride(["OPEN_OPTIMOD_UPDATE_FEED": "javascript:alert(1)"]) == nil)
+        precondition(UpdateGate.feedOverride(nil) == nil)
+        precondition(UpdateGate.feedOverride("http://127.0.0.1:8765/appcast.xml")?.port == 8765)
+        precondition(UpdateGate.feedOverride("javascript:alert(1)") == nil)
+
+        let suite = "org.openoptimod.remote.tests.\(ProcessInfo.processInfo.processIdentifier)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.set("15799", forKey: "OPEN_OPTIMOD_PORT")
+        precondition(LaunchOverride.value("OPEN_OPTIMOD_PORT", environment: [:], defaults: defaults) == "15799")
+        precondition(LaunchOverride.value("OPEN_OPTIMOD_PORT", environment: ["OPEN_OPTIMOD_PORT": "15701"], defaults: defaults) == "15701")
+        precondition(LaunchOverride.value("OPTIMOD_DATA_DIR", environment: [:], defaults: defaults) == nil)
+        defaults.removePersistentDomain(forName: suite)
 
         print("UpdateCoreTests passed")
     }

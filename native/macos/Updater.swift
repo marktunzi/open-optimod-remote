@@ -94,12 +94,14 @@ final class AppUpdater: NSObject, SPUUpdaterDelegate, NSMenuDelegate, NSMenuItem
                 return
             }
             if active.isEmpty { self.note("Installing \(version)."); install(); return }
-            self.ask(version: version, processors: active, install: install)
+            // From a run-loop block, not a main-queue block: the main queue keeps
+            // running (windows stay live) while the question is open.
+            self.asking = true
+            RunLoop.main.perform(inModes: [.default, .modalPanel]) { self.ask(version: version, processors: active, install: install) }
         }
     }
 
     private func ask(version: String, processors: [UpdateGate.Processor], install: @escaping () -> Void) {
-        asking = true
         let text = UpdateGate.message(version: version, processors: processors)
         let alert = NSAlert()
         alert.alertStyle = .informational
