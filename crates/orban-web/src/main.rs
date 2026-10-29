@@ -1206,6 +1206,9 @@ async fn synchronize(app: &App, device: &mut Device) -> Result<(), String> {
     if device.session.adapter().wire.file_sync {
         return synchronize_files(app, device).await;
     }
+    // Until this read is complete, nothing may change the processor; a read
+    // that stops early (a lost session) leaves the gap in place.
+    device.sync_gap = Some("The synchronization has not finished".into());
     let capabilities = device.session.info.capabilities;
     let mut unavailable = Vec::new();
     let mut unreachable = None;
@@ -2083,6 +2086,7 @@ async fn refresh_presets(app: &App, device: &mut Device) -> Result<(), String> {
     Ok(())
 }
 async fn recall(device: &mut Device, app: &App, body: Recall) -> Result<(), OperationError> {
+    require_synchronized(device)?;
     if !device.session.info.capabilities.preset_recall {
         return Err(OperationError::safe(format!(
             "Preset recall is not enabled for {}",
@@ -2495,6 +2499,20 @@ fn require_writes(device: &Device) -> Result<(), OperationError> {
     }
 }
 
+/// Nothing is sent that changes the processor while the last synchronization
+/// is incomplete: what it left out (system settings, the preset list, the
+/// status port each change is confirmed on) is exactly what a change would
+/// be checked against. Recall, presets, files, Setup and restores alike.
+fn require_synchronized(device: &Device) -> Result<(), OperationError> {
+    if device.sync_gap.is_none() {
+        return Ok(());
+    }
+    Err(OperationError::safe(format!(
+        "Changes wait until the status port (TCP {}) answers: the processor confirms them there. Use Refresh first",
+        device.terminal.port()
+    )))
+}
+
 /// Replaces the unit's automation or passcode file as the original client
 /// does, then reads it back and requires it to be the document sent.
 async fn write_unit_file(
@@ -2502,6 +2520,7 @@ async fn write_unit_file(
     app: &App,
     body: UnitFileWrite,
 ) -> Result<(), OperationError> {
+    require_synchronized(device)?;
     require_writes(device)?;
     let Some(tools) = device.session.adapter().wire.tool_files else {
         return Err(OperationError::safe(format!(
@@ -2672,6 +2691,7 @@ async fn setup_preset(
     app: &App,
     body: SetupPresetAction,
 ) -> Result<(), OperationError> {
+    require_synchronized(device)?;
     use orban_protocol::presets::{max_store_name_length, validate_store_name};
     if !body.confirmed {
         return Err(OperationError::safe("Confirm the change first"));
@@ -2794,6 +2814,7 @@ async fn restore_preset_files(
     app: &App,
     body: RestorePresetFiles,
 ) -> Result<(), OperationError> {
+    require_synchronized(device)?;
     require_writes(device)?;
     let model = device.session.info.model;
     let extension = device.session.adapter().wire.user_extension;
@@ -2922,6 +2943,7 @@ async fn manage_preset(
     body: PresetFile,
 ) -> Result<(), OperationError> {
     use orban_protocol::presets::{PresetKind, max_store_name_length, validate_store_name};
+    require_synchronized(device)?;
     let capabilities = device.session.info.capabilities;
     let model = device.session.info.model;
     let needs_store = !matches!(body.action, PresetFileAction::Delete { .. });
@@ -3089,6 +3111,7 @@ async fn apply_preset(
     app: &App,
     body: ApplyPreset,
 ) -> Result<(), OperationError> {
+    require_synchronized(device)?;
     require_writes(device)?;
     let imported = Document::parse_for_model(body.document.as_bytes(), device.session.info.model)
         .map_err(OperationError::safe)?;
@@ -3281,6 +3304,7 @@ async fn restore_setup(
     app: &App,
     body: RestoreSetup,
 ) -> Result<(), OperationError> {
+    require_synchronized(device)?;
     if !device.session.info.capabilities.parameter_writes {
         return Err(OperationError::safe(format!(
             "Settings cannot be written on {}",
@@ -3357,13 +3381,8 @@ async fn restore_setup(
 }
 
 async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), OperationError> {
+    require_synchronized(device)?;
     require_writes(device)?;
-    if device.sync_gap.is_some() {
-        return Err(OperationError::safe(format!(
-            "Changes wait until the status port (TCP {}) answers: the processor confirms them there. Use Refresh first",
-            device.terminal.port()
-        )));
-    }
     let before = {
         let state = app.state.read().await;
         ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
@@ -4638,6 +4657,8 @@ mod tests {
         subscriptions: AtomicUsize,
         disconnects: AtomicUsize,
         writes: AtomicUsize,
+        /// Every other message that is not a read, poll or session message.
+        other_kinds: std::sync::Mutex<Vec<u16>>,
         polls: AtomicUsize,
         terminal_sessions: AtomicUsize,
         unsubscriptions: AtomicUsize,
@@ -4817,7 +4838,12 @@ mod tests {
                                         }
                                         orban_protocol::message::encode(251, b"").unwrap()
                                     }
-                                    _ => continue,
+                                    other => {
+                                        if let Message::Other { kind, .. } = other {
+                                            counts.other_kinds.lock().unwrap().push(kind);
+                                        }
+                                        continue;
+                                    }
                                 };
                                 if writer.write_all(&reply).await.is_err() {
                                     return;
@@ -5446,6 +5472,194 @@ mod tests {
         assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
         assert_eq!(state.system.as_ref().unwrap().name, "SYSTEM PRESET");
         assert_eq!(state.presets.len(), 2);
+    }
+
+    /// Issue #18 review: an incomplete synchronization refuses every command
+    /// that changes the processor, not only parameter changes, and sends nothing.
+    #[tokio::test]
+    async fn an_incomplete_sync_sends_no_write_of_any_kind() {
+        let unit = FakeUnit::start(Terminal::Closed).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let (session, host) = {
+            let state = app.state.read().await;
+            // The processing is on screen from the archive; the sync is still incomplete.
+            assert!(state.connected && state.processing.is_some() && state.sync_error.is_some());
+            (state.session_id.clone().unwrap(), state.host.clone())
+        };
+        let terminal_sessions = unit.count(|c| &c.terminal_sessions);
+        let on_air = on_air_text("CURRENT");
+        let attempts: Vec<(&str, Box<dyn FnOnce(Reply) -> Command>)> = vec![
+            ("change", {
+                let (session, host) = (session.clone(), host.clone());
+                Box::new(move |r| {
+                    let mut change = change_request(&session);
+                    change.expected_host = host;
+                    Command::Change(change, r)
+                })
+            }),
+            ("recall", {
+                let (session, host) = (session.clone(), host.clone());
+                Box::new(move |r| {
+                    Command::Recall(
+                        Recall {
+                            name: "TARGET".into(),
+                            expected_name: "CURRENT".into(),
+                            confirmed: true,
+                            expected_host: host,
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+            }),
+            ("save", {
+                let (session, host) = (session.clone(), host.clone());
+                Box::new(move |r| {
+                    Command::PresetFile(
+                        PresetFile {
+                            action: PresetFileAction::Save { name: "NEW".into() },
+                            expected_name: "CURRENT".into(),
+                            confirmed: true,
+                            expected_host: host,
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+            }),
+            ("delete", {
+                let (session, host) = (session.clone(), host.clone());
+                Box::new(move |r| {
+                    Command::PresetFile(
+                        PresetFile {
+                            action: PresetFileAction::Delete { name: "OLD".into() },
+                            expected_name: "CURRENT".into(),
+                            confirmed: true,
+                            expected_host: host,
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+            }),
+            ("apply file", {
+                let (session, host, document) = (session.clone(), host.clone(), on_air.clone());
+                Box::new(move |r| {
+                    Command::ApplyPreset(
+                        ApplyPreset {
+                            document,
+                            expected_name: "CURRENT".into(),
+                            confirmed: true,
+                            expected_host: host,
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+            }),
+            ("restore setup", {
+                let (session, host) = (session.clone(), host.clone());
+                Box::new(move |r| {
+                    Command::RestoreSetup(
+                        RestoreSetup {
+                            document: document_text("SYSTEM PRESET", &[("CONTRAST", "Int:3;D:3;")]),
+                            confirmed: true,
+                            expected_host: host,
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+            }),
+            ("open setup", {
+                let (session, host) = (session.clone(), host.clone());
+                Box::new(move |r| {
+                    Command::SetupPreset(
+                        SetupPresetAction {
+                            action: "open".into(),
+                            name: "STUDIO".into(),
+                            confirmed: true,
+                            expected_host: host,
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+            }),
+            ("save setup as", {
+                let (session, host) = (session.clone(), host.clone());
+                Box::new(move |r| {
+                    Command::SetupPreset(
+                        SetupPresetAction {
+                            action: "save_as".into(),
+                            name: "STUDIO".into(),
+                            confirmed: true,
+                            expected_host: host,
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+            }),
+            ("restore presets", {
+                let (session, host, document) = (session.clone(), host.clone(), on_air.clone());
+                Box::new(move |r| {
+                    Command::RestorePresetFiles(
+                        RestorePresetFiles {
+                            files: vec![BackupFile {
+                                name: "NEW.orb57user".into(),
+                                document,
+                                modified: Some(0),
+                            }],
+                            confirmed: true,
+                            expected_host: host,
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+            }),
+            ("automation", {
+                let (session, host) = (session.clone(), host.clone());
+                Box::new(move |r| {
+                    Command::WriteUnitFile(
+                        UnitFileWrite {
+                            kind: 235,
+                            document: Zeroizing::new(String::new()),
+                            expected_host: host,
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+            }),
+            ("security", {
+                let (session, host) = (session.clone(), host.clone());
+                Box::new(move |r| {
+                    Command::WriteUnitFile(
+                        UnitFileWrite {
+                            kind: 230,
+                            document: Zeroizing::new("C:1234String:all access\n".into()),
+                            expected_host: host,
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+            }),
+        ];
+        for (what, build) in attempts {
+            let refused = command(&app, build).await.unwrap_err();
+            assert!(refused.contains("status port (TCP"), "{what}: {refused}");
+        }
+        sleep(Duration::from_millis(200)).await;
+        assert_eq!(unit.count(|c| &c.writes), 0);
+        assert_eq!(*unit.counts.other_kinds.lock().unwrap(), Vec::<u16>::new());
+        assert_eq!(unit.count(|c| &c.terminal_sessions), terminal_sessions);
+        assert!(app.state.read().await.connected);
     }
 
     #[tokio::test]
