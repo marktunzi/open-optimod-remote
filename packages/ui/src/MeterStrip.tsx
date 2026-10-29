@@ -225,7 +225,8 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
     }
     context.font=LABEL_FONT;context.fillStyle=palette.ticks;context.textAlign='center';
     const unit=unitFor(group);
-    if(unit)context.fillText(unit,x+groupWidth/2,LABEL_BASELINE);
+    // Centred under the bars, not the group (whose left part holds the scale).
+    if(unit)context.fillText(unit,contentStart+(channels[0].wellLeft+channels.at(-1)!.wellLeft+channels.at(-1)!.wellWidth)/2,LABEL_BASELINE);
     if(index<groups.length-1){
      const divider=x+groupWidth;
      context.fillStyle=palette.separator;context.fillRect(divider-1,0,1,REFERENCE_HEIGHT);
