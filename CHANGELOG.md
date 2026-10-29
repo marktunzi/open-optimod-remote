@@ -1,26 +1,8 @@
 # Changelog
 
-## Unreleased (after the 0.3.0 candidate)
+## 0.3.0 — 29 October 2026
 
-- 8400: the session is no longer dropped while the unit still holds it. Under host load the virtual 8400 drops TCP segments and its answers come many seconds late; the app now waits 35 s (the unit's own 30 s plus a margin) instead of 20 s, and sends its keepalive every 2 s like the original client (it went every 4 s). A session the unit ends itself is still recovered by the automatic reconnect ([8400 session stability](docs/verification/2026-10-29-8400-session-stability.md)).
-- 8400: Backup and Restore as its original client's Memory screen (every user preset as `<Preset Name>.orb`; Restore writes the file and sends the preset-added event), and Automation (one `AUTO_<n>.aut` per event, the automation event after each change, *Automation Enabled* as the system control), captured from `8400_pc.exe` and checked on its firmware.
-- 6300: Restore no longer reports "could not be confirmed": the 6300, 8700i and 8700HD firmware send no extra answer after a preset-file upload. Their Save As, Delete, Backup, Restore, Security and Diagnostics are now checked on their firmware.
-- 8400 and 5700i: the gate lamps are verified lit (8400 AGC and multiband GATE added; 5700i FM and HD Multi Gate).
-- 2300 and 8400: the native Presets window offers the client-style file Backup and Restore (the 2300's was only in the service).
-- The service reports version 0.3.0 (it said 0.2.0).
-
-- 5700i (#18): when the status port (TCP 23) does not answer, the 5700i runs over PC Remote alone, as its original client does: system settings, presets, processing, writes, Save/Save As/Delete and Recall of user and factory presets. While a sync is incomplete, every change is refused, not only parameter changes. No 2-band or 5-band page is shown without a live on-air document; status port messages name the stage that failed and no longer suggest a write for a read.
-- Connections: the sidebar icons sit inside their selection.
-- 6300 and 8700i: Automation, with each client's own action list and file (captured from the original clients, checked on their firmware).
-- 2300: factory preset Recall, by uploading the client installation's factory file as the original client does; the on-air result equals the client's Recall byte for byte.
-- 2300: Save, Save As, Delete, Automation, Security, Backup and Restore as its original client (captured and checked on its firmware; Backup byte-identical to the client's).
-- 8400: Save, Save As, Rename and Delete as its original client (the three files of its Save As, then the Save event), and Security (`password.pas` plus the passcodes event), checked on its firmware. A preset cannot take the name of one of the unit's own files.
-- 8700HD: Save As, Delete, Backup/Restore, Automation, Security and Diagnostics, from its original client's code (`8700PC.exe` 1.0.2.161 has the 5500 client's file code with `.orb86` names) and tested against a scripted unit; not yet confirmed on its firmware.
-- 6300 and 8700i: Save As, Delete, Backup/Restore, Security and Diagnostics from their original clients' code (`6300PC.exe` has the 8700HD client's file code, `8700iPC.exe` the 5500i client's), with each client's access levels and name limit; tested against a scripted unit, not yet confirmed on firmware. Their Automation is not offered yet (function lists unknown).
-
-## 0.3.0 — release candidate, 29 October 2026
-
-Release candidate (build 9) on `fix/5700i-recall-session`; the signed release has not yet been published. Limited scope: see [the 0.3.0 notes and compatibility table](docs/releases/v0.3.0.md).
+The first signed and notarized release with automatic updates: build 12 from `main`. Limited scope, not yet full Windows PC Remote parity: see [the 0.3.0 notes and compatibility table](docs/releases/v0.3.0.md). Remaining hardware and parity acceptance: [#20](https://github.com/marktunzi/open-optimod-remote/issues/20).
 
 - Signed automatic updates (Sparkle 2): signed feed and archives, daily check, Check for Updates…; an update never ends a processor session by itself (Disconnect and Install / Later).
 - Several processors at once, one tab and session each; native macOS windows for Connections (with groups), Presets, System Settings and Automation, Security and Diagnostics.
@@ -28,6 +10,21 @@ Release candidate (build 9) on `fix/5700i-recall-session`; the signed release ha
 - Meters follow each original client, including its gate lamps; one caption baseline.
 - The original 5500 (1.2.8.24) has full control with its own protocol, profile and client functions (writes, Recall, Save As/Delete, meters, System Settings, Automation, Security, Diagnostics, Backup/Restore). Derived from the 5500 firmware and client and tested against a scripted unit; not yet confirmed on 5500 firmware (#1), which is the final acceptance step.
 - `release-macos.sh VERSION BUILD [notes]` builds into `dist/release/VERSION/` with the signed update; nothing is published.
+- Backup: preset file names that would land on the same file once unzipped (after `/` and `\` are flattened, or names that differ only in case) now get " 2", " 3", …, so no preset in a backup overwrites another. Restore refuses a file name with a control character, which would otherwise have become extra lines in the upload ([security review](docs/verification/2026-10-29-release-security-review.md)).
+- 8400: the session is no longer dropped while the unit still holds it. Under host load the virtual 8400 drops TCP segments and its answers come many seconds late; the app now waits 35 s (the unit's own 30 s plus a margin) instead of 20 s, and sends its keepalive every 2 s like the original client (it went every 4 s). A session the unit ends itself is still recovered by the automatic reconnect ([8400 session stability](docs/verification/2026-10-29-8400-session-stability.md)).
+- 8400: Backup and Restore as its original client's Memory screen (every user preset as `<Preset Name>.orb`; Restore writes the file and sends the preset-added event), and Automation (one `AUTO_<n>.aut` per event, the automation event after each change, *Automation Enabled* as the system control), captured from `8400_pc.exe` and checked on its firmware.
+- 6300: Restore no longer reports "could not be confirmed": the 6300, 8700i and 8700HD firmware send no extra answer after a preset-file upload. Their Save As, Delete, Backup, Restore, Security and Diagnostics are now checked on their firmware.
+- 8400 and 5700i: the gate lamps are verified lit (8400 AGC and multiband GATE added; 5700i FM and HD Multi Gate).
+- 2300 and 8400: the native Presets window offers the client-style file Backup and Restore (the 2300's was only in the service).
+- The service reports version 0.3.0 (it said 0.2.0).
+- 5700i (#18): when the status port (TCP 23) does not answer, the 5700i runs over PC Remote alone, as its original client does: system settings, presets, processing, writes, Save/Save As/Delete and Recall of user and factory presets. While a sync is incomplete, every change is refused, not only parameter changes. No 2-band or 5-band page is shown without a live on-air document; status port messages name the stage that failed and no longer suggest a write for a read.
+- Connections: the sidebar icons sit inside their selection.
+- 6300 and 8700i: Automation, with each client's own action list and file (captured from the original clients, checked on their firmware).
+- 2300: factory preset Recall, by uploading the client installation's factory file as the original client does; the on-air result equals the client's Recall byte for byte.
+- 2300: Save, Save As, Delete, Automation, Security, Backup and Restore as its original client (captured and checked on its firmware; Backup byte-identical to the client's).
+- 8400: Save, Save As, Rename and Delete as its original client (the three files of its Save As, then the Save event), and Security (`password.pas` plus the passcodes event), checked on its firmware. A preset cannot take the name of one of the unit's own files.
+- 8700HD: Save As, Delete, Backup/Restore, Automation, Security and Diagnostics, from its original client's code (`8700PC.exe` 1.0.2.161 has the 5500 client's file code with `.orb86` names), checked on its firmware except Automation (scripted unit only).
+- 6300 and 8700i: Save As, Delete, Backup/Restore, Security and Diagnostics from their original clients' code (`6300PC.exe` has the 8700HD client's file code, `8700iPC.exe` the 5500i client's), with each client's access levels and name limit, checked on their firmware.
 
 ## 0.2.0 — 29 September 2026
 

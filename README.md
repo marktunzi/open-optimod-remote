@@ -33,17 +33,17 @@ The app communicates directly with each processor, reads its current settings an
 
 ## Supported models
 
-The current **0.3.0 release candidate** (build 11, not yet published) supports the following models and firmware versions; the source on `main` adds the functions marked *(after build 11)*, listed in the [changelog](CHANGELOG.md). Features vary by model; the [Phase 10 matrix](docs/verification/2026-10-29-phase10-matrix.md) shows what was verified on original firmware and what is still blocked or untested.
+**0.3.0** (build 12) supports the following models and firmware versions. Features vary by model; the [Phase 10 matrix](docs/verification/2026-10-29-phase10-matrix.md) shows what was verified on original firmware and what is still blocked or untested.
 
 | Model | Firmware | Available functionality |
 |---|---|---|
 | **OPTIMOD 5700i** | 3.0.1.20 | Meters, processing and system settings, presets, backup/restore, automation, security and diagnostics |
 | **OPTIMOD 5500i** | 3.1.0.2 | Meters, processing and system settings, presets, backup/restore, automation, security and diagnostics |
-| **OPTIMOD-FM 8700HD** | 1.0.2.161 | Meters, processing and system settings, preset recall; presets, backup/restore, automation, security and diagnostics *(after build 11)* |
-| **OPTIMOD 6300** | 4.1.1.19 | Meters, processing and system settings, preset recall; presets, backup/restore, automation, security and diagnostics *(after build 11)* |
-| **OPTIMOD 8700i** | 1.5.1.11 | Meters, processing and system settings, preset recall; presets, backup/restore, automation, security and diagnostics *(after build 11)* |
-| **OPTIMOD 2300** | 2.0.3.85 | Meters, processing and system settings, user-preset recall; factory recall, presets, backup/restore, automation, security and diagnostics *(after build 11)* |
-| **OPTIMOD-FM 8400** | 3.0.5.7 | Meters, processing and system settings, preset recall; presets, backup/restore, automation and security *(after build 11)*; automation events not yet seen running on its firmware |
+| **OPTIMOD-FM 8700HD** | 1.0.2.161 | Meters, processing and system settings, preset recall, save and delete, backup/restore, automation, security and diagnostics |
+| **OPTIMOD 6300** | 4.1.1.19 | Meters, processing and system settings, preset recall, save and delete, backup/restore, automation, security and diagnostics |
+| **OPTIMOD 8700i** | 1.5.1.11 | Meters, processing and system settings, preset recall, save and delete, backup/restore, automation, security and diagnostics |
+| **OPTIMOD 2300** | 2.0.3.85 | Meters, processing and system settings, preset recall (user and factory), save and delete, backup/restore, automation, security and diagnostics |
+| **OPTIMOD-FM 8400** | 3.0.5.7 | Meters, processing and system settings, preset recall, save and delete, backup/restore, automation and security; automation events not yet seen running on its firmware |
 | **OPTIMOD 5500** | 1.2.8.24 | Meters, processing and system settings, presets, backup/restore, automation, security and diagnostics (from the 5500 software; not yet confirmed on 5500 firmware) |
 
 **Current status:** 0.3.0 is a limited-scope release, not yet a complete replacement for Orban's Windows PC Remote. Some original-client functions are still being added, including improvements to the 8400's Advanced Processing screens. Other models and firmware versions are not yet supported.
@@ -52,7 +52,7 @@ See the [detailed compatibility table](docs/releases/v0.3.0.md#compatibility-exa
 
 ## Download and development
 
-Version 0.3.0 is still being tested and **has not been published yet**. See [GitHub Releases](https://github.com/marktunzi/open-optimod-remote/releases) for currently available builds.
+Download **[Open Optimod Remote 0.3.0 for Mac](https://github.com/marktunzi/open-optimod-remote/releases/download/v0.3.0/OpenOptimodRemote-0.3.0-arm64.dmg)** (Apple Silicon, macOS 13 or later; Developer ID signed and notarized), open the disk image and drag the app to Applications. Later versions arrive through *Check for Updates…* in the app menu. All builds and checksums: [GitHub Releases](https://github.com/marktunzi/open-optimod-remote/releases).
 
 To build the current version from source, use `./scripts/build-macos.sh`. Developers can also read [how to add a model](docs/adding-a-model.md) or follow [project progress](https://github.com/marktunzi/open-optimod-remote/issues/17).
 

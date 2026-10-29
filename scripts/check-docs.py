@@ -97,7 +97,8 @@ def main() -> int:
     forbid("docs/research/2026-09-29-5500-8700hd-static-analysis.md", "8,19 s", errors)
     require("docs/research/2026-09-29-5500-8700hd-static-analysis.md", "8,557 s in plaats van 16,250 s", errors)
     forbid("skills/optimod-5700i-control/references/state-and-controls.md", "must not be followed by a redundant warning sheet", errors)
-    require("CHANGELOG.md", "the signed release has not yet been published", errors)
+    require("CHANGELOG.md", "0.3.0 — 29 October 2026", errors)
+    forbid("CHANGELOG.md", "the signed release has not yet been published", errors)
 
     for path in sorted((ROOT / "docs/plans").glob("*.md")):
         if "> **Status:**" not in path.read_text(encoding="utf-8"):
