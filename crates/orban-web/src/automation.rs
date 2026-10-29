@@ -53,6 +53,20 @@ pub const FUNCTIONS_5500I: [&str; 18] = [
 /// from its Automation dialog, 29 October 2026).
 pub const FUNCTIONS_6300: [&str; 4] = ["Stereo", "Dual-Mono", "Bypass", "Exit Test"];
 
+/// The functions the 2300 client 2.0.3.85 offers after the presets (its
+/// Automation dialog, 29 October 2026).
+pub const FUNCTIONS_2300: [&str; 9] = [
+    "Bypass",
+    "Exit Test",
+    "Stereo",
+    "Mono-R",
+    "Mono-L",
+    "Mono-Sum",
+    "Mod. Reduction 1",
+    "Mod. Reduction 2",
+    "Exit Mod. Reduction",
+];
+
 /// Whether the model's client function list is known.
 pub fn available(model: DeviceModel) -> bool {
     matches!(
@@ -63,6 +77,7 @@ pub fn available(model: DeviceModel) -> bool {
             | DeviceModel::Optimod8700Hd
             | DeviceModel::Optimod6300
             | DeviceModel::Optimod8700i
+            | DeviceModel::Optimod2300
     )
 }
 
@@ -79,6 +94,7 @@ pub fn flavour(model: DeviceModel) -> (&'static [&'static str], &'static str, &'
         // `8700iPC.exe` 1.5.1.11 offers the 5700i's 18 functions in the same
         // order (its Automation dialog, 29 October 2026).
         DeviceModel::Optimod8700i => (&FUNCTIONS, "8700.52", "orb87autom"),
+        DeviceModel::Optimod2300 => (&FUNCTIONS_2300, "2300.20", "orb23autom"),
         _ => (&FUNCTIONS, "5700.51", "orb57autom"),
     }
 }

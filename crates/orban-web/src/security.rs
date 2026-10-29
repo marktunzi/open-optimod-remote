@@ -38,6 +38,9 @@ pub fn flavour(model: DeviceModel) -> (&'static [&'static str; 6], &'static str,
         // 1.5.1.11 the 5700i's.
         DeviceModel::Optimod6300 => (&LEVELS_5500I, "6300.50", "orb63pas"),
         DeviceModel::Optimod8700i => (&LEVELS, "8700.52", "orb87pas"),
+        // `2300PC.exe` 2.0.3.85 has the 5500i's level names (its Security
+        // dialog and the file it saved, 29 October 2026).
+        DeviceModel::Optimod2300 => (&LEVELS_5500I, "2300.20", "orb23pas"),
         _ => (&LEVELS, "5700.51", "orb57pas"),
     }
 }

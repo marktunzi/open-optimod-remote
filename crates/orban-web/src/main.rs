@@ -1744,7 +1744,7 @@ async fn recall_with_files(
         // unconverted file to the same on-air document.
         PresetKind::Factory
             if device.session.adapter().wire.factory_files.is_some()
-                && (device.status_port_down || !device.session.adapter().wire.factory_recall) =>
+                && !has_status_port(device) =>
         {
             let text = factory_file(device, app, name).await?;
             upload_on_air(device, &text).await?;
@@ -2409,7 +2409,7 @@ async fn preset_file_message(
     // file a few seconds after a change, so a Save right after a change
     // would store the previous value (seen 28 October 2026).
     let model = device.session.info.model;
-    let text = if device.status_port_down {
+    let text = if !has_status_port(device) {
         on_air_text_as_shown(app, device).await?
     } else {
         let address = device.terminal;
@@ -2451,12 +2451,39 @@ async fn preset_file_message(
     let document = Zeroizing::new(renamed_preset_file(&text, name, extension)?);
     let iv = *uuid::Uuid::new_v4().as_bytes();
     let sealed = orban_protocol::archive::encrypt(document.as_bytes(), &device.code, iv)?;
-    let mut body = format!("0\n0\n\n{}\n", sealed.len()).into_bytes();
+    let wire = device.session.adapter().wire;
+    // The 2300's upload has no name line, and it sends no boundary answer.
+    let mut body = if wire.file_names {
+        format!("0\n0\n\n{}\n", sealed.len())
+    } else {
+        format!("0\n0\n{}\n", sealed.len())
+    }
+    .into_bytes();
     body.extend(sealed);
     device.session.send(229, &body).await?;
-    // The unit answers the upload with a boundary answer (FBh) of its own.
-    device.boundaries.sent();
+    if wire.file_names {
+        // The unit answers the upload with a boundary answer (FBh) of its own.
+        device.boundaries.sent();
+    }
+    if wire.save_deletes_working_copies {
+        let working: String = device
+            .user_presets
+            .values()
+            .filter_map(|plain| preset_file_name(plain))
+            .filter(|file| file.to_ascii_lowercase().starts_with("modif "))
+            .map(|file| format!("{file}\n"))
+            .collect();
+        if !working.is_empty() {
+            device.session.send(delete, working.as_bytes()).await?;
+        }
+    }
     Ok(())
+}
+
+/// Whether this session can use the status (terminal) port: the 2300 has
+/// none, and a 5700i whose port did not answer runs without it.
+fn has_status_port(device: &Device) -> bool {
+    device.session.adapter().wire.factory_recall && !device.status_port_down
 }
 
 /// Without the status port, the on-air file once the unit has saved what
@@ -2715,22 +2742,25 @@ async fn write_unit_file(
     let iv = *uuid::Uuid::new_v4().as_bytes();
     let sealed = orban_protocol::archive::encrypt(body.document.as_bytes(), &device.code, iv)
         .map_err(OperationError::safe)?;
-    let header = match name {
-        Some(name) => {
+    // A named file carries its FILETIME; the 2300's file messages have no
+    // name line at all.
+    let (high, low) = match name {
+        Some(_) => {
             let millis = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_millis() as u64)
                 .unwrap_or_default();
             let filetime = millis * 10_000 + 116_444_736_000_000_000;
-            format!(
-                "{}\n{}\n{name}\n{}\n",
-                filetime & 0xffff_ffff,
-                filetime >> 32,
-                sealed.len()
-            )
+            (filetime >> 32, filetime & 0xffff_ffff)
         }
-        None => format!("0\n0\n\n{}\n", sealed.len()),
+        None => (0, 0),
     };
+    let name_line = match name {
+        _ if !device.session.adapter().wire.file_names => String::new(),
+        Some(name) => format!("{name}\n"),
+        None => "\n".to_owned(),
+    };
+    let header = format!("{low}\n{high}\n{name_line}{}\n", sealed.len());
     let mut message = header.into_bytes();
     message.extend(sealed);
     let opcode = if body.kind == 235 {
@@ -6215,8 +6245,17 @@ mod tests {
                                 }
                             };
                             for frame in decoder.feed(&buffer[..count]).unwrap() {
-                                let message =
-                                    orban_protocol::message::decode_for(&frame, None).unwrap();
+                                // The 2300 deletes with EBh, inside the file range.
+                                let message = orban_protocol::message::decode_for(&frame, None)
+                                    .unwrap_or_else(|_| Message::Other {
+                                        kind: std::str::from_utf8(&frame[..8])
+                                            .unwrap()
+                                            .trim()
+                                            .parse::<u16>()
+                                            .unwrap()
+                                            + 204,
+                                        data: frame[16..].to_vec(),
+                                    });
                                 let (kind, data) = match message {
                                     Message::Other { kind, data } => (kind, data),
                                     // A file is recorded as its name line and its bytes.
@@ -7149,6 +7188,114 @@ mod tests {
         assert!(text.contains("Preset File Name= <MUSIC MEDIUM.orb23f75>"));
         assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
         assert!(app.state.read().await.connected);
+    }
+
+    /// The 2300's Save As, Delete, Automation and Security as its client
+    /// sends them (captures, 29 October 2026): file messages without a name
+    /// line, Delete and the working-copy cleanup as EBh.
+    #[tokio::test]
+    async fn the_2300_saves_deletes_and_writes_its_tool_files_as_its_client() {
+        let unit = FakeFileUnit::start(M2300).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let session = app.state.read().await.session_id.clone().unwrap();
+        let manage = |action: PresetFileAction, on_air: &str| {
+            let (app, session, on_air) = (app.clone(), session.clone(), on_air.to_owned());
+            async move {
+                command(&app, |r| {
+                    Command::PresetFile(
+                        PresetFile {
+                            action,
+                            expected_name: on_air,
+                            confirmed: true,
+                            expected_host: "127.0.0.1".into(),
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+                .await
+            }
+        };
+        // The scripted unit does not list new files, so only the messages are
+        // checked here; the result was confirmed on the 2300 firmware.
+        let _ = manage(
+            PresetFileAction::Save {
+                name: "MINE".into(),
+            },
+            "Test01",
+        )
+        .await;
+        // The scripted unit records a file as its name line and the file; a
+        // file message without a name line has an empty one.
+        let unnamed = |record: Vec<u8>| {
+            assert_eq!(record[0], b'\n', "no name line");
+            String::from_utf8(
+                orban_protocol::archive::decrypt(&record[1..], FILE_UNIT_CODE).unwrap(),
+            )
+            .unwrap()
+        };
+        let saved = unnamed(unit.received(229).pop().unwrap());
+        assert!(saved.contains("Preset Name=<MINE>"), "{saved}");
+        // The firmware's working copy goes with the Save.
+        assert_eq!(unit.received(235), [b"modif Test01.orb23user\n".to_vec()]);
+        let _ = manage(
+            PresetFileAction::Delete {
+                name: "Late Night".into(),
+            },
+            "Test01",
+        )
+        .await;
+        assert_eq!(
+            unit.received(235).last().unwrap(),
+            b"Late Night.orb23user\n"
+        );
+        let write = |kind, document: String| {
+            let (app, session) = (app.clone(), session.clone());
+            async move {
+                command(&app, |r| {
+                    Command::WriteUnitFile(
+                        UnitFileWrite {
+                            kind,
+                            document: Zeroizing::new(document),
+                            expected_host: "127.0.0.1".into(),
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+                .await
+            }
+        };
+        let event = crate::automation::Event {
+            hour: 6,
+            minute: 30,
+            second: 0,
+            day: 29,
+            month: 10,
+            year: 2026,
+            weekdays: [true; 7],
+            daily: true,
+            action: "Mono-Sum".into(),
+        };
+        let document = crate::automation::render(&[event], DeviceModel::Optimod2300).unwrap();
+        assert!(document.starts_with("OptimodVersion=<2300.20>"));
+        write(235, document).await.unwrap();
+        let automation = unnamed(unit.received(233).pop().unwrap());
+        assert!(automation.contains("Mono-Sum"));
+        let passcodes = crate::security::render(
+            &[crate::security::Passcode {
+                code: FILE_UNIT_CODE.into(),
+                level: "all access".into(),
+            }],
+            DeviceModel::Optimod2300,
+        )
+        .unwrap();
+        assert!(passcodes.contains("<Password.orb23pas>"));
+        write(230, passcodes).await.unwrap();
+        assert!(unnamed(unit.received(230).pop().unwrap()).contains("all access"));
     }
 
     /// Sync, a write, a user preset Recall and a pushed change on a

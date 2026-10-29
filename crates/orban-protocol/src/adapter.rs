@@ -232,6 +232,9 @@ pub struct Wire {
     /// status port does not answer, as that client does. The system
     /// setting `PRE-E` picks the file.
     pub factory_files: Option<&'static str>,
+    /// After a Save, the original client deletes the firmware's `modif`
+    /// working copies with the delete message (2300 capture, 29 October 2026).
+    pub save_deletes_working_copies: bool,
     /// Presets are saved as an opcode-229 upload of the on-air file under a
     /// new name and deleted with this opcode and the file name, as the
     /// original PC Remote does. `None` where this was not captured.
@@ -276,6 +279,7 @@ pub struct ToolFiles {
 /// The PC Remote generation of the 5700i, where nothing else was captured.
 pub const WIRE_PC_REMOTE: Wire = Wire {
     factory_files: None,
+    save_deletes_working_copies: false,
     boundary: (250, 251),
     on_air_request: 239,
     setup_request: None,
@@ -345,6 +349,7 @@ pub const WIRE_5700I: Wire = Wire {
 /// they wait for confirmation on the 8700HD firmware.
 pub const WIRE_8700HD: Wire = Wire {
     factory_files: None,
+    save_deletes_working_copies: false,
     boundary: (249, 250),
     on_air_request: 238,
     setup_request: Some((239, 232)),
@@ -430,6 +435,7 @@ pub const WIRE_5500: Wire = Wire {
 /// F4h and the automation file with F2h (captures, 28 October 2026).
 pub const WIRE_5500I: Wire = Wire {
     factory_files: None,
+    save_deletes_working_copies: false,
     boundary: (250, 251),
     on_air_request: 239,
     setup_request: Some((240, 233)),
@@ -500,6 +506,7 @@ const FACTORY_5500I: [&str; 27] = [
 /// `.orb63user` file (E7h).
 pub const WIRE_6300: Wire = Wire {
     factory_files: None,
+    save_deletes_working_copies: false,
     boundary: (249, 250),
     on_air_request: 238,
     setup_request: Some((239, 232)),
@@ -617,6 +624,7 @@ pub const WIRE_2300: Wire = Wire {
     factory_files: Some(include_str!(
         "../../../profiles/2300/2.0.3.85/factory-presets.json"
     )),
+    save_deletes_working_copies: true,
     boundary: (247, 248),
     on_air_request: 237,
     setup_request: Some((238, 232)),
@@ -628,8 +636,18 @@ pub const WIRE_2300: Wire = Wire {
     login_seed: LoginSeed::Never,
     file_names: false,
     factory_recall: false,
-    preset_file_delete: None,
-    tool_files: None,
+    // `2300PC.exe` Delete and the working-copy cleanup after a Save: EBh
+    // with `NAME.orb23user` lines (capture, 29 October 2026).
+    preset_file_delete: Some(235),
+    // Automation: EFh, upload E9h `lo\nhi\nsize\n` without a name;
+    // Security: F1h answered by E6h, upload E6h (captures, 29 October 2026).
+    tool_files: Some(ToolFiles {
+        prelude: None,
+        automation_request: 239,
+        passcodes_request: 241,
+        automation_name: "Automation.orb23autom",
+        automation_file: 233,
+    }),
     backup_requests: &[(240, 233)],
     backup_kept: &[],
     restore_extensions: &[],
@@ -923,8 +941,8 @@ const STATIC_FULL: Capabilities = Capabilities {
     preset_delete: false,
 };
 
-/// Save, Save As, Rename and Delete as the 5500's, 5500i's, 8700HD's, 6300's
-/// and 8700i's own clients do them, with file messages (`Wire::preset_file_delete`).
+/// Save, Save As, Rename and Delete as the 5500's, 5500i's, 8700HD's, 6300's,
+/// 8700i's and 2300's own clients do them, with file messages (`Wire::preset_file_delete`).
 const STATIC_FULL_WITH_PRESET_FILES: Capabilities = Capabilities {
     preset_store: true,
     preset_delete: true,
@@ -1010,7 +1028,7 @@ const EXACT: [(&str, AdapterDescriptor); 8] = [
             default_terminal_port: 23,
             product_mark: "2300 DIGITAL",
             firmware_prefix: "2300 V ",
-            capabilities: STATIC_FULL,
+            capabilities: STATIC_FULL_WITH_PRESET_FILES,
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
             on_air_archive: true,
