@@ -5811,7 +5811,11 @@ mod tests {
                                         let text = passcode_file.clone().unwrap_or_else(|| {
                                             crate::security::render(&passcodes, m.model).unwrap()
                                         });
-                                        file_for_model(m, 230, "Password.orb55pas", &text)
+                                        let name = format!(
+                                            "Password.{}",
+                                            crate::security::flavour(m.model).2
+                                        );
+                                        file_for_model(m, 230, &name, &text)
                                     }
                                     // An uploaded passcode or automation file replaces the unit's.
                                     k if m
@@ -6054,6 +6058,158 @@ mod tests {
         );
         // None of the 5500i's requests or uploads.
         for kind in [235, 237, 240, 244, 251] {
+            assert!(unit.received(kind).is_empty(), "{kind}");
+        }
+    }
+
+    /// The 8700HD's client has the 5500's file code with `.orb86` names:
+    /// Security F3h/E6h, Automation F1h/EAh, Delete ECh, Backup EFh F1h F2h,
+    /// Restore EAh + 231, and the 5700i client's level names and functions.
+    #[tokio::test]
+    async fn the_8700hd_files_use_its_clients_opcodes_and_names() {
+        let unit = FakeFileUnit::start(M8700HD).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let session = app.state.read().await.session_id.clone().unwrap();
+        let read = |request| {
+            let app = app.clone();
+            async move {
+                let (reply, answer) = oneshot::channel();
+                app.commands
+                    .send(Command::ReadUnitFile(request, reply))
+                    .await
+                    .unwrap();
+                answer.await.unwrap()
+            }
+        };
+        let passcodes = read(230).await.unwrap().unwrap();
+        assert!(passcodes.contains("C:<ADMIN>String:<All screens>;D:0;"));
+        assert!(passcodes.starts_with("OptimodVersion=<8700.51>"));
+        assert!(read(235).await.unwrap().is_some());
+        assert!(!unit.received(204).is_empty());
+        let write = |kind, document: String| {
+            let session = session.clone();
+            let app = app.clone();
+            async move {
+                command(&app, |r| {
+                    Command::WriteUnitFile(
+                        UnitFileWrite {
+                            kind,
+                            document: Zeroizing::new(document),
+                            expected_host: "127.0.0.1".into(),
+                            expected_session: session,
+                        },
+                        r,
+                    )
+                })
+                .await
+            }
+        };
+        let levels = crate::security::LEVELS;
+        let codes = [
+            crate::security::Passcode {
+                code: FILE_UNIT_CODE.into(),
+                level: levels[0].into(),
+            },
+            crate::security::Passcode {
+                code: "4321".into(),
+                level: levels[5].into(),
+            },
+        ];
+        let passcodes = crate::security::render(&codes, DeviceModel::Optimod8700Hd).unwrap();
+        assert!(passcodes.contains("Preset File Name= <Password.orb86pas>"));
+        write(230, passcodes).await.unwrap();
+        assert_eq!(unit.received(230).len(), 1);
+        // SSB is one of the client's functions (0x4ad720).
+        let event = crate::automation::Event {
+            hour: 6,
+            minute: 0,
+            second: 0,
+            day: 1,
+            month: 1,
+            year: 2026,
+            weekdays: [true; 7],
+            daily: true,
+            action: "SSB".into(),
+        };
+        let automation = crate::automation::render(&[event], DeviceModel::Optimod8700Hd).unwrap();
+        assert!(automation.contains("auto_event_00.orb86autom"));
+        write(235, automation).await.unwrap();
+        assert!(
+            unit.received(234)
+                .iter()
+                .any(|d| d.starts_with(b"Automation.orb86autom\n"))
+        );
+        // No events left: the automation file is deleted with ECh.
+        write(235, String::new()).await.unwrap();
+        assert_eq!(unit.received(236), [b"Automation.orb86autom\n".to_vec()]);
+        let _ = command(&app, |r| {
+            Command::PresetFile(
+                PresetFile {
+                    action: PresetFileAction::Delete {
+                        name: "Late Night".into(),
+                    },
+                    expected_name: "Test01".into(),
+                    confirmed: true,
+                    expected_host: "127.0.0.1".into(),
+                    expected_session: session.clone(),
+                },
+                r,
+            )
+        })
+        .await;
+        assert!(
+            unit.received(236)
+                .contains(&b"Late Night.orb86user\n".to_vec())
+        );
+        let before = (
+            unit.received(239).len(),
+            unit.received(241).len(),
+            unit.received(242).len(),
+        );
+        let (reply, answer) = oneshot::channel();
+        app.commands
+            .send(Command::BackupFiles(reply))
+            .await
+            .unwrap();
+        let _ = answer.await.unwrap();
+        assert_eq!(
+            (
+                unit.received(239).len(),
+                unit.received(241).len(),
+                unit.received(242).len()
+            ),
+            (before.0 + 1, before.1 + 1, before.2 + 1)
+        );
+        command(&app, |r| {
+            Command::RestorePresetFiles(
+                RestorePresetFiles {
+                    files: vec![
+                        BackupFile {
+                            name: "Automation.orb86autom".into(),
+                            document: "OptimodVersion=<8700.51>\nPreset Name=<auto_event_00> size=0\nEnd Preset<end>\n".into(),
+                            modified: Some(0),
+                        },
+                        BackupFile {
+                            name: "LATE NIGHT.orb86user".into(),
+                            document: doc_8700("Late Night", 14),
+                            modified: Some(0),
+                        },
+                    ],
+                    confirmed: true,
+                    expected_host: "127.0.0.1".into(),
+                    expected_session: session.clone(),
+                },
+                r,
+            )
+        })
+        .await
+        .unwrap();
+        assert_eq!(unit.received(231).len(), 1);
+        // None of the 5700i/5500i requests: F0h setup, F4h passcodes, EDh delete, FBh.
+        for kind in [237, 244, 251] {
             assert!(unit.received(kind).is_empty(), "{kind}");
         }
     }
@@ -7685,10 +7841,9 @@ mod tests {
 
     #[tokio::test]
     async fn models_without_a_documented_save_command_refuse_preset_changes() {
-        // The 5700i saves and deletes with its client's file messages.
-        for (banner, terminal_banner) in
-            [("8700HD V 1.0.2.161", "Orban Optimod 8700HD V 1.0.2.161")]
-        {
+        // The 5700i, 5500i, 5500 and 8700HD save and delete with their
+        // clients' file messages; the 6300's are not implemented.
+        for (banner, terminal_banner) in [("6300 V 4.1.1.19", "Orban Optimod 6300 V 4.1.1.19")] {
             let outcome = simulated_preset_file(PresetFileCase {
                 banner,
                 terminal_banner,

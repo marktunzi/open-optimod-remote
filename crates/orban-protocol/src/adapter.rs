@@ -319,6 +319,16 @@ pub const WIRE_5700I: Wire = Wire {
 /// FAh, EEh by `OnAir.orb86onair`, EFh by `Setup.orb86setup` (E8h) and F2h by
 /// every `.orb86user` file (E7h). The terminal `LP` labels user presets as
 /// factory presets, so factory names come from the PC Remote installer.
+///
+/// `8700PC.exe` 1.0.2.161 has the 5500 client's file code with `.orb86`
+/// names (the 5500 is this generation): Save and Save As upload the on-air
+/// file (229), Delete sends ECh with the file name (0x4727e0), Backup asks
+/// for EFh, F2h, F1h and F9h (0x465a20), Restore sends
+/// `Automation.orb86autom` as EAh, `Password.orb86pas` as E6h and anything
+/// else as 231 (0x452af0), Automation reads F1h and uploads EAh (0x4110f9),
+/// Security reads F3h (answered by `Password.orb86pas`, captured), and the
+/// sync asks for Diagnostics with CCh (0x464bf9). The file calls are static;
+/// they wait for confirmation on the 8700HD firmware.
 pub const WIRE_8700HD: Wire = Wire {
     boundary: (249, 250),
     on_air_request: 238,
@@ -334,14 +344,22 @@ pub const WIRE_8700HD: Wire = Wire {
     login_seed: LoginSeed::Always,
     file_names: true,
     factory_recall: true,
-    preset_file_delete: None,
-    tool_files: None,
-    backup_requests: &[(240, 233)],
-    backup_kept: &[],
-    restore_extensions: &[],
+    preset_file_delete: Some(236),
+    tool_files: Some(ToolFiles {
+        prelude: None,
+        automation_request: 241,
+        passcodes_request: 243,
+        automation_name: "Automation.orb86autom",
+        automation_file: 234,
+    }),
+    // Backup to PC keeps setup, automation, user presets and setup presets.
+    backup_requests: &[(239, 232), (241, 234)],
+    backup_kept: &[".orb86user", ".orb86setup"],
+    restore_extensions: &[".orb86setup", ".orb86autom"],
+    restore_files: &[("Automation.orb86autom", 234)],
+    // The client has no Open Setup or Save Setup As.
     setup_presets: None,
     network_request: None,
-    restore_files: &[],
 };
 
 /// 5500 1.2.8.24: the 8700HD generation. `5500PC.exe` 1.2.8.24 sends the same
@@ -811,8 +829,8 @@ const STATIC_FULL: Capabilities = Capabilities {
     preset_delete: false,
 };
 
-/// Save, Save As, Rename and Delete as the 5500's and 5500i's own clients do
-/// them, with file messages (`Wire::preset_file_delete`).
+/// Save, Save As, Rename and Delete as the 5500's, 5500i's and 8700HD's own
+/// clients do them, with file messages (`Wire::preset_file_delete`).
 const STATIC_FULL_WITH_PRESET_FILES: Capabilities = Capabilities {
     preset_store: true,
     preset_delete: true,
@@ -940,7 +958,7 @@ const EXACT: [(&str, AdapterDescriptor); 8] = [
             default_terminal_port: 23,
             product_mark: "8700HD FM+HD",
             firmware_prefix: "8700HD V ",
-            capabilities: STATIC_FULL,
+            capabilities: STATIC_FULL_WITH_PRESET_FILES,
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
             on_air_archive: true,

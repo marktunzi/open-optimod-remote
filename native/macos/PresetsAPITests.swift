@@ -56,6 +56,15 @@ struct PresetsAPITests {
         precondition(sorted5500.setup == nil && sorted5500.presets.count == 3)
         precondition((try? PresetBackup.sort([PresetBackupFile(name: "Network.orb55net", document: "n")], adapterID: "pc-remote-5500-1.2.8.24")) == nil)
         precondition(PresetFileFormat.backsUpFiles("pc-remote-5500-1.2.8.24") && PresetFileFormat.replacesOnAir("pc-remote-5500-1.2.8.24"))
+        // The 8700HD client's Restore is the 5500's with .orb86 names.
+        let sorted8700 = try PresetBackup.sort([
+            PresetBackupFile(name: "Setup.orb86setup", document: "s"),
+            PresetBackupFile(name: "Automation.orb86autom", document: "a"),
+            PresetBackupFile(name: "ROCK.ORB86USER", document: "p"),
+        ], adapterID: "pc-remote-8700hd-1.0.2.161")
+        precondition(sorted8700.setup == nil && sorted8700.presets.count == 3)
+        precondition((try? PresetBackup.sort([PresetBackupFile(name: "ROCK.orb55user", document: "p")], adapterID: "pc-remote-8700hd-1.0.2.161")) == nil)
+        precondition(PresetFileFormat.backsUpFiles("pc-remote-8700hd-1.0.2.161") && !PresetFileFormat.backsUpFiles("pc-remote-6300-4.1.1.19"))
         precondition(PresetBackup.crc32(Data("123456789".utf8)) == 0xcbf4_3926)
         let zip = PresetBackup.zip(folder: "f", files: [("a.txt", Data("hi".utf8))])
         precondition(zip.prefix(4) == Data([0x50, 0x4b, 0x03, 0x04]) && zip.count == 30 + 7 + 2 + 46 + 7 + 22)

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased (after the 0.3.0 candidate)
+
+- 8700HD: Save As, Delete, Backup/Restore, Automation, Security and Diagnostics, from its original client's code (`8700PC.exe` 1.0.2.161 has the 5500 client's file code with `.orb86` names) and tested against a scripted unit; not yet confirmed on its firmware.
+
 ## 0.3.0 — release candidate, 29 October 2026
 
 Release candidate (build 9) on `fix/5700i-recall-session`; the signed release has not yet been published. Limited scope: see [the 0.3.0 notes and compatibility table](docs/releases/v0.3.0.md).

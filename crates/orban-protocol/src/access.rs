@@ -6,6 +6,9 @@
 //! names are those of its Security dialog. `5500iPC.exe` 3.1.0.2 has the same
 //! bounds except Delete Preset, which needs level 1 or lower (0x42f560);
 //! `5500PC.exe` 1.2.8.24 has the 5500i's bounds (Delete 0x42d070).
+//! `8700PC.exe` 1.0.2.161 has the 5700i's bounds, Delete included (Recall
+//! 0x4370e0, Save/Save As/Delete 0x436cf0/0x436800/0x4378f0, Setup 0x437ab0,
+//! Automation 0x4399a0, Security 0x439a70, Backup/Restore 0x439b40/0x439ba0).
 //! Other models keep full access at level 0 and read-only access otherwise
 //! until their clients are compared.
 use crate::adapter::DeviceModel;
@@ -33,7 +36,10 @@ pub struct Access {
 pub fn access(model: DeviceModel, level: u8) -> Access {
     if matches!(
         model,
-        DeviceModel::Optimod5700i | DeviceModel::Optimod5500i | DeviceModel::Optimod5500
+        DeviceModel::Optimod5700i
+            | DeviceModel::Optimod5500i
+            | DeviceModel::Optimod5500
+            | DeviceModel::Optimod8700Hd
     ) {
         // 0 All screens, 1 … except Security, 2 … except Modify and Security,
         // 3 Presets, Modify, Save, Memory and Automation, 4 Presets and
@@ -44,7 +50,7 @@ pub fn access(model: DeviceModel, level: u8) -> Access {
             recall: level <= 5,
             modify: matches!(level, 0 | 1 | 3),
             presets: matches!(level, 0 | 1 | 3),
-            delete: if model != DeviceModel::Optimod5700i {
+            delete: if matches!(model, DeviceModel::Optimod5500i | DeviceModel::Optimod5500) {
                 level <= 1
             } else {
                 matches!(level, 0 | 1 | 3)
@@ -95,7 +101,11 @@ mod tests {
         assert!(a(3).modify && a(3).presets && !a(3).setup && !a(3).memory && a(3).automation);
         assert!(a(4).recall && a(4).automation && !a(4).modify);
         assert!(a(5).recall && !a(5).automation && !a(5).setup);
-        assert!(!access(DeviceModel::Optimod8700Hd, 1).recall);
+        assert!(!access(DeviceModel::Optimod6300, 1).recall);
+        // The 8700HD client has the 5700i's bounds, Delete included.
+        for level in 0..=5 {
+            assert_eq!(access(DeviceModel::Optimod8700Hd, level), a(level));
+        }
     }
 
     #[test]

@@ -54,6 +54,9 @@ pub fn flavour(model: DeviceModel) -> (&'static [&'static str], &'static str, &'
         DeviceModel::Optimod5500i | DeviceModel::Optimod5500 => {
             (&FUNCTIONS_5500I, "5500.50", "orb55autom")
         }
+        // `8700PC.exe` 1.0.2.161 fills its list with the 5700i's 18 functions
+        // in the same order (0x4ad720).
+        DeviceModel::Optimod8700Hd => (&FUNCTIONS, "8700.51", "orb86autom"),
         _ => (&FUNCTIONS, "5700.51", "orb57autom"),
     }
 }
