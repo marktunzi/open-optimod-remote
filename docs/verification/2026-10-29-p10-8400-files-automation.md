@@ -27,15 +27,15 @@ The client's copies equal the unit's files for presets in the current format; fo
 
 The native Presets window now offers *Back Up…* and *Restore from Backup…* as files for the 8400 and the 2300 (the 2300's service side was done before but not reachable from the window).
 
-## 6300 and 8700i file functions on firmware
+## 6300, 8700i and 8700HD file functions on firmware
 
-| Function | 6300 4.1.1.19 | 8700i 1.5.1.11 |
-|---|---|---|
-| Save As | PASS (listed, on air, 2 s) | PASS |
-| Backup | PASS: 14 files, each equal to the unit's own | PASS: 3 files, each equal to the unit's own |
-| Delete | PASS (gone from list and unit) | PASS |
-| Restore | **FAIL → fixed**: the file was written but the app waited for a boundary answer the 6300 never sends after a 231 upload. With `restore_answered` false: PASS (1 s, listed) | PASS; its packet log shows no extra answer after the upload either |
-| Security | PASS: passcode added, read back, removed; file equal to the baseline | PASS |
-| Diagnostics | PASS (205 text) | PASS |
+| Function | 6300 4.1.1.19 | 8700i 1.5.1.11 | 8700HD 1.0.2.161 (.171) |
+|---|---|---|---|
+| Save As | PASS (listed, on air, 2 s) | PASS | PASS |
+| Backup | PASS: 14 files, each equal to the unit's own | PASS: 3 files, each equal to the unit's own | PASS: 13 files, each equal to the unit's own |
+| Delete | PASS (gone from list and unit) | PASS | PASS |
+| Restore | **FAIL → fixed**: the file was written but the app waited for a boundary answer the 6300 never sends after a 231 upload. With `restore_answered` false: PASS (1 s, listed) | PASS; its packet log shows no extra answer after the upload either | PASS (1.5 s); no extra answer after the upload |
+| Security | PASS: passcode added, read back, removed; file equal to the baseline | PASS | PASS |
+| Diagnostics | PASS (205 text) | PASS | PASS |
 
-Physical 8400, 6300 and 8700i hardware: **BLOCKED** (none available).
+Physical 8400, 6300, 8700i and 8700HD hardware: **BLOCKED** (none available).

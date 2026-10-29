@@ -259,8 +259,9 @@ pub struct Wire {
     /// of 231, by file name.
     pub restore_files: &'static [(&'static str, u16)],
     /// The unit answers each named preset-file upload (231) with a boundary
-    /// answer of its own (5700i, 5500i firmware); the 6300 and 8700i firmware
-    /// do not (virtual 6300 4.1.1.19 and 8700i 1.5.1.11, 29 October 2026).
+    /// answer of its own (5700i, 5500i firmware); the 6300, 8700i and 8700HD
+    /// firmware do not (virtual 6300 4.1.1.19, 8700i 1.5.1.11 and 8700HD
+    /// 1.0.2.161, 29 October 2026).
     pub restore_answered: bool,
 }
 

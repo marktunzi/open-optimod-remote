@@ -4,7 +4,8 @@
 
 - 8400: the session is no longer dropped while the unit still holds it. Under host load the virtual 8400 drops TCP segments and its answers come many seconds late; the app now waits 35 s (the unit's own 30 s plus a margin) instead of 20 s, and sends its keepalive every 2 s like the original client (it went every 4 s). A session the unit ends itself is still recovered by the automatic reconnect ([8400 session stability](docs/verification/2026-10-29-8400-session-stability.md)).
 - 8400: Backup and Restore as its original client's Memory screen (every user preset as `<Preset Name>.orb`; Restore writes the file and sends the preset-added event), and Automation (one `AUTO_<n>.aut` per event, the automation event after each change, *Automation Enabled* as the system control), captured from `8400_pc.exe` and checked on its firmware.
-- 6300: Restore no longer reports "could not be confirmed": the 6300 and 8700i firmware send no extra answer after a preset-file upload. 6300 and 8700i Save As, Delete, Backup, Restore, Security and Diagnostics are now checked on their firmware.
+- 6300: Restore no longer reports "could not be confirmed": the 6300, 8700i and 8700HD firmware send no extra answer after a preset-file upload. Their Save As, Delete, Backup, Restore, Security and Diagnostics are now checked on their firmware.
+- 8400 and 5700i: the gate lamps are verified lit (8400 AGC and multiband GATE added; 5700i FM and HD Multi Gate).
 - 2300 and 8400: the native Presets window offers the client-style file Backup and Restore (the 2300's was only in the service).
 - The service reports version 0.3.0 (it said 0.2.0).
 
