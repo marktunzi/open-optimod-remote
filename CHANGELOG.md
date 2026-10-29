@@ -8,7 +8,7 @@ Release candidate (build 9) on `fix/5700i-recall-session`; the signed release ha
 - Several processors at once, one tab and session each; native macOS windows for Connections (with groups), Presets, System Settings and Automation, Security and Diagnostics.
 - Added the 5500i, 6300, 8700i, 2300 and 8400, each verified against its original firmware; the 5700i gained presets save/delete, backup/restore, automation, security, diagnostics and access levels.
 - Meters follow each original client, including its gate lamps; one caption baseline.
-- The original 5500 (1.2.8.24) is read-only until verified on 5500 firmware (#1).
+- The original 5500 (1.2.8.24) has full control with its own protocol, profile and client functions (writes, Recall, Save As/Delete, meters, System Settings, Automation, Security, Diagnostics, Backup/Restore). Derived from the 5500 firmware and client and tested against a scripted unit; not yet confirmed on 5500 firmware (#1), which is the final acceptance step.
 - `release-macos.sh VERSION BUILD [notes]` builds into `dist/release/VERSION/` with the signed update; nothing is published.
 
 ## 0.2.0 — 29 September 2026

@@ -841,9 +841,7 @@ const EXACT: [(&str, AdapterDescriptor); 8] = [
             default_terminal_port: 23,
             product_mark: "5500 DIGITAL",
             firmware_prefix: "5500 V ",
-            // Read-only until the profile is confirmed on 5500 firmware (#1):
-            // every write path and the meter mapping are static only.
-            capabilities: READ_ONLY,
+            capabilities: STATIC_FULL_WITH_PRESET_FILES,
             meter_profile: Some(STATIC_METERS),
             frame_cut: None,
             on_air_archive: true,

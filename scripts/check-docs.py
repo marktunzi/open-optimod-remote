@@ -76,8 +76,9 @@ def main() -> int:
     require("docs/adding-a-model.md", "scripts/extract_pc_remote.py", errors)
     # README states the 0.3.0 scope (docs/releases/v0.3.0.md has the full table).
     require("README.md", "limited-scope release, not yet a complete replacement", errors)
-    require("README.md", "Read-only: not yet verified on 5500 firmware", errors)
-    require("docs/releases/v0.3.0.md", "Not verified on any 5500 firmware.", errors)
+    require("README.md", "not yet confirmed on 5500 firmware", errors)
+    forbid("README.md", "Read-only: not yet verified on 5500 firmware", errors)
+    require("docs/releases/v0.3.0.md", "Not yet confirmed on 5500 firmware.", errors)
     forbid("README.md", "works only on the 5500", errors)
     forbid("README.md", "fully controllable", errors)
     forbid("README.md", "all eleven selectable", errors)

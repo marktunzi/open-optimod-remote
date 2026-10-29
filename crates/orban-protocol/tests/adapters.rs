@@ -93,24 +93,17 @@ fn only_exact_profile_banners_enable_writes_and_live_meter_mapping() {
         })
     );
 
-    let hd = AdapterRegistry::identify_banner("8700HD V 1.0.2.161").unwrap();
-    assert_eq!(hd.model, DeviceModel::Optimod8700Hd);
-    assert_eq!(hd.evidence, Evidence::Static);
-    assert!(hd.capabilities.parameter_writes);
-    assert!(hd.capabilities.preset_recall);
-    assert!(hd.capabilities.live_meters);
-
-    // The original 5500 keeps its profile for reading, but nothing writes
-    // or recalls until the profile is confirmed on 5500 firmware (#1).
-    let original = AdapterRegistry::identify_banner("5500 V 1.2.8.24").unwrap();
-    assert_eq!(original.model, DeviceModel::Optimod5500);
-    assert_eq!(original.evidence, Evidence::Static);
-    assert!(original.capabilities.parameter_reads);
-    assert!(!original.capabilities.parameter_writes);
-    assert!(!original.capabilities.preset_recall);
-    assert!(!original.capabilities.preset_store);
-    assert!(!original.capabilities.preset_delete);
-    assert!(!original.capabilities.live_meters);
+    for (banner, model) in [
+        ("5500 V 1.2.8.24", DeviceModel::Optimod5500),
+        ("8700HD V 1.0.2.161", DeviceModel::Optimod8700Hd),
+    ] {
+        let adapter = AdapterRegistry::identify_banner(banner).unwrap();
+        assert_eq!(adapter.model, model);
+        assert_eq!(adapter.evidence, Evidence::Static, "{banner}");
+        assert!(adapter.capabilities.parameter_writes, "{banner}");
+        assert!(adapter.capabilities.preset_recall, "{banner}");
+        assert!(adapter.capabilities.live_meters, "{banner}");
+    }
 
     for banner in [
         "5700i V 3.0.1.21",
@@ -169,12 +162,7 @@ fn saved_model_choices_have_stable_wire_names_and_auto_default() {
 #[test]
 fn every_writable_adapter_has_a_valid_embedded_profile() {
     for (banner, adapter) in AdapterRegistry::exact() {
-        // Every exact banner can write, except the original 5500 (read-only until verified).
-        assert_eq!(
-            adapter.capabilities.parameter_writes,
-            banner != "5500 V 1.2.8.24",
-            "{banner}"
-        );
+        assert!(adapter.capabilities.parameter_writes, "{banner}");
         let profile = Profile::for_adapter(adapter.id)
             .unwrap()
             .unwrap_or_else(|| panic!("{banner} has no embedded profile"));
@@ -218,8 +206,7 @@ fn preset_save_and_delete_only_where_the_command_is_known() {
     // (captured 28 October 2026); the 5500's does the same with ECh (its
     // client and firmware 1.2.8.24, one opcode below the 5500i's EDh).
     for (banner, expected, files) in [
-        // The wire is known; the 5500 stays read-only until verified on firmware.
-        ("5500 V 1.2.8.24", false, Some(236)),
+        ("5500 V 1.2.8.24", true, Some(236)),
         ("5700i V 3.0.1.20", true, Some(237)),
         ("8700HD V 1.0.2.161", false, None),
     ] {

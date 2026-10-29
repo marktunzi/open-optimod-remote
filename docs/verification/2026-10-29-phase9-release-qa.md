@@ -25,7 +25,7 @@
 
 ## Fixed during this phase (owner's review)
 
-- **Release safety:** the original 5500 (1.2.8.24, static evidence only) is read-only. A single service guard (`require_writes`) now also covers parameter changes, automation and passcode files, Setup open/save, preset-file restore and applying a preset file. Before, these checked only the access level.
+- **Release safety:** a single service guard (`require_writes`) now also covers parameter changes, automation and passcode files, Setup open/save, preset-file restore and applying a preset file. Before, these checked only the access level. The original 5500 (1.2.8.24) was briefly made read-only here; on the owner's instruction (29 October) its full control is back, with its own opcodes and profile, covered by scripted-unit tests ([5500 control](2026-10-29-5500-full-control.md)). Its firmware acceptance stays in Phase 10.
 - **Gate lamps on every model:** they were drawn only for the 5700i. Each client registers its meter controls as `push INDEX; push "o_name"; call`. The extractor now reads the `o_gateIndicate*` lamps from that table, and on the 5700i it gives exactly the firmware-proven 62/63/38. Per client: 6300 69/70, 8700HD and 8700i 62/63 (HD 38), 5500i and 5500 36/37, 2300 38/39 (03). Not covered: the 8400, whose client is a different program, and the 8700i's ITU-412 lamp (111), because its group is not established. Whether these lamps light correctly needs live audio.
 - **Meter captions:** lane, channel and unit labels now share one 8 px baseline (they were 6 px on three heights), and units are centred under the bars.
 - **Processing Settings *Not connected* strip:** now follows the Figma design.

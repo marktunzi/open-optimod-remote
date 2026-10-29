@@ -44,7 +44,7 @@ The current **0.3.0 release candidate** supports the following models and firmwa
 | **OPTIMOD 8700i** | 1.5.1.11 | Meters, processing and system settings, preset recall |
 | **OPTIMOD 2300** | 2.0.3.85 | Meters, processing and system settings, user-preset recall |
 | **OPTIMOD-FM 8400** | 3.0.5.7 | Meters, processing and system settings, preset recall |
-| **OPTIMOD 5500** | 1.2.8.24 | Read-only: not yet verified on 5500 firmware |
+| **OPTIMOD 5500** | 1.2.8.24 | Meters, processing and system settings, presets, backup/restore, automation, security and diagnostics (from the 5500 software; not yet confirmed on 5500 firmware) |
 
 **Current status:** 0.3.0 is a limited-scope release, not yet a complete replacement for Orban's Windows PC Remote. Some original-client functions are still being added, including improvements to the 8400's Advanced Processing screens. Other models and firmware versions are not yet supported.
 
