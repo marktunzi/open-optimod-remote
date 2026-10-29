@@ -639,8 +639,8 @@ const FACTORY_2300: [&str; 10] = [
 pub const WIRE_8700I: Wire = Wire {
     user_extension: ".orb87user",
     factory_presets: &FACTORY_8700I,
-    // `8700iPC.exe` 1.5.1.11 has the 5500i client's file code with `.orb87`
-    // names: Delete EDh (0x47d5d0), Backup F0h F1h F2h F3h FAh (0x46fcd0),
+    // `8700iPC.exe` 1.5.1.11 sends the same opcodes as the 5500i client, for
+    // its own `.orb87` files (never a 5500i `.orb55` file): Delete EDh (0x47d5d0), Backup F0h F1h F2h F3h FAh (0x46fcd0),
     // Restore `Automation.orb87autom` as EBh, `Network.orb87net` as EAh, the
     // rest as 231 (0x45bf30). No Open Setup or Save Setup As.
     preset_file_delete: Some(237),

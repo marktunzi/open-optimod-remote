@@ -221,3 +221,36 @@ fn preset_save_and_delete_only_where_the_command_is_known() {
         assert_eq!(adapter.wire.preset_file_delete, files, "{banner}");
     }
 }
+
+/// Every file name a model's wire uses carries that model's own extension:
+/// orb55 for the 5500 and 5500i, orb57 for the 5700i, orb86 for the 8700HD,
+/// orb87 for the 8700i, orb63 for the 6300, orb23 for the 2300.
+#[test]
+fn each_model_uses_only_its_own_file_names() {
+    for (banner, adapter) in AdapterRegistry::exact() {
+        let own = match adapter.model {
+            DeviceModel::Optimod5500 | DeviceModel::Optimod5500i => "orb55",
+            DeviceModel::Optimod5700i => "orb57",
+            DeviceModel::Optimod8700Hd => "orb86",
+            DeviceModel::Optimod8700i => "orb87",
+            DeviceModel::Optimod6300 => "orb63",
+            DeviceModel::Optimod2300 => "orb23",
+            _ => continue,
+        };
+        let wire = adapter.wire;
+        let mut names = vec![wire.user_extension];
+        names.extend(wire.backup_kept);
+        names.extend(wire.restore_extensions);
+        names.extend(wire.restore_files.iter().map(|(n, _)| *n));
+        names.extend(wire.tool_files.map(|t| t.automation_name));
+        names.extend(wire.setup_presets);
+        for name in names {
+            // The 5500i's setup file is `Setup.orbsetup` (captured).
+            let lower = name.to_ascii_lowercase();
+            assert!(
+                lower.contains(own) || lower == ".orbsetup",
+                "{banner}: {name} is not an {own} file"
+            );
+        }
+    }
+}
