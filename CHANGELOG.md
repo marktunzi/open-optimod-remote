@@ -1,8 +1,19 @@
 # Changelog
 
+## 0.3.0 — release candidate, 29 October 2026
+
+Release candidate (build 9) on `fix/5700i-recall-session`; the signed release has not yet been published. Limited scope: see [the 0.3.0 notes and compatibility table](docs/releases/v0.3.0.md).
+
+- Signed automatic updates (Sparkle 2): signed feed and archives, daily check, Check for Updates…; an update never ends a processor session by itself (Disconnect and Install / Later).
+- Several processors at once, one tab and session each; native macOS windows for Connections (with groups), Presets, System Settings and Automation, Security and Diagnostics.
+- Added the 5500i, 6300, 8700i, 2300 and 8400, each verified against its original firmware; the 5700i gained presets save/delete, backup/restore, automation, security, diagnostics and access levels.
+- Meters follow each original client, including its gate lamps; one caption baseline.
+- The original 5500 (1.2.8.24) is read-only until verified on 5500 firmware (#1).
+- `release-macos.sh VERSION BUILD [notes]` builds into `dist/release/VERSION/` with the signed update; nothing is published.
+
 ## 0.2.0 — 29 September 2026
 
-On `main`; the signed release has not yet been published. The latest published release is 0.1.0.
+Built from `main` at the time; never published as a signed release. The latest published release is 0.1.0.
 
 - Added on-device preset management for the OPTIMOD 5500: save the on-air processing as a new user preset (`SP`), rename the unmodified on-air user preset (save under the new name, then delete the old one) and delete a user preset that is not on air (`DP`). The firmware documents both commands. Every change is confirmed with a fresh preset list and never retried; factory names, existing names, names over 18 characters and the `modif ` prefix are refused before anything is sent. The 5700i and 8700HD firmware have no such command, so these actions are not offered there.
 - Added a backup for every writable model: the system document, the on-air preset and the names of all presets in one JSON file. A restore first lists which system settings it will change and which it leaves alone (network settings, the running clock and status values are never restored), then writes each change once and reads the system document back. User presets that are not on air cannot be backed up, because their contents can only be read by recalling them.

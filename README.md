@@ -1,28 +1,28 @@
 # Open Optimod Remote
 
-Independent open-source control software for Orban OPTIMOD processors, starting with the **OPTIMOD 5500, 5700i and 8700HD**. More models will follow.
+Independent open-source control software for Orban OPTIMOD processors: a native Mac app that talks to the processor directly over its own PC Remote network protocol. No Windows, Wine, virtual machine or Orban executable.
 
-| Model | Firmware | Processing, presets, meters | System and setup settings | Verified on hardware |
-|---|---|---|---|---|
-| OPTIMOD 5500 | 1.2.8.24 | Yes, including saving, renaming and deleting user presets on the processor | Every system field in categorized Setup pages | Not yet; derived from Orban's PC Remote and firmware |
-| OPTIMOD 5700i | 3.0.1.20 | Yes, including the two-band structure and, on units with Orban's paid MX upgrade, the MX structure | Every system field in categorized Setup pages; 134 controls also in the native Settings window | Yes, for the 5-band structure and the fields read on the reference device; other structures and fields derived from Orban's PC Remote |
-| OPTIMOD-FM 8700HD | 1.0.2.161 | Yes, FM and HD | Every system field in categorized Setup pages | Not yet; derived from Orban's PC Remote and firmware |
-| 5500, 5700i and 8700HD | any other firmware | Read-only | Read-only | — |
-| 5500i, 5700 FM/HD, 6300, 8500, 8600, 8700i, 9300, 9400 | any | Read-only | Read-only | — |
+**[Download for macOS](https://github.com/marktunzi/open-optimod-remote/releases/latest)**: Developer ID signed and notarized, Apple Silicon, macOS 13 or later, with signed automatic updates. On first launch, allow access to the local network when macOS asks.
 
-**On every writable model:** preset recall, saving the on-air preset as a file and applying a preset file, and a backup of the system settings, the on-air preset and the preset names, with a restore of the system settings that reads every change back. A restore never changes network settings or the clock.
+![Open Optimod Remote with three processors in tabs: live meters of an OPTIMOD 6300 in its 2-band structure, with its gate lamps](docs/images/main-window.png)
 
-**Saving, renaming and deleting presets on the processor works only on the 5500.** Its firmware documents the `SP` and `DP` terminal commands. The 5700i and 8700HD firmware have no such command; Orban's PC Remote syncs a local folder through file messages whose effect has not been verified, so the app does not send them.
+## Status
 
-**Not available on any model:** passcode management, the automation schedule, maintenance (reboot, factory reset, firmware update) and a native Settings window for the 5500 and 8700HD (they use the Setup workspace, which lists every system field). On the 8700HD and 5700i the passcode access level is shown as a setting (the 5500 profile has no such field), but passcodes cannot be created, changed or deleted.
+Version 0.3.0 is a **limited-scope release, not yet a complete replacement for Orban's Windows PC Remote**. It controls these models and firmware versions; what exactly was verified per model is in the [0.3.0 compatibility table](docs/releases/v0.3.0.md#compatibility-exactly-what-was-verified):
 
-The derivation method was checked against the hardware-verified 5700i. It reproduces 363 of 366 verified 5700i mappings exactly and got none wrong. The other 3 are left read-only or given a narrower safe range. See the [static analysis](docs/research/2026-09-29-5500-8700hd-static-analysis.md#validatie-tegen-de-hardware-geverifieerde-5700i).
+| Model | Firmware | In this version |
+|---|---|---|
+| OPTIMOD 5700i | 3.0.1.20 | Settings, presets (recall, save, delete, files), meters, backup and restore, automation, security, diagnostics, System Settings. Verified on a physical processor and on original firmware |
+| OPTIMOD 5500i | 3.1.0.2 | Settings, presets (recall, save as, delete), meters, backup and restore, automation, security, diagnostics, System Settings |
+| OPTIMOD-FM 8700HD | 1.0.2.161 | Settings, preset recall, meters, System Settings |
+| OPTIMOD 6300, 8700i | 4.1.1.19, 1.5.1.11 | Settings, preset recall, meters, System Settings |
+| OPTIMOD 2300 | 2.0.3.85 | Settings, recall of user presets, meters, System Settings |
+| OPTIMOD-FM 8400 | 3.0.5.7 | Settings, preset recall, meters (UDP), System Settings |
+| OPTIMOD 5500 | 1.2.8.24 | Read-only: not yet verified on 5500 firmware ([#1](https://github.com/marktunzi/open-optimod-remote/issues/1)) |
+| Other models and firmware | any | Identified, not supported |
 
-A native Rust process communicates directly with the processor and the installed macOS app presents the interface in its own native window. No Windows, browser, Wine, CrossOver or Orban runtime is required for normal use.
+Except for the physical 5700i, models were verified against their unmodified original firmware running in a virtual unit, mostly side by side with Orban's original Windows client. Several processors can be connected at once, each in its own tab and session. Full parity with each model's Windows client is the next stage of work ([#17](https://github.com/marktunzi/open-optimod-remote/issues/17)); improvements reach installed copies through the update channel.
 
-![Open Optimod Remote controlling an OPTIMOD 5700i: live FM and HD meters above the AGC processing page](docs/images/main-window.png)
-
-**[Download for macOS](https://github.com/marktunzi/open-optimod-remote/releases/latest)**: signed and notarized, Apple Silicon, macOS 13 or later. The latest published release is 0.1.0, which controls only the 5700i. Version 0.2.0 (5500, 8700HD and everything below) is on `main` and can be built from source until its signed release is published.
 
 ## Why this exists
 
@@ -36,40 +36,16 @@ Because it controls equipment that is on air, it is deliberately strict:
 - meters are never simulated;
 - a failed write is never replayed automatically;
 - models without their own parameter profile stay read-only;
-- settings whose mapping is derived from the official software instead of hardware (all of the 5500 and 8700HD, and the extra 5700i structures) are labelled, and every change to them is confirmed by reading the processor back.
+- every change is confirmed by reading the processor back, and only actions verified on that exact model and firmware are offered;
 
-It is open source because that knowledge should not live in one person's head or on one workstation. The 5500, 5700i and 8700HD are the starting point: every further OPTIMOD model is meant to be added the same way. The protocol, the parameter mappings and the verification notes are documented in this repository. A model can be unlocked from its official PC Remote installer ([adding a model](docs/adding-a-model.md)), but only someone with that exact processor can confirm it on hardware. If you run a 5500, an 8700HD or one of the read-only models, your verification is the most valuable contribution you can make. See [Contributing](#contributing).
+It is open source because that knowledge should not live in one person's head or on one workstation. Every further OPTIMOD model is meant to be added the same way. The protocol, the parameter mappings and the verification notes are documented in this repository. A model can be unlocked from its official PC Remote installer ([adding a model](docs/adding-a-model.md)), but only someone with that exact processor can confirm it on hardware. If you run a 5500, an 8700HD or one of the read-only models, your verification is the most valuable contribution you can make. See [Contributing](#contributing).
 
-**Development build, not a complete Windows PC Remote replacement.** The target remains full feature and interaction parity, including FM/HD, live metering, presets, setup and maintenance. See [compatibility](docs/compatibility.md) and [verified protocol](docs/protocol/5700i.md).
+## How it works
 
-Research for adding the 8200, 8400 and later OPTIMOD families is documented in [multi-model support](docs/research/2026-09-22-multi-model-optimod-support.md), with an executable [adapter plan](docs/plans/2026-09-22-multi-model-adapter-plan.md). The running app detects and reads processing/setup documents and preset catalogs from the 5500i, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300 and 9400, and from other firmware of the 5500, 5700i and 8700HD, through separate read-only adapters.
-
-The **OPTIMOD 5500** (firmware 1.2.8.24) and the original **OPTIMOD-FM 8700HD** (firmware 1.0.2.161) are fully controllable: parameter writes, preset recall, live meters and their own processing pages. Their profiles were derived from the official PC Remote and firmware in Orban's installers and cross-checked against the factory presets. They have **not yet been verified on hardware**, so the app labels them as statically derived and reads every change back from the processor. See the [static analysis](docs/research/2026-09-29-5500-8700hd-static-analysis.md).
-
-## Current implementation
-
-- Authenticated direct PC Remote connection, bounded framing, archive decoding and fresh state verification.
-- A model-aware adapter registry: the hardware-verified 5700i, the statically derived writable 5500 (1.2.8.24) and 8700HD (1.0.2.161), and read-only adapters for the 5500i, 5700 FM, 5700 HD, 6300, 8500, 8600, 8700i, 9300, 9400 and other firmware of the 5500, 5700i and 8700HD. Only an exact login banner with an embedded profile can write. Each profile carries its own parameters, processing pages and meter layout, generated by `scripts/extract_pc_remote.py`. For the 5700i the extractor adds a statically derived supplement next to the unchanged verified profile: 199 field names (364 scope entries, because a name whose scope is unknown is listed in both; a write still requires the field in the processor's live document) and 7 pages: 3 for MX (MX Distortion Control, MX 2 Band Distortion, MX Speech Mode), 3 for the two-band structure (2 Band for FM and HD, 2 Band Distortion) and Compressors (B4/5 Linked). MX is a paid upgrade on the 5700i; a statically derived page appears only when the processor reports its fields. Saved connections support Auto Detect or an explicit model, reject a mismatching device banner, and migrate existing connection files to schema version 2 automatically.
-- A separate visual skin for every currently selectable processor, including its own local product mark, material colors, LCD treatment, path label and meter grouping. Unknown identity uses a neutral skin instead of borrowing the 5700i interface.
-- 222 processing fields and 178 system fields read on the reference device. All 400 have editors: 366 reference mappings plus 34 typed text fields. A matching current value is required before indexed writes.
-- Dark English instrument interface built from the final supplied 2264×2108 artwork, with an asset-backed 5700 header, one global coupling/status area and grouped processing pages: 16 built-in 5700i pages plus up to 7 statically derived ones, up to 13 for the 5500 and up to 23 for the 8700HD. A derived page appears only when the processor's live document contains at least one of its fields. Fine chassis texture stays off the clean meter canvas; the rounded meter group uses the reference light inner outline and soft white lower highlight. FM and HD meter groups remain visible together; the FM/HD processing selector appears only while the paths are decoupled.
-- An explicit FM → HD processing-coupling control with a confirmation step in the global bar. It is the only global setting; physical output routing remains separate.
-- A Presets workspace, also used by the macOS app (the Presets button and Shift-Command-P), with search, All/Factory/User filters and the on-air state. Recall asks for confirmation, validates against the already loaded catalog and current document, then performs one combined RP/AP terminal transaction while PC Remote polling is paused; it re-enables meters once and resumes the normal cadence. The workspace saves the on-air processing as a local file with the model's own extension (`.orb55user`, `.orb57user` or `.orb86user`) and applies a compatible file through individually validated writes plus a complete final document comparison. On the 5500 it also saves the on-air processing as a new user preset (`SP`), renames the unmodified on-air user preset (save under the new name, then delete the old one) and deletes a user preset that is not on air (`DP`); every change is confirmed with a fresh preset list and never retried. A backup saves the system document, the on-air preset and the preset names as one JSON file; a restore first lists which system settings it will change and which it leaves alone, then writes each change once and reads the system document back. The first confirmed processing document is the session baseline; Recall or a successfully applied file replaces it with the new preset baseline. Edited values stay cyan until restored to that baseline. These workflows are covered by synthetic tests and a simulator run, not yet by an on-air hardware test. The earlier native Presets window remains only as a fallback when the interface is not loaded.
-- Separate physical routing controls for analog L/R, Digital 1, Digital 2 and headphones. Viewing FM/HD never changes routing.
-- A compact Finder-style native macOS Connections browser for adding, editing, searching, connecting, switching and removing multiple named processors. It uses an `NSSplitViewController` with a real `.sidebar` split item, a 200–260 point system-resizable sidebar, unified toolbar, 52-point rows, native active/inactive selection colors and no duplicate bottom inspector. Its Network source scans the active local IPv4 subnet and recognizes TCP 23 banners for all twelve selectable PC Remote models without sending a credential. Addresses, model choices, ports and access codes are stored locally in Application Support; codes are displayed only as bullets and do not use Keychain.
-- Task-oriented Setup with ten categories, named subsections, plain-English labels, current values, read-only status handling and cross-category search. Physical source assignment links to Outputs.
-- A separate native **Optimod 5700i Settings** window opens from **System Settings…** or Command-, while a 5700i (or no processor) is connected. For the 5500 and 8700HD both open the Setup workspace instead. Ten icon-backed primary tabs expose 134 System/I/O controls with native switches, segmented controls, compact fixed-width range sliders and text/IP/port fields, pickers and 24 individual RDS AF selectors. Input, Test, Network, Stereo Encoder and HD/Digital Radio show their complete grouped page at once; larger categories use a second native section selector. Every profile-backed control is checked against the firmware 3.0.1.20 mapping during tests. The window follows the current macOS Light/Dark appearance.
-- Processing sliders follow the supplied SVG dimensions and materials: 151×8 px tracks, 28×18 px textured metal thumbs and 70×26 px value fields, including the specified inner and drop shadows.
-- Processing edits move immediately in the interface while the single-owner service checks the active host/session/preset and cached current field, sends one ordered device write, and crosses the PC Remote 250/251 response boundary. Successful interactive writes to hardware-verified fields update that guarded cache without requesting a full terminal document; statically derived fields are always read back: the reference 5700i pauses meter delivery for roughly 570 ms while producing each AP/AS snapshot. A boundary failure falls back to exact terminal readback, while manual refresh, export and preset workflows still use full documents. Polling cannot snap an in-flight control back to its old value, and a failed write is never replayed automatically.
-- Per-channel meter display curves, fixed 8 px lanes, reference-sized stereo/mono wells, independent 900 ms peak hold, a 50 ms polling target and velocity-continuous canvas interpolation at the browser refresh rate. Live measurement averaged approximately 55 ms per update in a short reference-device check.
-- Pending/error states, access-level enforcement, host/session/preset stale-value checks, no automatic write replay, and loopback-only HTTP with Origin and Host validation.
-- Routine successful writes do not create banners or log entries. Real failures are kept in the native **Error Log** window; private local IPv4 addresses are redacted from that log.
-- A self-contained macOS app that starts its bundled control service, opens the interface in a native window and disconnects and stops its owned service when the app quits.
-- A supplied high-resolution app icon is compiled into the `.icns` resource used by Finder, the Dock and the application switcher.
-
-Hardware verification now includes display contrast with full restoration plus an actual B2 Output Mix change of 0.1 dB and exact restoration while connection state and live meters were monitored. Routing, text and Recall controls have not been exhaustively tested on hardware. HD editing is restricted while HD follows FM. Unsupported firmware is rejected.
-
-Remaining work includes device gate/overload/lock indicators, some absolute meter axes, external-control events, on-device preset save/rename/delete for the 5700i and 8700HD, a backup of user presets that are not on air, hardware verification of the two-band and MX structures, passcode management, the automation schedule, maintenance, optional hardware and long-duration validation. This is not yet full Windows parity.
+- A Rust service (bundled, loopback-only) owns one PC Remote session per processor: login, file-based synchronization of processing, system and preset documents, writes with readback, preset recall as the original client does it, live meters and automatic reconnection after an unexpected loss.
+- Model profiles (parameters, processing pages, Setup pages, meter layouts and gate lamps) are generated from Orban's official PC Remote installers by `scripts/extract_pc_remote.py`; the meters follow each original client.
+- The macOS app is native AppKit for Connections, Presets, System Settings and the Tools windows; Meters and Processing Settings are the instrument views, one tab per processor.
+- Access codes are stored locally in Application Support with user-only permissions; no Keychain is used. Updates are delivered by Sparkle 2 with an EdDSA-signed feed and archives.
 
 ## Install and run on macOS
 
@@ -96,12 +72,12 @@ The generated bundle is `dist/Open Optimod Remote.app`, ad-hoc signed for local 
 ```sh
 CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 ASC_KEY_ID=... ASC_ISSUER_ID=... \
-./scripts/release-macos.sh
+./scripts/release-macos.sh 0.3.0 9 release-notes.html
 ```
 
-This signs every binary with the hardened runtime and a secure timestamp, notarizes and staples the app, then packages, signs, notarizes and staples `dist/OpenOptimodRemote-<version>-<arch>.dmg`, and finally checks both with `spctl`. The App Store Connect API key is read from `~/.appstoreconnect/private_keys/AuthKey_<ASC_KEY_ID>.p8` unless `ASC_KEY_PATH` is set.
+This builds into `dist/release/VERSION/`: every binary signed with the hardened runtime and a secure timestamp, the app and the DMG notarized and stapled and checked with `spctl`, plus the signed automatic update (a zip of the stapled app and a Sparkle appcast, both signed with the update key, which is read from `SPARKLE_ED_KEY_FILE` or `~/.config/open-optimod-remote/sparkle-ed25519.key` and must match `SUPublicEDKey`) and `SHA256SUMS`. Nothing is published. The App Store Connect API key is read from `~/.appstoreconnect/private_keys/` unless `ASC_KEY_PATH` names another file.
 
-![The native Connections window with one connected OPTIMOD 5700i](docs/images/connections.png)
+![The native Connections window with two connected processors](docs/images/connections.png)
 
 The native Connections window opens on launch. Add a processor once with its name, address, ports and access code. Metadata is saved in `connections.json`; access codes are kept separately in `credentials.json`, both under `~/Library/Application Support/OpenOptimodRemote/`. The credentials file is restricted to the current macOS user and the UI renders saved codes as bullets. No Keychain access is used. PC Remote uses port 6201 and status verification uses port 23 by default. The internal HTTP service binds exclusively to loopback.
 
@@ -114,26 +90,15 @@ python3 scripts/check-docs.py
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all -- --check
-node --experimental-strip-types --test packages/ui/tests/*.test.ts
+node --test packages/ui/tests/*.test.ts
 npm run build --prefix packages/ui
-swiftc -parse-as-library native/macos/LauncherCore.swift native/macos/LauncherCoreTests.swift -o /tmp/optimod-launcher-core-tests
-/tmp/optimod-launcher-core-tests
-swiftc -swift-version 5 native/macos/LauncherCore.swift native/macos/SystemSettingsSpec.swift native/macos/SystemSettingsAPI.swift native/macos/SystemSettingsSpecTests.swift -o /tmp/optimod-settings-spec-tests
-/tmp/optimod-settings-spec-tests
-swiftc -swift-version 5 native/macos/LauncherCore.swift native/macos/ConnectionsAPI.swift native/macos/ConnectionsAPITests.swift -o /tmp/optimod-connections-api-tests
-/tmp/optimod-connections-api-tests
-swiftc -swift-version 5 -framework AppKit -framework Network native/macos/ErrorLog.swift native/macos/LauncherCore.swift native/macos/ConnectionsAPI.swift native/macos/NetworkDiscovery.swift native/macos/ConnectionsWindow.swift native/macos/ConnectionsWindowTests.swift -o /tmp/optimod-connections-window-tests
-/tmp/optimod-connections-window-tests
-swiftc -swift-version 5 native/macos/LauncherCore.swift native/macos/SystemSettingsAPI.swift native/macos/PresetsAPI.swift native/macos/PresetsAPITests.swift -o /tmp/optimod-presets-api-tests
-/tmp/optimod-presets-api-tests
-swiftc -swift-version 5 -framework Network native/macos/NetworkDiscovery.swift native/macos/NetworkDiscoveryTests.swift -o /tmp/optimod-network-tests
-/tmp/optimod-network-tests
-swiftc -swift-version 5 -framework AppKit native/macos/ErrorLog.swift native/macos/ErrorLogTests.swift -o /tmp/optimod-error-log-tests
-/tmp/optimod-error-log-tests
-swiftc -swift-version 5 -framework AppKit -framework WebKit -framework Network -framework UniformTypeIdentifiers native/macos/ErrorLog.swift native/macos/LauncherCore.swift native/macos/SystemSettingsSpec.swift native/macos/SystemSettingsAPI.swift native/macos/ProfileSystemSettings.swift native/macos/SystemSettingsWindow.swift native/macos/ConnectionsAPI.swift native/macos/DeviceTabs.swift native/macos/DeviceWindows.swift native/macos/PresetsAPI.swift native/macos/PresetsWindow.swift native/macos/PresetsWindowTests.swift -o /tmp/optimod-presets-window-tests
-swiftc -swift-version 5 -framework AppKit -framework WebKit -framework Network -framework UniformTypeIdentifiers native/macos/ErrorLog.swift native/macos/LauncherCore.swift native/macos/SystemSettingsSpec.swift native/macos/SystemSettingsAPI.swift native/macos/ProfileSystemSettings.swift native/macos/SystemSettingsWindow.swift native/macos/ConnectionsAPI.swift native/macos/DeviceTabs.swift native/macos/DeviceWindows.swift native/macos/PresetsAPI.swift native/macos/PresetsWindow.swift native/macos/DeviceWindowsTests.swift -o /tmp/optimod-device-windows-tests
-/tmp/optimod-device-windows-tests
-/tmp/optimod-presets-window-tests
+# Swift: each *Tests.swift with the app sources (Sparkle comes from the first build-macos.sh run)
+for test in native/macos/*Tests.swift; do
+  swiftc -parse-as-library -swift-version 5 -F target/sparkle-2.10.0 -framework Sparkle \
+    -Xlinker -rpath -Xlinker "$PWD/target/sparkle-2.10.0" \
+    $(ls native/macos/*.swift | grep -v Tests.swift | grep -v OpenOptimodApp.swift) "$test" \
+    -o "/tmp/$(basename "$test" .swift)" && "/tmp/$(basename "$test" .swift)"
+done
 sh -n scripts/build-macos.sh scripts/install-macos.sh scripts/release-macos.sh scripts/stop-macos.sh
 ```
 
