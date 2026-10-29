@@ -487,7 +487,10 @@ async fn main() {
         .route("/api/disconnect-all", post(sessions::disconnect_all))
         .with_state(hub);
     let routes = Router::new()
-        .route("/api/health", get(|| async { "open-optimod-remote/0.2.0" }))
+        .route(
+            "/api/health",
+            get(|| async { concat!("open-optimod-remote/", env!("CARGO_PKG_VERSION")) }),
+        )
         .merge(device_routes().with_state(app))
         .merge(sessions)
         .fallback_service(ServeDir::new(assets))
