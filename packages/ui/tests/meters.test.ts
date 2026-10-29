@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { METER_BAR_WIDTH, METER_MONO_WELL_WIDTH, METER_PALETTE, METER_WELL_WIDTH, MeterMotion, groups, meterCanvasWidth, meterChannelLayout, meterGroupWidth, meterPercent, visibleGroups, conditionHolds } from '../src/meters.ts';
+import { METER_BAR_WIDTH, METER_MONO_WELL_WIDTH, METER_PALETTE, METER_WELL_WIDTH, MeterMotion, groups, meterCanvasWidth, meterChannelLayout, meterGroupWidth, meterPercent, visibleGroups, conditionHolds, meterModelFromProfile } from '../src/meters.ts';
 test('meters show each firmware record at once and expire when data stops',()=>{
  const m=new MeterMotion();assert.equal(m.sample(0),null);
  m.push(Array(112).fill(0),100);assert.equal(m.sample(100)![1],0);
@@ -114,4 +114,18 @@ test('a presence condition needs the document of its own scope',()=>{
  assert.equal(conditionHolds(condition,{'System:B1 ATTACK':'1'}),false);
  assert.equal(conditionHolds(condition,{'Processing:AGC':'On'}),true);
  assert.equal(conditionHolds({...condition,present:true},{'Processing:B1 ATTACK':'20'}),true);
+});
+test('every model profile carries its client gate lamps: AGC, multiband and HD',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const load=(path:string)=>meterModelFromProfile(JSON.parse(readFileSync(new URL(`../../../profiles/${path}/meters.json`,import.meta.url),'utf8')));
+ const gate=(path:string,name:string)=>load(path).groups.find(g=>g.name===name)?.gate?.id;
+ // From each client's meter registration (push index; push "o_gateIndicate*").
+ assert.equal(gate('6300/4.1.1.19','AGC'),69);
+ assert.equal(gate('6300/4.1.1.19','2-Band Gain Reduction'),70);
+ assert.equal(gate('6300/4.1.1.19','Gain Reduction'),70);
+ assert.equal(gate('8700hd/1.0.2.161','2-Band HD Gain Reduction'),38);
+ assert.equal(gate('8700i/1.5.1.11','Gain Reduction'),63);
+ assert.equal(gate('5500i/3.1.0.2','2-Band Gain Reduction'),37);
+ assert.equal(gate('2300/2.0.3.85','Gain Reduction'),39);
+ assert.equal(load('6300/4.1.1.19').groups.find(g=>g.name==='AGC')?.gate?.vertical,true);
 });

@@ -16,6 +16,11 @@ import {
 
 const REFERENCE_WIDTH=1100;
 const REFERENCE_HEIGHT=242;
+// Every caption under the bars (lane, channel and unit) shares one baseline
+// and size; gate lamps share one row below it.
+const LABEL_FONT='500 8px "SF Compact Text", -apple-system, sans-serif';
+const LABEL_BASELINE=226;
+const GATE_BASELINE=239;
 
 function titleFor(group: MeterGroup): string {
   return group.name
@@ -191,13 +196,13 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
        context.fillStyle=color;context.fillRect(laneX,peakY-.5,lane.width,1);
       }
       if(lane.label){
-       context.font='500 6px "SF Compact Text", -apple-system, sans-serif';context.textAlign='center';context.fillStyle=palette.ticks;
-       context.fillText(lane.label,laneX+lane.width/2,224.5);
+       context.font=LABEL_FONT;context.textAlign='center';context.fillStyle=palette.ticks;
+       context.fillText(lane.label,laneX+lane.width/2,LABEL_BASELINE);
       }
      });
      if(channel.label){
-      context.font='500 6px "SF Compact Text", -apple-system, sans-serif';context.textAlign='center';context.fillStyle=palette.ticks;
-      context.fillText(channel.label,contentStart+channel.center,224.5);
+      context.font=LABEL_FONT;context.textAlign='center';context.fillStyle=palette.ticks;
+      context.fillText(channel.label,contentStart+channel.center,LABEL_BASELINE);
      }
     });
     // Gate lamps: a red LED, lit while the firmware reports the gate (the
@@ -211,16 +216,16 @@ export function MeterStrip({connected,identity,view,onLiveChange,model=REFERENCE
       context.font='600 9px "SF Compact Text", -apple-system, sans-serif';
       [...group.gate.label].forEach((letter,letterIndex)=>context.fillText(letter,x+54.75,108+letterIndex*12));
      }else{
-      context.font='600 6px "SF Compact Text", -apple-system, sans-serif';
+      context.font='600 7px "SF Compact Text", -apple-system, sans-serif';
       const center=contentStart+(channels.at(-1)!.wellLeft+channels.at(-1)!.wellWidth)/2;
       const textWidth=context.measureText(group.gate.label).width;
-      drawGateLed(context,center-(textWidth+7)/2+2.5,233.9,lit,palette);
-      context.textAlign='left';context.fillText(group.gate.label,center-(textWidth+7)/2+7,236);
+      drawGateLed(context,center-(textWidth+7)/2+2.5,GATE_BASELINE-2.4,lit,palette);
+      context.textAlign='left';context.fillText(group.gate.label,center-(textWidth+7)/2+7,GATE_BASELINE);
      }
     }
-    context.font='500 6px "SF Compact Text", -apple-system, sans-serif';context.fillStyle=palette.ticks;context.textAlign='center';
+    context.font=LABEL_FONT;context.fillStyle=palette.ticks;context.textAlign='center';
     const unit=unitFor(group);
-    if(unit)context.fillText(unit,x+groupWidth/2,232.5);
+    if(unit)context.fillText(unit,x+groupWidth/2,LABEL_BASELINE);
     if(index<groups.length-1){
      const divider=x+groupWidth;
      context.fillStyle=palette.separator;context.fillRect(divider-1,0,1,REFERENCE_HEIGHT);

@@ -1202,6 +1202,45 @@ def structure_conditions(groups):
     return groups
 
 
+def client_gate_lamps(image: Image) -> dict:
+    """The client's gate lamps: {symbol: meter value index}.
+
+    Every meter dialog registers its controls as ``push INDEX; push "o_name";
+    call register``; the gate lamps are the ``o_gateIndicate*`` symbols (A = AGC,
+    M = multiband, HD = HD multiband). Checked on the 5700i, whose lamps were
+    proven on firmware: A 62, M 63, HD 38.
+    """
+    lamps = {}
+    for match in re.finditer(rb"(?<=\0)o_gateIndicate[A-Za-z]*(?=\0)", bytes(image.mem)):
+        name, va = match.group().decode(), image.base + match.start()
+        for ref in re.finditer(re.escape(b"\x68" + struct.pack("<I", va)), image.text):
+            at = ref.start()
+            if at >= 2 and image.text[at - 2] == 0x6A:
+                index = image.text[at - 1]
+            elif at >= 5 and image.text[at - 5] == 0x68:
+                index = struct.unpack_from("<I", image.text, at - 4)[0]
+            else:
+                continue
+            if 0 < index < 512:
+                lamps.setdefault(name, index)
+    return lamps
+
+
+# Which lamp a meter group carries, by the group's name in the profile.
+GATE_GROUPS = (
+    (lambda name: name == "AGC", "o_gateIndicateA", {"label": "GATED", "vertical": True}),
+    (lambda name: name in ("Gain Reduction", "2-Band Gain Reduction"), "o_gateIndicateM", {"label": "GATED"}),
+    (lambda name: name in ("HD Gain Reduction", "2-Band HD Gain Reduction"), "o_gateIndicateHD", {"label": "GATED"}),
+)
+
+
+def attach_gates(groups: list, lamps: dict) -> None:
+    for group in groups:
+        for matches, symbol, style in GATE_GROUPS:
+            if matches(group["name"]) and symbol in lamps:
+                group["gate"] = {"id": lamps[symbol], **style}
+
+
 def build_meters(image: Image, meter: dict, raw=None):
     views = extract_meter_bars(image, meter, raw)
     primary = _meter_groups(views[meter["primary"]])
@@ -1225,6 +1264,7 @@ def build_meters(image: Image, meter: dict, raw=None):
                     orientation[str(value)] = bar["orientation"]
                     if bar["curve"]:
                         curves[str(value)] = bar["curve"]
+    attach_gates(groups, client_gate_lamps(image))
     return {"banks": [1, 2], "max_values": meter["max_values"], "groups": groups, "orientation": orientation, "curves": curves}
 
 
@@ -1237,7 +1277,19 @@ def reference_scopes(repository: Path):
     return scopes
 
 
+def update_gates(client: Path, meters_path: Path) -> None:
+    """Adds the client's gate lamps to an existing meters.json (nothing else changes)."""
+    meters = json.loads(meters_path.read_text())
+    lamps = client_gate_lamps(Image(client))
+    attach_gates(meters["groups"], lamps)
+    meters_path.write_text(json.dumps(meters, indent=1) + "\n")
+    print(f"{meters_path}: {lamps}")
+
+
 def main():
+    if len(sys.argv) == 4 and sys.argv[1] == "--gates":
+        update_gates(Path(sys.argv[2]), Path(sys.argv[3]))
+        return
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("installer", type=Path)
     parser.add_argument("output", type=Path)

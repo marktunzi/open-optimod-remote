@@ -42,7 +42,12 @@
       4
      ]
     }
-   ]
+   ],
+   "gate": {
+    "id": 36,
+    "label": "GATED",
+    "vertical": true
+   }
   },
   {
    "name": "HF Enhance",
@@ -94,6 +99,10 @@
    "when": {
     "field": "B1 ATTACK",
     "present": true
+   },
+   "gate": {
+    "id": 37,
+    "label": "GATED"
    }
   },
   {
@@ -116,6 +125,10 @@
    "when": {
     "field": "2B DRIVE",
     "present": true
+   },
+   "gate": {
+    "id": 37,
+    "label": "GATED"
    }
   },
   {

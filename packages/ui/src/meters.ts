@@ -80,7 +80,7 @@ export type MeterModel = {
 /** Meters as delivered in a model profile (see scripts/extract_pc_remote.py). */
 export type ProfileMeters = {
  max_values: number;
- groups: {name: string; kind: MeterGroup['kind']; channels: MeterChannel[]; ticks?: [number, string][]; when?: MeterCondition}[];
+ groups: {name: string; kind: MeterGroup['kind']; channels: MeterChannel[]; ticks?: [number, string][]; when?: MeterCondition; gate?: MeterGate}[];
  curves?: Record<string, number[]>;
 };
 /**
@@ -131,7 +131,8 @@ export function meterModelFromProfile(meters: ProfileMeters): MeterModel {
  const groups = meters.groups.map(group => {
   const channels = group.channels.map(c => ({label: c.label, ids: [...c.ids], laneLabels: c.laneLabels}));
   const base = {name: group.name, kind: group.kind, channels, ...(group.ticks ? {ticks: group.ticks.map(([position, label]) => [position, label] as [number, string])} : {}), ...(group.when ? {when: {...group.when}} : {})};
-  return {...base, contentOffset: PROFILE_CONTENT_OFFSET, referenceWidth: profileGroupWidth(base)};
+  // The client's gate lamp for this group (scripts/extract_pc_remote.py: client_gate_lamps).
+  return {...base, ...(group.gate ? {gate: {...group.gate}} : {}), contentOffset: PROFILE_CONTENT_OFFSET, referenceWidth: profileGroupWidth(base)};
  });
  const curves = meters.curves || {};
  return {

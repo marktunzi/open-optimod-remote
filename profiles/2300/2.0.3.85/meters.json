@@ -44,7 +44,12 @@
       11
      ]
     }
-   ]
+   ],
+   "gate": {
+    "id": 38,
+    "label": "GATED",
+    "vertical": true
+   }
   },
   {
    "name": "HF Enhance",
@@ -74,7 +79,11 @@
       41
      ]
     }
-   ]
+   ],
+   "gate": {
+    "id": 39,
+    "label": "GATED"
+   }
   },
   {
    "name": "HF Limiting",
