@@ -437,7 +437,7 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         guard visibleDevices.indices.contains(row) else { return nil }
         let device = visibleDevices[row]
-        let cell = NSTableCellView()
+        let cell = ConnectionCellView()
         let image = NSImageView(image: NSImage(systemSymbolName: "server.rack", accessibilityDescription: nil) ?? NSImage())
         image.contentTintColor = .secondaryLabelColor
         image.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 18, weight: .regular)
@@ -462,14 +462,16 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         status.textColor = active ? .systemGreen : .secondaryLabelColor
 
         let info = NSButton()
-        info.image = NSImage(systemSymbolName: "info", accessibilityDescription: "Connection Info")
+        info.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: "Connection Info")
+        info.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 15, weight: .regular)
         info.title = ""
-        info.bezelStyle = .texturedRounded
-        info.contentTintColor = .labelColor
+        info.isBordered = false
+        info.contentTintColor = .secondaryLabelColor
         info.target = self
         info.action = #selector(editFromInfo(_:))
         info.identifier = NSUserInterfaceItemIdentifier(device.id)
         info.toolTip = "Edit \(device.name)"
+        cell.parts = (image, address, status, info, status.textColor ?? .secondaryLabelColor)
 
         let rowView = NSStackView(views: [image, labels, NSView(), status, info])
         rowView.orientation = .horizontal
@@ -1135,6 +1137,23 @@ private final class SidebarSourceButton: NSButton {
             NSBezierPath(roundedRect: bounds.insetBy(dx: 0, dy: 1), xRadius: 8, yRadius: 8).fill()
         }
         super.draw(dirtyRect)
+    }
+}
+
+/// On a selected (blue) row the secondary text, status and buttons turn white,
+/// as in Finder; otherwise the green status and the info button would vanish.
+private final class ConnectionCellView: NSTableCellView {
+    var parts: (image: NSImageView, address: NSTextField, status: NSTextField, info: NSButton, statusColor: NSColor)?
+
+    override var backgroundStyle: NSView.BackgroundStyle {
+        didSet {
+            guard let parts else { return }
+            let selected = backgroundStyle == .emphasized
+            parts.image.contentTintColor = selected ? .alternateSelectedControlTextColor : .secondaryLabelColor
+            parts.address.textColor = selected ? .alternateSelectedControlTextColor : .secondaryLabelColor
+            parts.status.textColor = selected ? .alternateSelectedControlTextColor : parts.statusColor
+            parts.info.contentTintColor = selected ? .alternateSelectedControlTextColor : .secondaryLabelColor
+        }
     }
 }
 
