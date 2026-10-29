@@ -168,6 +168,28 @@ enum PresetBackup {
         return flat == "." || flat == ".." || flat.isEmpty ? "_" : flat
     }
 
+    /// The entry names for `names`, each unique the way the Mac's file system
+    /// compares names (case and Unicode form ignored): a later name that
+    /// would land on an earlier file gets " 2", " 3", … before its extension,
+    /// so unzipping never overwrites one preset with another.
+    static func uniqueEntryNames(_ names: [String]) -> [String] {
+        func key(_ name: String) -> String { name.decomposedStringWithCanonicalMapping.lowercased() }
+        var used = Set<String>()
+        return names.map { original in
+            let flat = entryName(original)
+            var name = flat
+            let dot = flat.lastIndex(of: ".").flatMap { $0 == flat.startIndex ? nil : $0 }
+            let (stem, ext) = dot.map { (String(flat[..<$0]), String(flat[$0...])) } ?? (flat, "")
+            var number = 2
+            while used.contains(key(name)) {
+                name = "\(stem) \(number)\(ext)"
+                number += 1
+            }
+            used.insert(key(name))
+            return name
+        }
+    }
+
     /// An uncompressed ZIP of `files` in a folder named `folder`, as Finder opens it.
     /// Entries carry `date` (local time), so a restore from the unzipped
     /// folder sends the unit the backup's time, not 1980.
@@ -179,8 +201,8 @@ enum PresetBackup {
         var central = Data()
         func u16(_ value: Int, _ data: inout Data) { var v = UInt16(truncatingIfNeeded: value).littleEndian; data.append(Data(bytes: &v, count: 2)) }
         func u32(_ value: UInt32, _ data: inout Data) { var v = value.littleEndian; data.append(Data(bytes: &v, count: 4)) }
-        for file in files {
-            let name = Data("\(entryName(folder))/\(entryName(file.name))".utf8)
+        for (file, entry) in Swift.zip(files, uniqueEntryNames(files.map(\.name))) {
+            let name = Data("\(entryName(folder))/\(entry)".utf8)
             let crc = crc32(file.data)
             let offset = UInt32(local.count)
             let size = UInt32(file.data.count)

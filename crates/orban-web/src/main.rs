@@ -3015,7 +3015,9 @@ async fn restore_preset_files(
             && !file
                 .name
                 .contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|'])
-            && file.name.is_ascii();
+            && file.name.is_ascii()
+            // The name is a line of the upload's header.
+            && !file.name.chars().any(|c| c.is_ascii_control());
         if !valid_name {
             return Err(OperationError::safe(format!(
                 "{} is not a user preset file of the {}",
@@ -3045,7 +3047,9 @@ async fn restore_preset_files(
                 .map(|d| d.as_millis() as u64)
                 .unwrap_or_default()
         });
-        let filetime = millis * 10_000 + 116_444_736_000_000_000;
+        let filetime = millis
+            .saturating_mul(10_000)
+            .saturating_add(116_444_736_000_000_000);
         let iv = *uuid::Uuid::new_v4().as_bytes();
         let sealed = orban_protocol::archive::encrypt(file.document.as_bytes(), &device.code, iv)
             .map_err(OperationError::safe)?;
@@ -6847,6 +6851,25 @@ mod tests {
             ),
             (before.0 + 1, before.1 + 1, before.2 + 1)
         );
+        // A file name is a header line of the upload: no line breaks.
+        let refused = command(&app, |r| {
+            Command::RestorePresetFiles(
+                RestorePresetFiles {
+                    files: vec![BackupFile {
+                        name: "LATE\n0\nNIGHT.orb86user".into(),
+                        document: doc_8700("Late Night", 14),
+                        modified: Some(0),
+                    }],
+                    confirmed: true,
+                    expected_host: "127.0.0.1".into(),
+                    expected_session: session.clone(),
+                },
+                r,
+            )
+        })
+        .await;
+        assert!(refused.is_err());
+        assert!(unit.received(231).is_empty());
         command(&app, |r| {
             Command::RestorePresetFiles(
                 RestorePresetFiles {
