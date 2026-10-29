@@ -7,7 +7,7 @@
 
 use crate::{
     App, Change, Connect, OperationError, PresetFile, PresetFileAction, Recall, Snapshot,
-    ensure_session, refresh_processing_identity, refreshed_less_more_availability,
+    UnitFileWrite, ensure_session, refresh_processing_identity, refreshed_less_more_availability,
 };
 use orban_protocol::{
     adapter::{AdapterRegistry, Capabilities, DeviceModel},
@@ -52,6 +52,8 @@ pub struct Unit {
     /// The file of each user preset, as the unit lists it (`EURO AC .ORB`
     /// holds `EURO AC`): a Delete removes that file.
     user_files: HashMap<String, String>,
+    /// The passcode of this session, which a Security change must keep.
+    code: Zeroizing<String>,
     /// The time of the last message to the unit.
     pub last_sent: Instant,
     /// The time of the last keepalive answer.
@@ -97,6 +99,7 @@ pub async fn connect(body: Connect, app: &App) -> Result<Unit, String> {
         meters: None,
         processing_baseline: None,
         user_files: HashMap::new(),
+        code: code.clone(),
         last_sent: Instant::now(),
         answered: Instant::now(),
     };
@@ -587,6 +590,7 @@ pub async fn manage_preset(
         PresetFileAction::Save { name } => {
             validate_store_name(name, max_store_name_length(DeviceModel::Optimod8400))
                 .map_err(OperationError::safe)?;
+            reject_state_file(name)?;
             if kind(name) == Some(PresetKind::Factory) {
                 return Err(OperationError::safe("A factory preset cannot be replaced"));
             }
@@ -611,6 +615,7 @@ pub async fn manage_preset(
             }
             validate_store_name(new_name, max_store_name_length(DeviceModel::Optimod8400))
                 .map_err(OperationError::safe)?;
+            reject_state_file(new_name)?;
             if kind(new_name).is_some() {
                 return Err(OperationError::safe(format!("{new_name} already exists")));
             }
@@ -646,6 +651,18 @@ pub async fn manage_preset(
         ));
     }
     state.error = None;
+    Ok(())
+}
+
+/// A user preset is `<NAME>.orb` next to the unit's own files: a name like
+/// `system` would replace the system settings.
+fn reject_state_file(name: &str) -> Result<(), OperationError> {
+    let file = format!("{name}.orb");
+    if STATE_FILES.iter().any(|f| f.eq_ignore_ascii_case(&file)) {
+        return Err(OperationError::safe(format!(
+            "{name} is the name of one of the processor's own files"
+        )));
+    }
     Ok(())
 }
 
@@ -750,6 +767,81 @@ async fn delete(unit: &mut Unit, name: &str) -> Result<(), OperationError> {
         .map_err(OperationError::uncertain)
 }
 
+/// Passcodes changed: the unit re-reads `password.pas` (GUI event).
+const PASSCODES_EVENT: u16 = 16390;
+
+/// The unit's passcode file (`kind` 230); the 8400 has no automation file
+/// the app reads yet.
+pub async fn read_unit_file(unit: &mut Unit, kind: u16) -> Result<Option<String>, String> {
+    if kind != 230 {
+        return Err("Automation is not available for the OPTIMOD-FM 8400 in this version".into());
+    }
+    if unit.session.login.access_level != 0 {
+        return Err("Security is not available for this access level".into());
+    }
+    let file = unit.session.read(o8400::USER_DIR, "password.pas").await?;
+    unit.last_sent = Instant::now();
+    String::from_utf8(o8400::document_text(&file)?.to_vec())
+        .map(Some)
+        .map_err(|_| "Unsupported document encoding".into())
+}
+
+/// Replaces `password.pas` and tells the unit, as the client does after
+/// its Security screen (the passcodes event), then reads it back.
+pub async fn write_unit_file(
+    unit: &mut Unit,
+    app: &App,
+    body: UnitFileWrite,
+) -> Result<(), OperationError> {
+    if body.kind != 230 {
+        return Err(OperationError::safe(
+            "Automation is not available for the OPTIMOD-FM 8400 in this version",
+        ));
+    }
+    if !unit.capabilities.parameter_writes || unit.session.login.access_level != 0 {
+        return Err(OperationError::safe(
+            "Changes are not enabled for this access level",
+        ));
+    }
+    {
+        let state = app.state.read().await;
+        ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
+        if state.host != body.expected_host {
+            return Err(OperationError::safe(
+                "The active device changed. Review the connection first",
+            ));
+        }
+    }
+    // The session's own passcode must stay, with all screens.
+    let passcodes = crate::security::parse(&body.document).map_err(OperationError::safe)?;
+    if !passcodes.iter().any(|p| {
+        p.code.eq_ignore_ascii_case(&unit.code) && p.level == crate::security::LEVELS_8400[0]
+    }) {
+        return Err(OperationError::safe(
+            "Keep the passcode this connection uses, with access to all screens",
+        ));
+    }
+    unit.session
+        .write(o8400::USER_DIR, "password.pas", body.document.as_bytes())
+        .await
+        .map_err(OperationError::uncertain)?;
+    unit.session
+        .event(PASSCODES_EVENT, 0, "")
+        .await
+        .map_err(OperationError::uncertain)?;
+    unit.last_sent = Instant::now();
+    let normalize = |text: &str| text.replace("\r\n", "\n");
+    match read_unit_file(unit, 230).await {
+        Ok(Some(text)) if normalize(&text) == normalize(&body.document) => Ok(()),
+        Ok(_) => Err(OperationError::uncertain(
+            "The processor's file does not show the change. Open the window again to see what it holds",
+        )),
+        Err(e) => Err(OperationError::uncertain(format!(
+            "The change could not be confirmed. {e}"
+        ))),
+    }
+}
+
 /// The periodic keepalive; an error ends the session.
 pub async fn keepalive(unit: &mut Unit) -> Result<(), String> {
     if unit.last_sent.elapsed() < KEEPALIVE_PERIOD {
@@ -799,6 +891,14 @@ mod tests {
         assert!(user.contains("Preset Name=<TEST 027> size=126\n"));
         assert!(user.contains("Preset Type= <USER PRESET>\n"));
         assert!(with_header("C:<AGC>String:<On>;D:1;\n", "X", "USER PRESET").is_err());
+    }
+
+    #[test]
+    fn a_preset_cannot_take_a_state_file_name() {
+        for name in ["system", "ONAIR", "Next", "test", "time"] {
+            assert!(reject_state_file(name).is_err(), "{name}");
+        }
+        assert!(reject_state_file("SYSTEM 2").is_ok());
     }
 
     #[test]

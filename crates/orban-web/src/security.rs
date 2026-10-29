@@ -26,8 +26,18 @@ pub const LEVELS_5500I: [&str; 6] = [
     "recall presets",
 ];
 
+/// The 8400's levels, the firmware's `PASSCODE ACCESS LEVEL` list
+/// (3.0.5.7): a passcode's level is its position, 0 = All screens.
+pub const LEVELS_8400: [&str; 5] = [
+    "All screens",
+    "All screens except Security",
+    "Presets, Modify, Save, Memory and Automation",
+    "Presets and Automation",
+    "Presets",
+];
+
 /// The model's level names, its document version and its file extension.
-pub fn flavour(model: DeviceModel) -> (&'static [&'static str; 6], &'static str, &'static str) {
+pub fn flavour(model: DeviceModel) -> (&'static [&'static str], &'static str, &'static str) {
     match model {
         DeviceModel::Optimod5500i | DeviceModel::Optimod5500 => {
             (&LEVELS_5500I, "5500.50", "orb55pas")
@@ -38,6 +48,8 @@ pub fn flavour(model: DeviceModel) -> (&'static [&'static str; 6], &'static str,
         // 1.5.1.11 the 5700i's.
         DeviceModel::Optimod6300 => (&LEVELS_5500I, "6300.50", "orb63pas"),
         DeviceModel::Optimod8700i => (&LEVELS, "8700.52", "orb87pas"),
+        // The 8400 keeps `c:\8400\user\password.pas` (see `render`).
+        DeviceModel::Optimod8400 => (&LEVELS_8400, "00.08", "pas"),
         // `2300PC.exe` 2.0.3.85 has the 5500i's level names (its Security
         // dialog and the file it saved, 29 October 2026).
         DeviceModel::Optimod2300 => (&LEVELS_5500I, "2300.20", "orb23pas"),
@@ -55,8 +67,10 @@ pub fn parse(text: &str) -> Result<Vec<Passcode>, String> {
     text.lines()
         .filter_map(|line| line.trim_end().strip_prefix("C:<"))
         .map(|rest| {
+            // The 8400 writes the level as a UserString.
             let (code, rest) = rest
                 .split_once(">String:<")
+                .or_else(|| rest.split_once(">UserString:<"))
                 .ok_or("Invalid passcode line")?;
             let (level, _) = rest.split_once(">;D:").ok_or("Invalid passcode line")?;
             Ok(Passcode {
@@ -75,10 +89,19 @@ pub fn render(passcodes: &[Passcode], model: DeviceModel) -> Result<String, Stri
     if !passcodes.iter().any(|p| p.level == levels[0]) {
         return Err("At least one passcode needs access to all screens".into());
     }
-    let mut out = format!(
-        "OptimodVersion=<{version}>\nPreset Name=<Password Preset> size={}\nFactory Preset Name=<Password Preset>\nPreset Type= <PASSWORD PRESET>\nPreset File Name= <Password.{extension}>\n",
-        passcodes.len()
-    );
+    // The 8400's own `password.pas` (its firmware's file, 3.0.5.7).
+    let is_8400 = model == DeviceModel::Optimod8400;
+    let mut out = if is_8400 {
+        format!(
+            "OptimodVersion=<{version}>\nPreset Name=<password> size={}\nFactory Preset Name=<PASSWORD CONTROLS>\nPreset Type= <PASSWORD PRESET>\n",
+            passcodes.len()
+        )
+    } else {
+        format!(
+            "OptimodVersion=<{version}>\nPreset Name=<Password Preset> size={}\nFactory Preset Name=<Password Preset>\nPreset Type= <PASSWORD PRESET>\nPreset File Name= <Password.{extension}>\n",
+            passcodes.len()
+        )
+    };
     for (i, p) in passcodes.iter().enumerate() {
         let level = levels
             .iter()
@@ -96,14 +119,31 @@ pub fn render(passcodes: &[Passcode], model: DeviceModel) -> Result<String, Stri
         {
             return Err("Each passcode can be programmed once".into());
         }
-        out.push_str(&format!("C:<{}>String:<{}>;D:{level};\n", p.code, p.level));
+        let kind = if is_8400 { "UserString" } else { "String" };
+        out.push_str(&format!("C:<{}>{kind}:<{}>;D:{level};\n", p.code, p.level));
     }
-    out.push_str("End Preset<end>\n");
+    out.push_str(if is_8400 {
+        "End Preset\n"
+    } else {
+        "End Preset<end>\n"
+    });
     Ok(out)
 }
 
 #[cfg(test)]
 mod tests {
+    /// The scratch 8400's own file (firmware 3.0.5.7), passcode replaced.
+    #[test]
+    fn the_8400_file_parses_and_renders_byte_for_byte() {
+        const FILE: &str = "OptimodVersion=<00.08>\nPreset Name=<password> size=1\nFactory Preset Name=<PASSWORD CONTROLS>\nPreset Type= <PASSWORD PRESET>\nC:<ADMIN>UserString:<All screens>;D:0;\nEnd Preset\n";
+        let codes = super::parse(FILE).unwrap();
+        assert_eq!(codes[0].level, "All screens");
+        assert_eq!(
+            super::render(&codes, super::DeviceModel::Optimod8400).unwrap(),
+            FILE
+        );
+    }
+
     /// The file the original client uploaded with a second passcode at level 5.
     const CAPTURED: &str = "OptimodVersion=<5700.51>\nPreset Name=<Password Preset> size=2\nFactory Preset Name=<Password Preset>\nPreset Type= <PASSWORD PRESET>\nPreset File Name= <Password.orb57pas>\nC:<1234>String:<All screens>;D:0;\nC:<OOR9>String:<Presets>;D:5;\nEnd Preset<end>\n";
 
