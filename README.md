@@ -33,17 +33,17 @@ The app communicates directly with each processor, reads its current settings an
 
 ## Supported models
 
-The current **0.3.0 release candidate** supports the following models and firmware versions. Features vary by model.
+The current **0.3.0 release candidate** (build 11, not yet published) supports the following models and firmware versions; the source on `main` adds the functions marked *(after build 11)*, listed in the [changelog](CHANGELOG.md). Features vary by model; the [Phase 10 matrix](docs/verification/2026-10-29-phase10-matrix.md) shows what was verified on original firmware and what is still blocked or untested.
 
 | Model | Firmware | Available functionality |
 |---|---|---|
 | **OPTIMOD 5700i** | 3.0.1.20 | Meters, processing and system settings, presets, backup/restore, automation, security and diagnostics |
 | **OPTIMOD 5500i** | 3.1.0.2 | Meters, processing and system settings, presets, backup/restore, automation, security and diagnostics |
-| **OPTIMOD-FM 8700HD** | 1.0.2.161 | Meters, processing and system settings, preset recall |
-| **OPTIMOD 6300** | 4.1.1.19 | Meters, processing and system settings, preset recall |
-| **OPTIMOD 8700i** | 1.5.1.11 | Meters, processing and system settings, preset recall |
-| **OPTIMOD 2300** | 2.0.3.85 | Meters, processing and system settings, user-preset recall |
-| **OPTIMOD-FM 8400** | 3.0.5.7 | Meters, processing and system settings, preset recall |
+| **OPTIMOD-FM 8700HD** | 1.0.2.161 | Meters, processing and system settings, preset recall; presets, backup/restore, automation, security and diagnostics *(after build 11)* |
+| **OPTIMOD 6300** | 4.1.1.19 | Meters, processing and system settings, preset recall; presets, backup/restore, automation, security and diagnostics *(after build 11)* |
+| **OPTIMOD 8700i** | 1.5.1.11 | Meters, processing and system settings, preset recall; presets, backup/restore, automation, security and diagnostics *(after build 11)* |
+| **OPTIMOD 2300** | 2.0.3.85 | Meters, processing and system settings, user-preset recall; factory recall, presets, backup/restore, automation, security and diagnostics *(after build 11)* |
+| **OPTIMOD-FM 8400** | 3.0.5.7 | Meters, processing and system settings, preset recall; presets, backup/restore, automation and security *(after build 11)*; automation events not yet seen running on its firmware |
 | **OPTIMOD 5500** | 1.2.8.24 | Meters, processing and system settings, presets, backup/restore, automation, security and diagnostics (from the 5500 software; not yet confirmed on 5500 firmware) |
 
 **Current status:** 0.3.0 is a limited-scope release, not yet a complete replacement for Orban's Windows PC Remote. Some original-client functions are still being added, including improvements to the 8400's Advanced Processing screens. Other models and firmware versions are not yet supported.
