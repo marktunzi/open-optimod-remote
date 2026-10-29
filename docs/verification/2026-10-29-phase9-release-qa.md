@@ -41,7 +41,7 @@ Not a Phase 9 gate any more: the owner stopped it (29 October, "we gaan geen 8 u
 
 - Memory and handles: app RSS 135 → 162 MB, service 23.5 → 27.8 MB, service file descriptors 21 → 24; no growth trend over 77 minutes is claimed from this.
 - The two 6300 sessions stayed connected throughout (one login each).
-- **The 8400 session was lost six times between 10:40 and 11:08** (*not answered for 20 seconds*, once *Broken pipe*); each time the automatic reconnect brought it back, and it stayed up from 11:08 to the end. The virtual 8400 ran at about 230 % CPU next to the two 6300s; whether its slow answers are host load or a protocol issue is **open** and goes to the 8400 work in Phase 10.
+- **The 8400 session was lost six times between 10:40 and 11:08** (*not answered for 20 seconds*, once *Broken pipe*); each time the automatic reconnect brought it back, and it stayed up from 11:08 to the end. The virtual 8400 ran at about 230 % CPU next to the two 6300s; the cause was found in Phase 10: the app gave up after 20 s while the unit, slowed and dropping segments under host load, still held the session (fixed: 35 s, keepalive every 2 s); the *Broken pipe* is the unit ending the session itself. See [8400 session stability](2026-10-29-8400-session-stability.md).
 
 ## Release candidate build 11
 
