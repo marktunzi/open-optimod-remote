@@ -6,8 +6,8 @@
 //! UDP. See docs/protocol/8400.md.
 
 use crate::{
-    App, Change, Connect, OperationError, Recall, Snapshot, ensure_session,
-    refresh_processing_identity, refreshed_less_more_availability,
+    App, Change, Connect, OperationError, PresetFile, PresetFileAction, Recall, Snapshot,
+    ensure_session, refresh_processing_identity, refreshed_less_more_availability,
 };
 use orban_protocol::{
     adapter::{AdapterRegistry, Capabilities, DeviceModel},
@@ -49,6 +49,9 @@ pub struct Unit {
     profile: Option<Arc<Profile>>,
     meters: Option<MeterRoute>,
     processing_baseline: Option<Document>,
+    /// The file of each user preset, as the unit lists it (`EURO AC .ORB`
+    /// holds `EURO AC`): a Delete removes that file.
+    user_files: HashMap<String, String>,
     /// The time of the last message to the unit.
     pub last_sent: Instant,
     /// The time of the last keepalive answer.
@@ -93,6 +96,7 @@ pub async fn connect(body: Connect, app: &App) -> Result<Unit, String> {
         profile,
         meters: None,
         processing_baseline: None,
+        user_files: HashMap::new(),
         last_sent: Instant::now(),
         answered: Instant::now(),
     };
@@ -275,11 +279,13 @@ async fn read_presets(unit: &mut Unit, system: &Document) -> Result<Vec<Preset>,
         }
     }
     // A user preset's name is the one in its file, as the unit lists it.
+    unit.user_files.clear();
     for file in unit.session.list(o8400::USER_DIR, "*.orb").await? {
         if STATE_FILES.iter().any(|f| f.eq_ignore_ascii_case(&file)) {
             continue;
         }
         let name = read_document(unit, &file).await?.name;
+        unit.user_files.entry(name.clone()).or_insert(file);
         if !presets.iter().any(|p| p.name == name) {
             presets.push(Preset {
                 name,
@@ -518,6 +524,232 @@ pub async fn recall(unit: &mut Unit, app: &App, body: Recall) -> Result<(), Oper
     Ok(())
 }
 
+/// Save tells the unit to re-read the files the client wrote (GUI event).
+const SAVE_EVENT: u16 = 16388;
+/// A user preset was deleted (GUI event, after removing its file).
+const DELETED_EVENT: u16 = 16392;
+
+/// Save, Save As, Rename and Delete as the original client does them
+/// (capture of its Save As, 21 October 2026): it writes the on-air
+/// document as `next.orb` (keeping that file's name), `onair.orb` and
+/// `<NAME>.orb`, each with its own `Preset Type`, then sends the Save event.
+/// Delete removes `<NAME>.orb` and sends the deleted event.
+pub async fn manage_preset(
+    unit: &mut Unit,
+    app: &App,
+    body: PresetFile,
+) -> Result<(), OperationError> {
+    use orban_protocol::presets::{max_store_name_length, validate_store_name};
+    if !unit.capabilities.preset_store || !unit.capabilities.preset_delete {
+        return Err(OperationError::safe(
+            "Saving and deleting presets is not enabled for this OPTIMOD-FM 8400 software",
+        ));
+    }
+    if !body.confirmed {
+        return Err(OperationError::safe("Confirm the preset change first"));
+    }
+    if unit.session.login.access_level != 0 {
+        return Err(OperationError::safe(
+            "Preset changes are not enabled for this access level",
+        ));
+    }
+    let (shown, presets) = {
+        let state = app.state.read().await;
+        ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
+        if state.host != body.expected_host {
+            return Err(OperationError::safe(
+                "The active device changed. Review the connection first",
+            ));
+        }
+        let shown = state
+            .processing
+            .clone()
+            .filter(|d| d.name == body.expected_name)
+            .ok_or_else(|| {
+                OperationError::safe(
+                    "The on-air preset changed elsewhere. Review the current preset first",
+                )
+            })?;
+        (shown, state.presets.clone())
+    };
+    let kind = |name: &str| {
+        presets
+            .iter()
+            .find(|p| p.name == name)
+            .map(|p| p.kind.clone())
+    };
+    let base = shown
+        .name
+        .strip_prefix("modif ")
+        .unwrap_or(&shown.name)
+        .to_owned();
+    match &body.action {
+        PresetFileAction::Save { name } => {
+            validate_store_name(name, max_store_name_length(DeviceModel::Optimod8400))
+                .map_err(OperationError::safe)?;
+            if kind(name) == Some(PresetKind::Factory) {
+                return Err(OperationError::safe("A factory preset cannot be replaced"));
+            }
+            save(unit, &shown, name).await?;
+        }
+        PresetFileAction::Delete { name } => {
+            if kind(name) != Some(PresetKind::User) {
+                return Err(OperationError::safe("Select a user preset to delete"));
+            }
+            if *name == base {
+                return Err(OperationError::safe(format!(
+                    "Cannot delete the on-air preset {name}"
+                )));
+            }
+            delete(unit, name).await?;
+        }
+        PresetFileAction::Rename { name, new_name } => {
+            if kind(name) != Some(PresetKind::User) || *name != shown.name {
+                return Err(OperationError::safe(
+                    "Rename the user preset on air without changes",
+                ));
+            }
+            validate_store_name(new_name, max_store_name_length(DeviceModel::Optimod8400))
+                .map_err(OperationError::safe)?;
+            if kind(new_name).is_some() {
+                return Err(OperationError::safe(format!("{new_name} already exists")));
+            }
+            save(unit, &shown, new_name).await?;
+            delete(unit, name).await?;
+        }
+    }
+    unit.last_sent = Instant::now();
+    // The list and the on-air file now say what happened.
+    let system = app.state.read().await.system.clone();
+    let listed = match system {
+        Some(system) => read_presets(unit, &system).await,
+        None => Err("The system settings are not available".into()),
+    };
+    let after = read_document(unit, "onair.orb").await;
+    let (Ok(listed), Ok(after)) = (listed, after) else {
+        return Err(OperationError::uncertain(
+            "The result could not be confirmed. Refresh the preset list",
+        ));
+    };
+    let wanted = match &body.action {
+        PresetFileAction::Save { name } | PresetFileAction::Rename { new_name: name, .. } => {
+            listed.iter().any(|p| &p.name == name) && after.name == *name
+        }
+        PresetFileAction::Delete { name } => !listed.iter().any(|p| &p.name == name),
+    };
+    unit.processing_baseline = None;
+    let mut state = app.state.write().await;
+    show_processing(&mut state, unit, after, listed);
+    if !wanted {
+        return Err(OperationError::uncertain(
+            "The processor's preset list does not show the change",
+        ));
+    }
+    state.error = None;
+    Ok(())
+}
+
+/// The on-air document once the unit has saved what is shown (it writes
+/// `onair.orb` 8-10 s after a change), as text up to `End Preset`.
+async fn on_air_text(unit: &mut Unit, shown: &Document) -> Result<String, OperationError> {
+    let end = Instant::now() + READBACK_LIMIT;
+    loop {
+        let file = unit
+            .session
+            .read(o8400::USER_DIR, "onair.orb")
+            .await
+            .map_err(OperationError::uncertain)?;
+        unit.last_sent = Instant::now();
+        let text = o8400::document_text(&file).map_err(OperationError::safe)?;
+        if document(&file).is_ok_and(|d| d.fields == shown.fields) {
+            return String::from_utf8(text.to_vec())
+                .map_err(|_| OperationError::safe("Unsupported document encoding"));
+        }
+        if Instant::now() >= end {
+            return Err(OperationError::safe(
+                "The processor has not saved the shown settings yet; try again in a few seconds",
+            ));
+        }
+        tokio::time::sleep(READBACK_INTERVAL).await;
+    }
+}
+
+/// `text` with its `Preset Name` (keeping the size after it) and its
+/// `Preset Type` replaced.
+fn with_header(text: &str, name: &str, kind: &str) -> Result<String, OperationError> {
+    let mut named = false;
+    let mut typed = false;
+    let lines: Vec<String> = text
+        .split('\n')
+        .map(|line| {
+            if !named && let Some(rest) = line.strip_prefix("Preset Name=<") {
+                named = true;
+                let after = rest.split_once('>').map_or("", |(_, after)| after);
+                format!("Preset Name=<{name}>{after}")
+            } else if !typed && line.starts_with("Preset Type=") {
+                typed = true;
+                format!("Preset Type= <{kind}>")
+            } else {
+                line.to_owned()
+            }
+        })
+        .collect();
+    if !named || !typed {
+        return Err(OperationError::safe(
+            "The on-air document has no preset header",
+        ));
+    }
+    Ok(lines.join("\n"))
+}
+
+async fn save(unit: &mut Unit, shown: &Document, name: &str) -> Result<(), OperationError> {
+    let text = on_air_text(unit, shown).await?;
+    let next = read_document(unit, "next.orb")
+        .await
+        .map_err(OperationError::uncertain)?;
+    let files = [
+        (
+            "next.orb".to_owned(),
+            with_header(&text, &next.name, "NEXT PRESET")?,
+        ),
+        (
+            "onair.orb".to_owned(),
+            with_header(&text, name, "ON AIR PRESET")?,
+        ),
+        (
+            format!("{name}.orb"),
+            with_header(&text, name, "USER PRESET")?,
+        ),
+    ];
+    for (file, contents) in files {
+        unit.session
+            .write(o8400::USER_DIR, &file, contents.as_bytes())
+            .await
+            .map_err(OperationError::uncertain)?;
+        unit.last_sent = Instant::now();
+    }
+    unit.session
+        .event(SAVE_EVENT, 18, "")
+        .await
+        .map_err(OperationError::uncertain)
+}
+
+async fn delete(unit: &mut Unit, name: &str) -> Result<(), OperationError> {
+    let file = unit
+        .user_files
+        .get(name)
+        .cloned()
+        .ok_or_else(|| OperationError::safe("Refresh the preset list first"))?;
+    unit.session
+        .remove(o8400::USER_DIR, &file)
+        .await
+        .map_err(OperationError::uncertain)?;
+    unit.session
+        .event(DELETED_EVENT, 0, name)
+        .await
+        .map_err(OperationError::uncertain)
+}
+
 /// The periodic keepalive; an error ends the session.
 pub async fn keepalive(unit: &mut Unit) -> Result<(), String> {
     if unit.last_sent.elapsed() < KEEPALIVE_PERIOD {
@@ -552,6 +784,21 @@ mod tests {
 
     fn ago(seconds: u64) -> Instant {
         Instant::now() - Duration::from_secs(seconds)
+    }
+
+    /// The three files of the original client's Save As (capture, 21 October
+    /// 2026): one body, each with its own name and type.
+    #[test]
+    fn save_as_writes_the_clients_three_headers() {
+        let on_air = "OptimodVersion=<00.08>\nPreset Name=<modif TEST 02> size=126\nFactory Preset Name=<ROCK-DENSE>\nPreset Type= <ON AIR PRESET>\nC:<AGC>String:<On>;D:1;\nEnd Preset\n";
+        assert_eq!(
+            with_header(on_air, "TEST 02", "NEXT PRESET").unwrap(),
+            "OptimodVersion=<00.08>\nPreset Name=<TEST 02> size=126\nFactory Preset Name=<ROCK-DENSE>\nPreset Type= <NEXT PRESET>\nC:<AGC>String:<On>;D:1;\nEnd Preset\n"
+        );
+        let user = with_header(on_air, "TEST 027", "USER PRESET").unwrap();
+        assert!(user.contains("Preset Name=<TEST 027> size=126\n"));
+        assert!(user.contains("Preset Type= <USER PRESET>\n"));
+        assert!(with_header("C:<AGC>String:<On>;D:1;\n", "X", "USER PRESET").is_err());
     }
 
     #[test]

@@ -4010,7 +4010,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
                }
                Command::PresetFile(body,reply)=>{
                 Activity::count(&app.activity.device_writes);
-                let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{manage_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+                let result=if let Some(u)=&mut unit{o8400::manage_preset(u,&app,body).await}else if let Some(d)=&mut device{manage_preset(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
                 tick.reset();
                 let _=reply.send(result.map_err(|e| e.message));
                }

@@ -7,6 +7,7 @@
 - 6300 and 8700i: Automation, with each client's own action list and file (captured from the original clients, checked on their firmware).
 - 2300: factory preset Recall, by uploading the client installation's factory file as the original client does; the on-air result equals the client's Recall byte for byte.
 - 2300: Save, Save As, Delete, Automation, Security, Backup and Restore as its original client (captured and checked on its firmware; Backup byte-identical to the client's).
+- 8400: Save, Save As, Rename and Delete as its original client (the three files of its Save As, then the Save event), checked on its firmware.
 - 8700HD: Save As, Delete, Backup/Restore, Automation, Security and Diagnostics, from its original client's code (`8700PC.exe` 1.0.2.161 has the 5500 client's file code with `.orb86` names) and tested against a scripted unit; not yet confirmed on its firmware.
 - 6300 and 8700i: Save As, Delete, Backup/Restore, Security and Diagnostics from their original clients' code (`6300PC.exe` has the 8700HD client's file code, `8700iPC.exe` the 5500i client's), with each client's access levels and name limit; tested against a scripted unit, not yet confirmed on firmware. Their Automation is not offered yet (function lists unknown).
 

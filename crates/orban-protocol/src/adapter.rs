@@ -945,7 +945,7 @@ const STATIC_FULL: Capabilities = Capabilities {
 };
 
 /// Save, Save As, Rename and Delete as the 5500's, 5500i's, 8700HD's, 6300's,
-/// 8700i's and 2300's own clients do them, with file messages (`Wire::preset_file_delete`).
+/// 8700i's, 2300's and 8400's own clients do them, with file messages (`Wire::preset_file_delete`).
 const STATIC_FULL_WITH_PRESET_FILES: Capabilities = Capabilities {
     preset_store: true,
     preset_delete: true,
@@ -1096,7 +1096,7 @@ const PC_8400: AdapterDescriptor = AdapterDescriptor {
     default_terminal_port: 23,
     product_mark: "OPTIMOD-FM 8400",
     firmware_prefix: "8400 V ",
-    capabilities: STATIC_FULL,
+    capabilities: STATIC_FULL_WITH_PRESET_FILES,
     meter_profile: None,
     frame_cut: None,
     on_air_archive: false,
