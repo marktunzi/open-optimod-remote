@@ -648,8 +648,11 @@ pub const WIRE_2300: Wire = Wire {
         automation_name: "Automation.orb23autom",
         automation_file: 233,
     }),
-    backup_requests: &[(240, 233)],
-    backup_kept: &[],
+    // The client's Backup: EEh setup (E8h), EFh automation (E9h), then the
+    // user preset files (capture, 29 October 2026).
+    backup_requests: &[(238, 232), (239, 233)],
+    // Of the user preset list the client keeps only `.orb23user` files.
+    backup_kept: &[".orb23user"],
     restore_extensions: &[],
     setup_presets: None,
     network_request: None,

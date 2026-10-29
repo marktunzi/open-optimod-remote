@@ -2559,6 +2559,18 @@ async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>,
         .chain([(presets, preset_reply)]);
     for (request, reply) in requests {
         for (name, data) in read_files(app, device, request, reply).await? {
+            let plain = device.session.decrypt_file(&data)?;
+            // The 2300 sends no file names: its client names each file as
+            // the document names itself, the automation file by its name.
+            let name = match &name {
+                name if !name.is_empty() => name.clone(),
+                _ => match wire.tool_files {
+                    Some(tools) if tools.automation_file == reply => {
+                        tools.automation_name.to_owned()
+                    }
+                    _ => preset_file_name(&plain).ok_or("A file without a name")?,
+                },
+            };
             let lower = name.to_ascii_lowercase();
             if reply == preset_reply
                 && !wire.backup_kept.is_empty()
@@ -2566,7 +2578,6 @@ async fn backup_files(device: &mut Device, app: &App) -> Result<Vec<BackupFile>,
             {
                 continue;
             }
-            let plain = device.session.decrypt_file(&data)?;
             let document = String::from_utf8(plain).map_err(|_| "Unsupported document encoding")?;
             // Automation and network files are no processing documents.
             let automation = wire.tool_files.map(|t| t.automation_file);
@@ -3035,11 +3046,17 @@ async fn restore_preset_files(
         let iv = *uuid::Uuid::new_v4().as_bytes();
         let sealed = orban_protocol::archive::encrypt(file.document.as_bytes(), &device.code, iv)
             .map_err(OperationError::safe)?;
+        // The 2300's file messages have no name line (capture, 29 October 2026).
+        let named = device.session.adapter().wire.file_names;
+        let name_line = if named {
+            format!("{}\n", file.name)
+        } else {
+            String::new()
+        };
         let mut message = format!(
-            "{}\n{}\n{}\n{}\n",
+            "{}\n{}\n{name_line}{}\n",
             filetime & 0xffff_ffff,
             filetime >> 32,
-            file.name,
             sealed.len()
         )
         .into_bytes();
@@ -3060,8 +3077,8 @@ async fn restore_preset_files(
             .await
             .map_err(OperationError::uncertain)?;
         // The unit answers each preset-file upload with a boundary answer
-        // (FBh); automation and passcode uploads get none.
-        if opcode == 231 {
+        // (FBh); automation and passcode uploads get none, nor does the 2300.
+        if opcode == 231 && named {
             device.boundaries.sent();
         }
         let _ = device.session.send(222, b"").await;
