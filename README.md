@@ -6,7 +6,7 @@
 
 [Release notes](https://github.com/marktunzi/open-optimod-remote/releases/tag/v0.3.0) · Apple Silicon · macOS 13 or later · Signed and notarized
 
-![Open Optimod Remote showing live meters and multiple connected processors](docs/images/main-window.png)
+![Open Optimod Remote live meters with multiple connected processors](docs/images/optimod-meters.webp)
 
 ## What is it?
 
@@ -34,6 +34,20 @@ The macOS app is built for Apple Silicon and macOS 13 or later.
 4. Switch between connected processors without disconnecting the others.
 
 The app communicates directly with each processor, reads its current settings and checks changes against the device. Connections can recover automatically after an interruption. No Windows installation or Orban executable is needed.
+
+## Screenshots
+
+### Processing Settings
+
+![Processing Settings for the OPTIMOD-FM 8700HD](docs/images/optimod-processing.webp)
+
+### System Settings
+
+![Native macOS System Settings for the OPTIMOD-FM 8700HD](docs/images/optimod-system-settings.webp)
+
+### Presets
+
+![Native macOS Presets window showing factory and user presets](docs/images/optimod-presets.webp)
 
 ## Supported models
 
