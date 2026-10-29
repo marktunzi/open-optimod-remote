@@ -66,8 +66,10 @@ swiftc -swift-version 5 native/macos/LauncherCore.swift native/macos/SystemSetti
 /tmp/optimod-presets-api-tests
 swiftc -swift-version 5 -framework Network native/macos/NetworkDiscovery.swift native/macos/NetworkDiscoveryTests.swift -o /tmp/optimod-network-tests
 /tmp/optimod-network-tests
-swiftc -swift-version 5 -framework AppKit native/macos/ErrorLog.swift native/macos/ErrorLogTests.swift -o /tmp/optimod-error-log-tests
+swiftc -swift-version 5 -framework AppKit native/macos/ErrorLog.swift native/macos/LauncherCore.swift native/macos/ErrorLogTests.swift -o /tmp/optimod-error-log-tests
 /tmp/optimod-error-log-tests
+swiftc -swift-version 5 native/macos/LauncherCore.swift native/macos/UpdateCore.swift native/macos/UpdateCoreTests.swift -o /tmp/optimod-update-core-tests
+/tmp/optimod-update-core-tests
 swiftc -swift-version 5 -framework AppKit -framework WebKit -framework Network -framework UniformTypeIdentifiers native/macos/ErrorLog.swift native/macos/LauncherCore.swift native/macos/SystemSettingsSpec.swift native/macos/SystemSettingsAPI.swift native/macos/ProfileSystemSettings.swift native/macos/SystemSettingsWindow.swift native/macos/ConnectionsAPI.swift native/macos/DeviceTabs.swift native/macos/DeviceWindows.swift native/macos/PresetsAPI.swift native/macos/PresetsWindow.swift native/macos/PresetsWindowTests.swift -o /tmp/optimod-presets-window-tests
 swiftc -swift-version 5 -framework AppKit -framework WebKit -framework Network -framework UniformTypeIdentifiers native/macos/ErrorLog.swift native/macos/LauncherCore.swift native/macos/SystemSettingsSpec.swift native/macos/SystemSettingsAPI.swift native/macos/ProfileSystemSettings.swift native/macos/SystemSettingsWindow.swift native/macos/ConnectionsAPI.swift native/macos/DeviceTabs.swift native/macos/DeviceWindows.swift native/macos/PresetsAPI.swift native/macos/PresetsWindow.swift native/macos/DeviceWindowsTests.swift -o /tmp/optimod-device-windows-tests
 /tmp/optimod-device-windows-tests
