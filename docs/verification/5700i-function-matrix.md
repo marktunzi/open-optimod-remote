@@ -25,7 +25,7 @@ Original client: `5700iPC.exe` (SHA-256 `63def9bb…`), menus from its own resou
 | Active input (not in the client; app status strip) | follows source/fallback changes | PASS | [M1A](2026-10-28-m1a-active-input.md) |
 | Meter speed and peak markers (bar = bank 1 per record, marker = firmware peak bank 2) | Meters window | PASS | [M1B](2026-10-28-m1b-meter-ballistics-gates.md) |
 | AGC Gate (62), MPX Pwr Gate (111) lamps | red LEDs | PASS | [M1B](2026-10-28-m1b-meter-ballistics-gates.md) |
-| FM Multi Gate (63), HD Multi Gate (38) lamps | red LEDs | PASS dark; lit state UNTESTED (did not gate) | [M1B](2026-10-28-m1b-meter-ballistics-gates.md) |
+| FM Multi Gate (63), HD Multi Gate (38) lamps | red LEDs | PASS dark and lit: on the silent scratch unit both read 127 and the native app showed both lit (MPX Pwr Gate 0, dark) | [M1B](2026-10-28-m1b-meter-ballistics-gates.md), [P10 matrix](2026-10-29-phase10-matrix.md) |
 | Loudness colours (amber top 33/162, green below) | Meters window | PASS (from client bitmap 397) | [M1B](2026-10-28-m1b-meter-ballistics-gates.md) |
 
 ## Processing (Edit › Processing Parameters, FM→HD Couple/Uncouple)

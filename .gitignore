@@ -21,3 +21,7 @@
 *.p8
 *.p12
 *.pem
+
+# Python bytecode
+__pycache__/
+*.pyc
