@@ -665,6 +665,24 @@ pub async fn manage_preset(
     Ok(())
 }
 
+/// A restored preset keeps the name its file gives itself, spaces at the
+/// end included (the unit holds `EURO AC .orb`); it must still be a plain
+/// file name within the user folder.
+fn restorable_name(name: &str) -> Result<(), String> {
+    use orban_protocol::presets::{max_store_name_length, validate_name};
+    validate_name(name)?;
+    if name.len() > max_store_name_length(DeviceModel::Optimod8400) || name.trim().is_empty() {
+        return Err("Unsupported preset name".into());
+    }
+    if name.contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|']) || name.trim() == ".." {
+        return Err("A preset name cannot contain \\ / : * ? \" < > or |".into());
+    }
+    if name.to_ascii_lowercase().starts_with("modif ") {
+        return Err("A preset name cannot start with \"modif \"".into());
+    }
+    Ok(())
+}
+
 /// A user preset is `<NAME>.orb` next to the unit's own files: a name like
 /// `system` would replace the system settings.
 fn reject_state_file(name: &str) -> Result<(), OperationError> {
@@ -822,7 +840,6 @@ pub async fn restore_preset_files(
     app: &App,
     body: RestorePresetFiles,
 ) -> Result<(), OperationError> {
-    use orban_protocol::presets::{max_store_name_length, validate_store_name};
     if !unit.capabilities.preset_store || unit.session.login.access_level != 0 {
         return Err(OperationError::safe(
             "Preset changes are not enabled for this access level",
@@ -853,8 +870,7 @@ pub async fn restore_preset_files(
         let document = Document::parse_for_model(text.as_bytes(), DeviceModel::Optimod8400)
             .map_err(|e| OperationError::safe(format!("{}: {e}", file.name)))?;
         let name = document.name;
-        validate_store_name(&name, max_store_name_length(DeviceModel::Optimod8400))
-            .map_err(|e| OperationError::safe(format!("{}: {e}", file.name)))?;
+        restorable_name(&name).map_err(|e| OperationError::safe(format!("{}: {e}", file.name)))?;
         reject_state_file(&name)?;
         if presets
             .iter()
@@ -1211,6 +1227,23 @@ mod tests {
         assert_eq!(action_index("TEST 02", &presets), Some(3));
         assert_eq!(action_index("Exit Bypass", &presets), Some(5));
         assert_eq!(action_index("Exit Test", &presets), None);
+    }
+
+    #[test]
+    fn a_restored_preset_keeps_its_own_name_inside_the_user_folder() {
+        assert!(restorable_name("EURO AC ").is_ok());
+        assert!(restorable_name("TEST 02").is_ok());
+        for bad in [
+            "..\\system",
+            "a/b",
+            "c:x",
+            "  ",
+            "",
+            "modif TEST",
+            "x".repeat(21).as_str(),
+        ] {
+            assert!(restorable_name(bad).is_err(), "{bad:?}");
+        }
     }
 
     #[test]

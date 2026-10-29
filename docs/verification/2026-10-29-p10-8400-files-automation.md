@@ -19,7 +19,7 @@ The client's copies equal the unit's files for presets in the current format; fo
 | Check | Result |
 |---|---|
 | Backup | **PASS**: 19 files, exactly the client's file names; 3 byte-identical to the client's copies, the other 16 differ only by the client's added defaults (the app keeps the unit's contents) |
-| Restore | **PASS**: `OOR REST` deleted, then restored from the backup (5 s): listed again, and the unit's file is **byte-identical** to the one the client's Copy produced |
+| Restore | **PASS**: `OOR REST` deleted, then restored from the backup (5 s): listed again, and the unit's file is **byte-identical** to the one the client's Copy produced. A name the unit itself gives a file with a trailing space (`EURO AC `) is accepted for Restore (unit test; not restored on firmware) |
 | Automation write format | **PASS**: the app renders the client's `AUTO_0.aut` byte for byte (`renders_the_8400_clients_new_event`); events written, read back and cleared through the service; the unit opened the new file after the automation event |
 | Automation Enabled | **PASS**: set and cleared through the service, read back from `system.orb` |
 | Automation execution | **BLOCKED**: with automation enabled, neither an event written by the app (TEST 02) nor one in the client's exact form (CLASSICAL-2 BAND, index 1) went on air at its time on the virtual unit. Whether the unit runs an event by the action's name or by its index in the client's list could therefore not be seen; the app writes both as the client does |
