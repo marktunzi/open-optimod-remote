@@ -2,6 +2,10 @@
 
 **Control your Orban OPTIMOD processors from a Mac. No Windows required.**
 
+[![Download for macOS](https://img.shields.io/badge/Download_for_macOS-0.3.0-007AFF?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/marktunzi/open-optimod-remote/releases/download/v0.3.0/OpenOptimodRemote-0.3.0-arm64.dmg)
+
+[Release notes](https://github.com/marktunzi/open-optimod-remote/releases/tag/v0.3.0) · Apple Silicon · macOS 13 or later · Signed and notarized
+
 ![Open Optimod Remote showing live meters and multiple connected processors](docs/images/main-window.png)
 
 ## What is it?
