@@ -211,8 +211,8 @@ final class ConnectionsWindowController: NSWindowController, NSWindowDelegate, N
         sidebar.addSubview(sourceStack)
         sidebar.addSubview(sourceActions)
         NSLayoutConstraint.activate([
-            sourceStack.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 14),
-            sourceStack.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -14),
+            sourceStack.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 10),
+            sourceStack.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -10),
             sourceStack.topAnchor.constraint(equalTo: sidebar.topAnchor, constant: 54),
             sourceActions.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 12),
             sourceActions.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -12),
@@ -1121,6 +1121,11 @@ private final class ConnectionPortFormatter: NumberFormatter, @unchecked Sendabl
 }
 
 private final class SidebarSourceButton: NSButton {
+    override class var cellClass: AnyClass? {
+        get { SidebarSourceCell.self }
+        set {}
+    }
+
     override var state: NSControl.StateValue {
         didSet {
             contentTintColor = .labelColor
@@ -1137,6 +1142,16 @@ private final class SidebarSourceButton: NSButton {
             NSBezierPath(roundedRect: bounds.insetBy(dx: 0, dy: 1), xRadius: 8, yRadius: 8).fill()
         }
         super.draw(dirtyRect)
+    }
+}
+
+/// The icon and title sit inside the selection, as in a Finder sidebar row,
+/// not on its rounded edge.
+private final class SidebarSourceCell: NSButtonCell {
+    static let padding: CGFloat = 12
+
+    override func drawInterior(withFrame frame: NSRect, in controlView: NSView) {
+        super.drawInterior(withFrame: frame.insetBy(dx: Self.padding, dy: 0), in: controlView)
     }
 }
 
