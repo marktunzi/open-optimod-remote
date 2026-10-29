@@ -80,6 +80,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
             action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
             keyEquivalent: ""
         )
+        let updatesItem = applicationMenu.addItem(
+            withTitle: "Check for Updates…",
+            action: #selector(AppUpdater.checkForUpdates(_:)),
+            keyEquivalent: ""
+        )
+        updatesItem.target = AppUpdater.shared
+        let installItem = applicationMenu.addItem(
+            withTitle: "Install Update…",
+            action: #selector(AppUpdater.installPendingUpdate(_:)),
+            keyEquivalent: ""
+        )
+        installItem.target = AppUpdater.shared
+        installItem.isHidden = true
+        applicationMenu.delegate = AppUpdater.shared
         applicationMenu.addItem(.separator())
         let connectionsItem = applicationMenu.addItem(
             withTitle: "Connections…",
@@ -257,6 +271,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
         loadedInterface = true
         windows.interfaceDidLoad()
         startWindowControl()
+        AppUpdater.shared.start()
         if !presentedInitialConnections {
             presentedInitialConnections = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
@@ -302,7 +317,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
               let path = ProcessInfo.processInfo.environment["OPEN_OPTIMOD_WINDOW_CONTROL"]
         else { return }
         FileManager.default.createFile(atPath: path, contents: nil)
-        windowControlTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+        // Common modes: the hooks also run while an alert is open.
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             guard let self, let handle = FileHandle(forReadingAtPath: path) else { return }
             defer { try? handle.close() }
             try? handle.seek(toOffset: self.windowControlOffset)
@@ -335,12 +351,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, 
                         .perform(Array(words.dropFirst(2)))
                     continue
                 }
+                // Test hook: `update check|background|install` acts as the menu items and Sparkle's daily check do.
+                if control.hasPrefix("update ") {
+                    switch control.dropFirst("update ".count) {
+                    case "check": AppUpdater.shared.checkForUpdates(nil)
+                    case "background": AppUpdater.shared.checkInBackground()
+                    case "install": AppUpdater.shared.installPendingUpdate(nil)
+                    default: break
+                    }
+                    continue
+                }
+                // Test hook: `press TITLE` clicks that button in the frontmost alert or window (Sparkle's too).
+                if control.hasPrefix("press ") {
+                    Self.press(String(control.dropFirst("press ".count)))
+                    continue
+                }
                 self.windows.perform(control: control)
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 let state = try? JSONSerialization.data(withJSONObject: self.windows.windowList, options: [.prettyPrinted, .sortedKeys])
                 FileManager.default.createFile(atPath: path + ".state", contents: state)
+                let update = try? JSONSerialization.data(withJSONObject: AppUpdater.shared.state, options: [.prettyPrinted, .sortedKeys])
+                FileManager.default.createFile(atPath: path + ".update", contents: update)
             }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        windowControlTimer = timer
+    }
+
+    /// The enabled button titled `title` in the modal window, else the key window, else any visible window.
+    private static func press(_ title: String) {
+        let ordered = [NSApp.modalWindow, NSApp.keyWindow].compactMap { $0 } + NSApp.windows.filter(\.isVisible)
+        func find(_ view: NSView) -> NSButton? {
+            if let button = view as? NSButton, button.title == title, button.isEnabled { return button }
+            for sub in view.subviews { if let hit = find(sub) { return hit } }
+            return nil
+        }
+        for window in ordered {
+            if let view = window.contentView, let button = find(view) { button.performClick(nil); return }
         }
     }
 
