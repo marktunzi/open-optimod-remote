@@ -2,6 +2,12 @@
 
 ## Unreleased (after the 0.3.0 candidate)
 
+- 8400: the session is no longer dropped while the unit still holds it. Under host load the virtual 8400 drops TCP segments and its answers come many seconds late; the app now waits 35 s (the unit's own 30 s plus a margin) instead of 20 s, and sends its keepalive every 2 s like the original client (it went every 4 s). A session the unit ends itself is still recovered by the automatic reconnect ([8400 session stability](docs/verification/2026-10-29-8400-session-stability.md)).
+- 8400: Backup and Restore as its original client's Memory screen (every user preset as `<Preset Name>.orb`; Restore writes the file and sends the preset-added event), and Automation (one `AUTO_<n>.aut` per event, the automation event after each change, *Automation Enabled* as the system control), captured from `8400_pc.exe` and checked on its firmware.
+- 6300: Restore no longer reports "could not be confirmed": the 6300 and 8700i firmware send no extra answer after a preset-file upload. 6300 and 8700i Save As, Delete, Backup, Restore, Security and Diagnostics are now checked on their firmware.
+- 2300 and 8400: the native Presets window offers the client-style file Backup and Restore (the 2300's was only in the service).
+- The service reports version 0.3.0 (it said 0.2.0).
+
 - 5700i (#18): when the status port (TCP 23) does not answer, the 5700i runs over PC Remote alone, as its original client does: system settings, presets, processing, writes, Save/Save As/Delete and Recall of user and factory presets. While a sync is incomplete, every change is refused, not only parameter changes. No 2-band or 5-band page is shown without a live on-air document; status port messages name the stage that failed and no longer suggest a write for a read.
 - Connections: the sidebar icons sit inside their selection.
 - 6300 and 8700i: Automation, with each client's own action list and file (captured from the original clients, checked on their firmware).

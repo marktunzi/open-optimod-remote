@@ -79,6 +79,8 @@ struct PresetFileFormat: Equatable, Sendable {
         if id.hasPrefix("pc-remote-8700i-") { return PresetFileFormat(model: "OPTIMOD 8700i", fileExtension: "orb87user") }
         if id.hasPrefix("pc-remote-6300-") { return PresetFileFormat(model: "OPTIMOD 6300", fileExtension: "orb63user") }
         if id.hasPrefix("pc-remote-5700i-") { return PresetFileFormat(model: "OPTIMOD 5700i", fileExtension: "orb57user") }
+        if id.hasPrefix("pc-remote-2300-") { return PresetFileFormat(model: "OPTIMOD 2300", fileExtension: "orb23user") }
+        if id.hasPrefix("pc-remote-8400-") { return PresetFileFormat(model: "OPTIMOD-FM 8400", fileExtension: "orb") }
         return PresetFileFormat(model: "OPTIMOD", fileExtension: "orb")
     }
 
@@ -86,12 +88,15 @@ struct PresetFileFormat: Equatable, Sendable {
     var maxNameLength: Int { ["orb55user", "orb63user"].contains(fileExtension) ? 18 : 20 }
 
     /// Models whose own PC Remote saves the on-air user preset under its own name (5700i, 5500i, 5500, 8700HD Save).
-    static func replacesOnAir(_ adapterID: String?) -> Bool { backsUpFiles(adapterID) }
-
-    /// Models whose original PC Remote backs up the unit's own files (setup and user presets).
-    static func backsUpFiles(_ adapterID: String?) -> Bool {
+    static func replacesOnAir(_ adapterID: String?) -> Bool {
         ["pc-remote-5700i-", "pc-remote-5500i-", "pc-remote-5500-", "pc-remote-8700hd-", "pc-remote-8700i-", "pc-remote-6300-"]
             .contains { adapterID?.hasPrefix($0) == true }
+    }
+
+    /// Models whose original PC Remote backs up the unit's own files (setup and user presets;
+    /// the 8400's Memory screen copies only user presets, as `<Preset Name>.orb`).
+    static func backsUpFiles(_ adapterID: String?) -> Bool {
+        replacesOnAir(adapterID) || ["pc-remote-2300-", "pc-remote-8400-"].contains { adapterID?.hasPrefix($0) == true }
     }
 
     /// Files the 5500i, 5500 and 8700HD clients' Restore sends back as files, next to the user presets.

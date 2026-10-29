@@ -4024,7 +4024,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
                 let _=reply.send(result.map_err(|e| e.message));
                }
                Command::BackupFiles(reply)=>{
-                let result=if unit.is_some(){Err("Not available for the OPTIMOD-FM 8400 yet".to_owned())}else if let Some(d)=&mut device{backup_files(d,&app).await}else{Err("Not connected".to_owned())};
+                let result=if let Some(u)=&mut unit{o8400::backup_files(u).await}else if let Some(d)=&mut device{backup_files(d,&app).await}else{Err("Not connected".to_owned())};
                 tick.reset();
                 let _=reply.send(result);
                }
@@ -4052,7 +4052,7 @@ async fn owner_with(app: App, mut rx: mpsc::Receiver<Command>, policy: Reconnect
                }
                Command::RestorePresetFiles(body,reply)=>{
                 Activity::count(&app.activity.device_writes);
-                let result=if unit.is_some(){Err(OperationError::safe("Not available for the OPTIMOD-FM 8400 yet"))}else if let Some(d)=&mut device{restore_preset_files(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
+                let result=if let Some(u)=&mut unit{o8400::restore_preset_files(u,&app,body).await}else if let Some(d)=&mut device{restore_preset_files(d,&app,body).await}else{Err(OperationError::safe("Not connected"))};
                 tick.reset();
                 let _=reply.send(result.map_err(|e| e.message));
                }

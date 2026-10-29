@@ -6,8 +6,9 @@
 //! UDP. See docs/protocol/8400.md.
 
 use crate::{
-    App, Change, Connect, OperationError, PresetFile, PresetFileAction, Recall, Snapshot,
-    UnitFileWrite, ensure_session, refresh_processing_identity, refreshed_less_more_availability,
+    App, BackupFile, Change, Connect, OperationError, PresetFile, PresetFileAction, Recall,
+    RestorePresetFiles, Snapshot, UnitFileWrite, ensure_session, refresh_processing_identity,
+    refreshed_less_more_availability,
 };
 use orban_protocol::{
     adapter::{AdapterRegistry, Capabilities, DeviceModel},
@@ -777,14 +778,151 @@ async fn delete(unit: &mut Unit, name: &str) -> Result<(), OperationError> {
         .map_err(OperationError::uncertain)
 }
 
+/// A user preset was added (GUI event, after writing its file).
+const ADDED_EVENT: u16 = 16391;
+
+/// The original client's Copy All on its Memory screen (capture, 29 October
+/// 2026): every user preset as `<Preset Name>.orb` in its `user` folder,
+/// with Windows line ends. The client writes them from its own copy of the
+/// presets, which adds controls an older file lacks; the app keeps each
+/// file as the unit stores it.
+pub async fn backup_files(unit: &mut Unit) -> Result<Vec<BackupFile>, String> {
+    if unit.session.login.access_level != 0 {
+        return Err("Backup is not available for this access level".into());
+    }
+    let mut presets: Vec<(String, String)> = unit
+        .user_files
+        .iter()
+        .map(|(name, file)| (name.clone(), file.clone()))
+        .collect();
+    presets.sort();
+    let mut files = Vec::new();
+    for (name, file) in presets {
+        let read = unit.session.read(o8400::USER_DIR, &file).await?;
+        unit.last_sent = Instant::now();
+        let text = std::str::from_utf8(o8400::document_text(&read)?)
+            .map_err(|_| "Unsupported document encoding")?;
+        Document::parse_for_model(text.as_bytes(), DeviceModel::Optimod8400)?;
+        files.push(BackupFile {
+            name: format!("{name}.orb"),
+            document: text.replace("\r\n", "\n").replace('\n', "\r\n"),
+            modified: None,
+        });
+    }
+    Ok(files)
+}
+
+/// The original client's Copy from its PC list to the unit (capture, 29
+/// October 2026): the document with Unix line ends as `<Preset Name>.orb`
+/// through the write calls, then the added event with the name. A file
+/// that would take a factory preset's or one of the unit's own names is
+/// refused; nothing is written before every file is checked.
+pub async fn restore_preset_files(
+    unit: &mut Unit,
+    app: &App,
+    body: RestorePresetFiles,
+) -> Result<(), OperationError> {
+    use orban_protocol::presets::{max_store_name_length, validate_store_name};
+    if !unit.capabilities.preset_store || unit.session.login.access_level != 0 {
+        return Err(OperationError::safe(
+            "Preset changes are not enabled for this access level",
+        ));
+    }
+    if !body.confirmed {
+        return Err(OperationError::safe("Confirm the restore first"));
+    }
+    let presets = {
+        let state = app.state.read().await;
+        ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
+        if state.host != body.expected_host {
+            return Err(OperationError::safe(
+                "The active device changed. Review the connection first",
+            ));
+        }
+        state.presets.clone()
+    };
+    let mut wanted = Vec::new();
+    for file in &body.files {
+        if !file.name.to_ascii_lowercase().ends_with(".orb") || file.name.contains(['\\', '/']) {
+            return Err(OperationError::safe(format!(
+                "{} is not a user preset file of the OPTIMOD-FM 8400",
+                file.name
+            )));
+        }
+        let text = file.document.replace("\r\n", "\n");
+        let document = Document::parse_for_model(text.as_bytes(), DeviceModel::Optimod8400)
+            .map_err(|e| OperationError::safe(format!("{}: {e}", file.name)))?;
+        let name = document.name;
+        validate_store_name(&name, max_store_name_length(DeviceModel::Optimod8400))
+            .map_err(|e| OperationError::safe(format!("{}: {e}", file.name)))?;
+        reject_state_file(&name)?;
+        if presets
+            .iter()
+            .any(|p| p.name == name && p.kind == PresetKind::Factory)
+        {
+            return Err(OperationError::safe(format!(
+                "{name} is a factory preset name"
+            )));
+        }
+        if text.len() + 64 > 4096 {
+            return Err(OperationError::safe(format!(
+                "{} is too long for the processor",
+                file.name
+            )));
+        }
+        wanted.push((name, text));
+    }
+    for (name, text) in &wanted {
+        unit.session
+            .write(o8400::USER_DIR, &format!("{name}.orb"), text.as_bytes())
+            .await
+            .map_err(OperationError::uncertain)?;
+        unit.session
+            .event(ADDED_EVENT, 18, name)
+            .await
+            .map_err(OperationError::uncertain)?;
+        unit.last_sent = Instant::now();
+    }
+    let system = app.state.read().await.system.clone();
+    let listed = match system {
+        Some(system) => read_presets(unit, &system).await,
+        None => Err("The system settings are not available".into()),
+    }
+    .map_err(|e| {
+        OperationError::uncertain(format!(
+            "The restore could not be confirmed. Refresh the preset list. {e}"
+        ))
+    })?;
+    let missing: Vec<&str> = wanted
+        .iter()
+        .filter(|(name, _)| !listed.iter().any(|p| &p.name == name))
+        .map(|(name, _)| name.as_str())
+        .collect();
+    app.state.write().await.presets = listed;
+    if !missing.is_empty() {
+        return Err(OperationError::uncertain(format!(
+            "The processor does not list {}",
+            missing.join(", ")
+        )));
+    }
+    Ok(())
+}
+
 /// Passcodes changed: the unit re-reads `password.pas` (GUI event).
 const PASSCODES_EVENT: u16 = 16390;
 
-/// The unit's passcode file (`kind` 230); the 8400 has no automation file
-/// the app reads yet.
+/// The unit's passcode file (`kind` 230), or its automation events (235):
+/// every `AUTO_<n>.aut` in file order, one document after the other.
 pub async fn read_unit_file(unit: &mut Unit, kind: u16) -> Result<Option<String>, String> {
+    if kind == 235 {
+        let files = automation_files(unit).await?;
+        if files.is_empty() {
+            return Ok(None);
+        }
+        return Ok(Some(files.into_iter().map(|(_, text)| text).collect()));
+    }
     if kind != 230 {
-        return Err("Automation is not available for the OPTIMOD-FM 8400 in this version".into());
+        return Err("This file is not available for the OPTIMOD-FM 8400".into());
     }
     if unit.session.login.access_level != 0 {
         return Err("Security is not available for this access level".into());
@@ -803,9 +941,9 @@ pub async fn write_unit_file(
     app: &App,
     body: UnitFileWrite,
 ) -> Result<(), OperationError> {
-    if body.kind != 230 {
+    if body.kind != 230 && body.kind != 235 {
         return Err(OperationError::safe(
-            "Automation is not available for the OPTIMOD-FM 8400 in this version",
+            "This file is not available for the OPTIMOD-FM 8400",
         ));
     }
     if !unit.capabilities.parameter_writes || unit.session.login.access_level != 0 {
@@ -821,6 +959,9 @@ pub async fn write_unit_file(
                 "The active device changed. Review the connection first",
             ));
         }
+    }
+    if body.kind == 235 {
+        return write_automation(unit, app, &body.document).await;
     }
     // The session's own passcode must stay, with all screens.
     let passcodes = crate::security::parse(&body.document).map_err(OperationError::safe)?;
@@ -849,6 +990,143 @@ pub async fn write_unit_file(
         Err(e) => Err(OperationError::uncertain(format!(
             "The change could not be confirmed. {e}"
         ))),
+    }
+}
+
+/// The automation files event (GUI event): after an `AUTO_<n>.aut` was
+/// written or removed, with its file name (original client, 29 October
+/// 2026; the client sends 784 as data).
+const AUTOMATION_EVENT: u16 = 16389;
+/// The client's Add allows 64 events (`8400_pc.exe` 0x401dcf).
+const MAX_AUTOMATION_EVENTS: usize = 64;
+
+/// `AUTO_<n>.aut` in `c:\\8400\\user\\` by number, with each file's text.
+async fn automation_files(unit: &mut Unit) -> Result<Vec<(String, String)>, String> {
+    let mut names: Vec<(u32, String)> = unit
+        .session
+        .list(o8400::USER_DIR, "*.aut")
+        .await?
+        .into_iter()
+        .filter_map(|name| {
+            let number = name
+                .to_ascii_uppercase()
+                .strip_prefix("AUTO_")?
+                .strip_suffix(".AUT")?
+                .parse()
+                .ok()?;
+            Some((number, name))
+        })
+        .collect();
+    names.sort();
+    let mut files = Vec::new();
+    for (_, name) in names {
+        let file = unit.session.read(o8400::USER_DIR, &name).await?;
+        unit.last_sent = Instant::now();
+        let text = String::from_utf8(o8400::document_text(&file)?.to_vec())
+            .map_err(|_| "Unsupported document encoding")?;
+        files.push((name, text.replace("\r\n", "\n")));
+    }
+    Ok(files)
+}
+
+/// The original client's Event Type list: No Function, the presets as the
+/// unit lists them, then its functions.
+fn action_index(action: &str, presets: &[Preset]) -> Option<usize> {
+    if action.is_empty() {
+        return Some(0);
+    }
+    presets
+        .iter()
+        .map(|p| p.name.as_str())
+        .chain(crate::automation::FUNCTIONS_8400)
+        .position(|name| name == action)
+        .map(|at| at + 1)
+}
+
+/// Makes the unit's events the given ones, as the client's Add, Edit and
+/// Delete do: each changed `AUTO_<n>.aut` is written (Unix line ends, the
+/// write calls), each one no longer wanted is removed, and the automation
+/// event follows each. Read back afterwards.
+async fn write_automation(
+    unit: &mut Unit,
+    app: &App,
+    document: &str,
+) -> Result<(), OperationError> {
+    let events = crate::automation::parse(document).map_err(OperationError::safe)?;
+    if events.len() > MAX_AUTOMATION_EVENTS {
+        return Err(OperationError::safe(format!(
+            "At most {MAX_AUTOMATION_EVENTS} automation events"
+        )));
+    }
+    let presets: Vec<Preset> = app
+        .state
+        .read()
+        .await
+        .presets
+        .iter()
+        .filter(|p| p.kind != PresetKind::Unsaved)
+        .cloned()
+        .collect();
+    let mut wanted = Vec::new();
+    for (index, event) in events.iter().enumerate() {
+        let action = action_index(&event.action, &presets).ok_or_else(|| {
+            OperationError::safe(format!(
+                "{} is not one of the processor's presets or actions",
+                event.action
+            ))
+        })?;
+        let text =
+            crate::automation::render_8400(event, index, action).map_err(OperationError::safe)?;
+        wanted.push((format!("AUTO_{index}.aut"), text));
+    }
+    let current = automation_files(unit)
+        .await
+        .map_err(OperationError::uncertain)?;
+    for (name, text) in &wanted {
+        let same = current
+            .iter()
+            .any(|(file, held)| file.eq_ignore_ascii_case(name) && held == text);
+        if same {
+            continue;
+        }
+        unit.session
+            .write(o8400::USER_DIR, name, text.as_bytes())
+            .await
+            .map_err(OperationError::uncertain)?;
+        unit.session
+            .event(AUTOMATION_EVENT, 784, name)
+            .await
+            .map_err(OperationError::uncertain)?;
+        unit.last_sent = Instant::now();
+    }
+    for (file, _) in &current {
+        if wanted
+            .iter()
+            .any(|(name, _)| name.eq_ignore_ascii_case(file))
+        {
+            continue;
+        }
+        unit.session
+            .remove(o8400::USER_DIR, file)
+            .await
+            .map_err(OperationError::uncertain)?;
+        unit.session
+            .event(AUTOMATION_EVENT, 784, file)
+            .await
+            .map_err(OperationError::uncertain)?;
+        unit.last_sent = Instant::now();
+    }
+    let held: String = automation_files(unit)
+        .await
+        .map_err(|e| OperationError::uncertain(format!("The change could not be confirmed. {e}")))?
+        .into_iter()
+        .map(|(_, text)| text)
+        .collect();
+    match crate::automation::parse(&held) {
+        Ok(read) if read == events => Ok(()),
+        _ => Err(OperationError::uncertain(
+            "The processor's files do not show the change. Open the window again to see what it holds",
+        )),
     }
 }
 
@@ -907,6 +1185,27 @@ mod tests {
         assert!(user.contains("Preset Name=<TEST 027> size=126\n"));
         assert!(user.contains("Preset Type= <USER PRESET>\n"));
         assert!(with_header("C:<AGC>String:<On>;D:1;\n", "X", "USER PRESET").is_err());
+    }
+
+    /// The client's Event Type list: No Function, the presets as listed,
+    /// then Bypass and Exit Bypass (its CLASSICAL-2 BAND, the first factory
+    /// preset, was index 1 in the captured `AUTO_0.aut`).
+    #[test]
+    fn automation_actions_count_as_the_clients_list() {
+        let preset = |name: &str, kind| Preset {
+            name: name.into(),
+            kind,
+        };
+        let presets = [
+            preset("CLASSICAL-2 BAND", PresetKind::Factory),
+            preset("ROCK-DENSE", PresetKind::Factory),
+            preset("TEST 02", PresetKind::User),
+        ];
+        assert_eq!(action_index("", &presets), Some(0));
+        assert_eq!(action_index("CLASSICAL-2 BAND", &presets), Some(1));
+        assert_eq!(action_index("TEST 02", &presets), Some(3));
+        assert_eq!(action_index("Exit Bypass", &presets), Some(5));
+        assert_eq!(action_index("Exit Test", &presets), None);
     }
 
     #[test]

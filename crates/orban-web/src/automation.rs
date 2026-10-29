@@ -67,6 +67,11 @@ pub const FUNCTIONS_2300: [&str; 9] = [
     "Exit Mod. Reduction",
 ];
 
+/// The 8400's actions after its presets: Bypass and Exit Bypass (8400
+/// manual 3.0.5, *System Setup/Automation*: "recall any factory or user
+/// preset, and can activate Bypass mode ... or Exit Bypass").
+pub const FUNCTIONS_8400: [&str; 2] = ["Bypass", "Exit Bypass"];
+
 /// Whether the model's client function list is known.
 pub fn available(model: DeviceModel) -> bool {
     matches!(
@@ -78,6 +83,7 @@ pub fn available(model: DeviceModel) -> bool {
             | DeviceModel::Optimod6300
             | DeviceModel::Optimod8700i
             | DeviceModel::Optimod2300
+            | DeviceModel::Optimod8400
     )
 }
 
@@ -95,6 +101,7 @@ pub fn flavour(model: DeviceModel) -> (&'static [&'static str], &'static str, &'
         // order (its Automation dialog, 29 October 2026).
         DeviceModel::Optimod8700i => (&FUNCTIONS, "8700.52", "orb87autom"),
         DeviceModel::Optimod2300 => (&FUNCTIONS_2300, "2300.20", "orb23autom"),
+        DeviceModel::Optimod8400 => (&FUNCTIONS_8400, "00.08", "aut"),
         _ => (&FUNCTIONS, "5700.51", "orb57autom"),
     }
 }
@@ -150,6 +157,9 @@ fn number<T: std::str::FromStr>(text: &str, name: &str) -> Result<T, String> {
 
 pub fn parse(text: &str) -> Result<Vec<Event>, String> {
     let text = text.replace("\r\n", "\n");
+    if text.contains("C:<SET BY WEEK>") {
+        return parse_8400(&text);
+    }
     text.split("End Preset<end>")
         .filter(|block| block.contains("C:<"))
         .map(|block| {
@@ -181,22 +191,137 @@ pub fn parse(text: &str) -> Result<Vec<Event>, String> {
         .collect()
 }
 
+/// The 8400's events: one `AUTO_<n>.aut` document per event in
+/// `c:\\8400\\user\\`, ending `End Preset`, with `SET BY WEEK` and `SET BY
+/// DATE` as separate switches (the original client's Add, 29 October 2026).
+/// The files arrive here one after the other, in file order.
+fn parse_8400(text: &str) -> Result<Vec<Event>, String> {
+    text.split("End Preset\n")
+        .filter(|block| block.contains("C:<"))
+        .map(|block| {
+            let month = field(block, "AUTO SET MONTH")?;
+            let switch = |name: &str| -> Result<bool, String> {
+                let start = format!("C:<{name}>");
+                let line = block
+                    .lines()
+                    .find(|l| l.starts_with(&start))
+                    .ok_or_else(|| format!("Automation event without {name}"))?;
+                Ok(line.trim_end().ends_with(";D:1;"))
+            };
+            let mut weekdays = [false; 7];
+            for (i, (name, _)) in DAYS.iter().enumerate() {
+                weekdays[i] = field(block, name)? != "_";
+            }
+            Ok(Event {
+                hour: number(field(block, "AUTO SET HOUR")?, "hour")?,
+                minute: number(field(block, "AUTO SET MINUTE")?, "minute")?,
+                second: number(field(block, "AUTO SET SECOND")?, "second")?,
+                day: number(field(block, "AUTO SET DAY")?, "day")?,
+                month: MONTHS
+                    .iter()
+                    .position(|m| *m == month)
+                    .ok_or("Invalid month in an automation event")? as u8
+                    + 1,
+                year: number(field(block, "AUTO SET YEAR")?, "year")?,
+                weekdays,
+                daily: switch("SET BY WEEK")? && !switch("SET BY DATE")?,
+                action: Some(field(block, "AUTOMATION EVENT")?)
+                    .filter(|a| !a.eq_ignore_ascii_case(NO_FUNCTION))
+                    .unwrap_or_default()
+                    .to_owned(),
+            })
+        })
+        .collect()
+}
+
+/// One 8400 event file, `AUTO_<index>.aut`, as the original client writes
+/// it. `action_index` is the action's place in the client's Event Type list
+/// (0 = No Function).
+pub fn render_8400(e: &Event, index: usize, action_index: usize) -> Result<String, String> {
+    validate(e)?;
+    let mut out = format!(
+        "OptimodVersion=<00.08>\nPreset Name=<AUTO_{index}> size=16\nFactory Preset Name=<>\nPreset Type= <AUTOMATION PRESET>\n"
+    );
+    out.push_str(&format!(
+        "C:<AUTO SET HOUR>String:<{:02}:>;D:{};\n",
+        e.hour, e.hour
+    ));
+    out.push_str(&format!(
+        "C:<AUTO SET MINUTE>String:<{:02}:>;D:{};\n",
+        e.minute, e.minute
+    ));
+    out.push_str(&format!(
+        "C:<AUTO SET SECOND>String:<{:02}>;D:{};\n",
+        e.second, e.second
+    ));
+    out.push_str(&format!(
+        "C:<AUTO SET DAY>String:<{:02}>;D:{};\n",
+        e.day,
+        e.day - 1
+    ));
+    out.push_str(&format!(
+        "C:<AUTO SET MONTH>String:<{}>;D:{};\n",
+        MONTHS[usize::from(e.month - 1)],
+        e.month - 1
+    ));
+    out.push_str(&format!(
+        "C:<AUTO SET YEAR>Int:{};D:{};\n",
+        e.year,
+        e.year - 2000
+    ));
+    for ((name, letter), on) in DAYS.iter().zip(e.weekdays) {
+        out.push_str(&format!(
+            "C:<{name}>String:<{}>;D:{};\n",
+            if on { letter } else { "_" },
+            u8::from(on)
+        ));
+    }
+    out.push_str(&format!(
+        "C:<SET BY WEEK>UserString:<>;D:{};\nC:<SET BY DATE>UserString:<>;D:{};\n",
+        u8::from(e.daily),
+        u8::from(!e.daily)
+    ));
+    out.push_str(&format!(
+        "C:<AUTOMATION EVENT>UserString:<{}>;D:{action_index};\nEnd Preset\n",
+        if e.action.is_empty() {
+            "No Function"
+        } else {
+            &e.action
+        }
+    ));
+    Ok(out)
+}
+
+fn validate(e: &Event) -> Result<(), String> {
+    if e.hour > 23 || e.minute > 59 || e.second > 59 || !(1..=12).contains(&e.month) {
+        return Err("Invalid time or date in an automation event".into());
+    }
+    if !(1..=31).contains(&e.day) || !(2000..=2099).contains(&e.year) {
+        return Err("Invalid date in an automation event".into());
+    }
+    if e.action.len() > 40 || e.action.contains(['<', '>', ';', '\n', '\r']) {
+        return Err("Invalid action in an automation event".into());
+    }
+    Ok(())
+}
+
 pub fn render(events: &[Event], model: DeviceModel) -> Result<String, String> {
     let (_, version, extension) = flavour(model);
     if events.len() > 100 {
         return Err("At most 100 automation events".into());
     }
+    // The 8400 keeps one file per event; the service writes each one with
+    // its action's place in the client's list.
+    if model == DeviceModel::Optimod8400 {
+        return events
+            .iter()
+            .enumerate()
+            .map(|(index, e)| render_8400(e, index, 0))
+            .collect();
+    }
     let mut out = String::new();
     for (index, e) in events.iter().enumerate() {
-        if e.hour > 23 || e.minute > 59 || e.second > 59 || !(1..=12).contains(&e.month) {
-            return Err("Invalid time or date in an automation event".into());
-        }
-        if !(1..=31).contains(&e.day) || !(2000..=2099).contains(&e.year) {
-            return Err("Invalid date in an automation event".into());
-        }
-        if e.action.len() > 40 || e.action.contains(['<', '>', ';', '\n', '\r']) {
-            return Err("Invalid action in an automation event".into());
-        }
+        validate(e)?;
         out.push_str(&format!(
             "OptimodVersion=<{version}>\nPreset Name=<auto_event_{index:02}> size=17\nFactory Preset Name=<Automation Preset>\nPreset Type= <AUTOMATION PRESET>\nPreset File Name= <auto_event_{index:02}.{extension}>\n"
         ));
@@ -309,5 +434,19 @@ mod tests {
             super::flavour(super::DeviceModel::Optimod8700i).0,
             super::FUNCTIONS
         );
+    }
+
+    /// The file the original 8400 client wrote for its new event (Add, a
+    /// factory preset, every day, 29 October 2026), line ends as sent.
+    #[test]
+    fn renders_the_8400_clients_new_event() {
+        const CAPTURED_8400: &str = "OptimodVersion=<00.08>\nPreset Name=<AUTO_0> size=16\nFactory Preset Name=<>\nPreset Type= <AUTOMATION PRESET>\nC:<AUTO SET HOUR>String:<00:>;D:0;\nC:<AUTO SET MINUTE>String:<00:>;D:0;\nC:<AUTO SET SECOND>String:<00>;D:0;\nC:<AUTO SET DAY>String:<01>;D:0;\nC:<AUTO SET MONTH>String:<FEB>;D:1;\nC:<AUTO SET YEAR>Int:2000;D:0;\nC:<SUNDAY>String:<S>;D:1;\nC:<MONDAY>String:<M>;D:1;\nC:<TUESDAY>String:<T>;D:1;\nC:<WEDNESDAY>String:<W>;D:1;\nC:<THURSDAY>String:<T>;D:1;\nC:<FRIDAY>String:<F>;D:1;\nC:<SATURDAY>String:<S>;D:1;\nC:<SET BY WEEK>UserString:<>;D:1;\nC:<SET BY DATE>UserString:<>;D:0;\nC:<AUTOMATION EVENT>UserString:<CLASSICAL-2 BAND>;D:1;\nEnd Preset\n";
+        let events = super::parse(CAPTURED_8400).unwrap();
+        assert_eq!(events.len(), 1);
+        assert!(events[0].daily && events[0].weekdays.iter().all(|d| *d));
+        assert_eq!((events[0].month, events[0].year), (2, 2000));
+        assert_eq!(events[0].action, "CLASSICAL-2 BAND");
+        assert_eq!(super::render_8400(&events[0], 0, 1).unwrap(), CAPTURED_8400);
+        assert!(super::available(super::DeviceModel::Optimod8400));
     }
 }
