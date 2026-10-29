@@ -1701,8 +1701,11 @@ async fn factory_file(device: &Device, app: &App, name: &str) -> Result<String, 
             Value::Choice(text) | Value::Text(text) => Some(text.clone()),
             _ => None,
         })
-        .ok_or_else(|| OperationError::safe("The pre-emphasis setting is not available; use Refresh first"))?;
-    let files: JsonValue = serde_json::from_str(files).map_err(|e| OperationError::safe(e.to_string()))?;
+        .ok_or_else(|| {
+            OperationError::safe("The pre-emphasis setting is not available; use Refresh first")
+        })?;
+    let files: JsonValue =
+        serde_json::from_str(files).map_err(|e| OperationError::safe(e.to_string()))?;
     files[name][emphasis.as_str()]
         .as_str()
         .map(str::to_owned)
@@ -1738,8 +1741,7 @@ async fn recall_with_files(
         // 2026); the firmware loads it as it loads its own on a front-panel
         // Recall.
         PresetKind::Factory
-            if device.status_port_down
-                && device.session.adapter().wire.factory_files.is_some() =>
+            if device.status_port_down && device.session.adapter().wire.factory_files.is_some() =>
         {
             let text = factory_file(device, app, name).await?;
             upload_on_air(device, &text).await?;
@@ -2457,10 +2459,7 @@ async fn preset_file_message(
 /// Without the status port, the on-air file once the unit has saved what
 /// is shown (it writes that file a few seconds after a change). The last
 /// file read is returned either way; the caller compares it.
-async fn on_air_text_as_shown(
-    app: &App,
-    device: &mut Device,
-) -> Result<Zeroizing<String>, String> {
+async fn on_air_text_as_shown(app: &App, device: &mut Device) -> Result<Zeroizing<String>, String> {
     let model = device.session.info.model;
     let end = tokio::time::Instant::now() + FILE_READBACK_LIMIT;
     loop {
@@ -4955,9 +4954,10 @@ mod tests {
                                         body.extend(sealed);
                                         orban_protocol::message::encode(229, &body).unwrap()
                                     }
-                                    Message::Other { kind: kind @ (240 | 243), .. }
-                                        if answers_files.load(Ordering::SeqCst) =>
-                                    {
+                                    Message::Other {
+                                        kind: kind @ (240 | 243),
+                                        ..
+                                    } if answers_files.load(Ordering::SeqCst) => {
                                         let (reply, name, text) = if kind == 240 {
                                             (
                                                 233,
@@ -4976,13 +4976,15 @@ mod tests {
                                             [4; 16],
                                         )
                                         .unwrap();
-                                        let mut body =
-                                            format!("0\n0\n{name}\n{}\n", sealed.len()).into_bytes();
+                                        let mut body = format!("0\n0\n{name}\n{}\n", sealed.len())
+                                            .into_bytes();
                                         body.extend(sealed);
                                         orban_protocol::message::encode(reply, &body).unwrap()
                                     }
                                     // Unanswered file reads are still reads.
-                                    Message::Other { kind: 240 | 243, .. } => continue,
+                                    Message::Other {
+                                        kind: 240 | 243, ..
+                                    } => continue,
                                     Message::Other { kind: 250, .. } => {
                                         let delay = stall.lock().unwrap().take();
                                         if let Some(delay) = delay {
@@ -5579,9 +5581,18 @@ mod tests {
             assert_eq!(state.sync_error, None);
             assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
             assert_eq!(state.system.as_ref().unwrap().name, "SYSTEM PRESET");
-            let factory = state.presets.iter().filter(|p| p.kind == PresetKind::Factory).count();
+            let factory = state
+                .presets
+                .iter()
+                .filter(|p| p.kind == PresetKind::Factory)
+                .count();
             assert_eq!(factory, 46);
-            assert!(state.presets.iter().any(|p| p.name == "MINE" && p.kind == PresetKind::User));
+            assert!(
+                state
+                    .presets
+                    .iter()
+                    .any(|p| p.name == "MINE" && p.kind == PresetKind::User)
+            );
         }
         assert_eq!(unit.count(|c| &c.terminal_sessions), 1);
         assert!(unit.count(|c| &c.subscriptions) >= 1);
@@ -5613,7 +5624,8 @@ mod tests {
         };
         let terminal_sessions = unit.count(|c| &c.terminal_sessions);
         let on_air = on_air_text("CURRENT");
-        let attempts: Vec<(&str, Box<dyn FnOnce(Reply) -> Command>)> = vec![
+        type Attempt = (&'static str, Box<dyn FnOnce(Reply) -> Command>);
+        let attempts: Vec<Attempt> = vec![
             ("change", {
                 let (session, host) = (session.clone(), host.clone());
                 Box::new(move |r| {
@@ -5794,7 +5806,10 @@ mod tests {
             .unwrap();
         // One deadline on the status port; then everything over PC Remote.
         let took = started.elapsed();
-        assert!(took < SYSTEM_READ_DEADLINE + Duration::from_secs(2), "{took:?}");
+        assert!(
+            took < SYSTEM_READ_DEADLINE + Duration::from_secs(2),
+            "{took:?}"
+        );
         let state = app.state.read().await;
         assert!(state.connected && state.processing.is_some() && state.system.is_some());
         assert_eq!(state.sync_error, None);
@@ -5817,7 +5832,11 @@ mod tests {
         command(&app, |r| Command::Connect(connect, r))
             .await
             .unwrap();
-        assert!(started.elapsed() < Duration::from_secs(3), "{:?}", started.elapsed());
+        assert!(
+            started.elapsed() < Duration::from_secs(3),
+            "{:?}",
+            started.elapsed()
+        );
         let state = app.state.read().await;
         assert!(state.connected && state.reconnect.is_none() && state.error.is_none());
         assert_eq!(state.sync_error, None);
@@ -6169,10 +6188,8 @@ mod tests {
                             m.version
                         );
                         if m.model == DeviceModel::Optimod5700i {
-                            setup = setup.replace(
-                                "End Preset",
-                                "C:<PRE-E>String:<75us>;D:1;\r\nEnd Preset",
-                            );
+                            setup = setup
+                                .replace("End Preset", "C:<PRE-E>String:<75us>;D:1;\r\nEnd Preset");
                         }
                         loop {
                             let count = tokio::select! {
@@ -7212,14 +7229,23 @@ mod tests {
             expected_session: session,
         };
         command(&app, |r| Command::Recall(recall, r)).await.unwrap();
-        assert_eq!(app.state.read().await.processing.as_ref().unwrap().name, "GREGG");
+        assert_eq!(
+            app.state.read().await.processing.as_ref().unwrap().name,
+            "GREGG"
+        );
         let uploads = unit.received(229);
         assert_eq!(uploads.len(), 1);
         let sealed = &uploads[0][uploads[0].iter().position(|b| *b == b'\n').unwrap() + 1..];
         let plain = orban_protocol::archive::decrypt(sealed, FILE_UNIT_CODE).unwrap();
         let text = String::from_utf8(plain).unwrap();
-        assert!(text.starts_with("OptimodVersion=<5700.50>\nPreset Name=<GREGG>"), "{text}");
-        assert!(text.contains("Preset File Name= <GREGG.orb57f75>"), "{text}");
+        assert!(
+            text.starts_with("OptimodVersion=<5700.50>\nPreset Name=<GREGG>"),
+            "{text}"
+        );
+        assert!(
+            text.contains("Preset File Name= <GREGG.orb57f75>"),
+            "{text}"
+        );
         assert!(!text.contains('\r'));
         assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
     }
