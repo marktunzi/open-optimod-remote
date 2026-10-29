@@ -2,6 +2,7 @@
 
 ## Unreleased (after the 0.3.0 candidate)
 
+- 5700i (#18): when the status port (TCP 23) does not answer, the processing is read over the PC Remote connection and the system settings are reported as unavailable; no 2-band or 5-band page is shown without a live on-air document; status port messages name the stage that failed and no longer suggest a write for a read.
 - 8700HD: Save As, Delete, Backup/Restore, Automation, Security and Diagnostics, from its original client's code (`8700PC.exe` 1.0.2.161 has the 5500 client's file code with `.orb86` names) and tested against a scripted unit; not yet confirmed on its firmware.
 - 6300 and 8700i: Save As, Delete, Backup/Restore, Security and Diagnostics from their original clients' code (`6300PC.exe` has the 8700HD client's file code, `8700iPC.exe` the 5500i client's), with each client's access levels and name limit; tested against a scripted unit, not yet confirmed on firmware. Their Automation is not offered yet (function lists unknown).
 

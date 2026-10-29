@@ -94,7 +94,7 @@ test('statically derived pages appear only when the processor reports their fiel
   // MX fields with MX SWITCH 0 (a 5700i without the upgrade) show no MX page.
   const off = livePages(supplement, { 'MX CLIP DRIVE': {}, 'B1 ATTACK': {}, 'MX SWITCH': { index: 0, value: { type: 'Int', value: 0 } } }).map(page => page.title);
   assert.ok(!off.some(title => title.startsWith('MX') || title === 'Final Clip'), off.join(', '));
-  assert.ok(livePages(supplement, undefined).every(page => !page.title.startsWith('MX')));
+  assert.deepEqual(livePages(supplement, undefined), []);
 });
 
 test('an MX 5700i shows one Distortion, Speech Mode and Final Clipping tab', async () => {
@@ -213,4 +213,27 @@ test('the 8400 shows Less-More and the processing categories of the structure on
     assert.ok(page.sections?.length, `${page.title} has sections`);
   }
   assert.deepEqual(shared.filter(page => !page.when).map(page => page.title), ['Less More', 'Stereo Enhancer']);
+});
+
+test('issue #18: the 5700i shows no processing page until a live document names its structure', async () => {
+  const { shownProcessingPages, pageStructure } = await import('../src/navigation-model.ts');
+  const builtin = JSON.parse(readFileSync(new URL('../src/layouts.json', import.meta.url), 'utf8')) as LayoutPage[];
+  const supplement: LayoutPage[] = profile('5700i/3.0.1.20/static-layouts.json');
+  const titles = (fields: Record<string, unknown> | undefined) =>
+    shownProcessingPages(null, builtin, supplement, fields, 'FM', 'Indepen.').map(page => page.title);
+  // A failed sync has no document: neither 2-band nor 5-band pages, nor shared ones.
+  assert.deepEqual(titles(undefined), []);
+  // A document of one structure: every control of the shared pages and of
+  // that structure's pages, plus the field that marks the structure.
+  const document = (structure: '2band' | '5band', marker: string) => Object.fromEntries([...builtin, ...supplement]
+    .filter(page => page.path !== 'HD' && !page.title.startsWith('MX') && page.title !== 'Final Clip'
+      && (pageStructure(page) === null || pageStructure(page) === structure))
+    .flatMap(page => page.controls.map(control => [control.name, {}]))
+    .concat([[marker, {}]]));
+  const fiveBand = titles(document('5band', 'B1 ATTACK'));
+  assert.ok(['Multiband', 'Compressors', 'Band Mix'].every(title => fiveBand.includes(title)), fiveBand.join(', '));
+  assert.ok(!fiveBand.some(title => title.includes('2 Band')), fiveBand.join(', '));
+  const twoBand = titles(document('2band', '2B DRIVE'));
+  assert.ok(['2 Band', '2 Band Distortion'].every(title => twoBand.includes(title)), twoBand.join(', '));
+  assert.ok(!twoBand.some(title => pageStructure({ title } as LayoutPage) === '5band'), twoBand.join(', '));
 });

@@ -15,7 +15,7 @@ import { Outputs } from './Outputs';
 import { Setup } from './Setup';
 import { InstrumentHeader } from './InstrumentHeader';
 import { FigmaMetersHeader } from './FigmaMetersHeader';
-import { DEFAULT_METER_VIEW, initialWorkspace, livePages, pageControls, structureOnAir, tabLabel, mergeSupplementPages, processingControlEditable, processingPages, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
+import { DEFAULT_METER_VIEW, initialWorkspace, pageControls, shownProcessingPages, tabLabel, processingControlEditable, processingPathSelectorVisible, systemSettingsTarget, type WorkspaceView } from './navigation-model';
 import { binaryOnIndex, groupProcessingPage, readingOrder, type LayoutPage } from './processing-layout';
 import { modifiedFieldNames, optimisticLessMoreAvailability, optimisticModifiedFields } from './preset-state';
 import { nextControlIndex } from './control-keyboard';
@@ -366,21 +366,14 @@ function App() {
   const couplingValue = String(coupling?.value.value || '') || undefined;
   const liveFields = snapshot.processing?.fields;
   const meterSettings = useMemo(() => settingValues(snapshot.processing, snapshot.system), [snapshot.revision, snapshot.processing?.name]);
-  const pages = processingPages(
-    modelLayouts
-      ? livePages(modelLayouts, liveFields)
-      : mergeSupplementPages((layouts as LayoutPage[]).filter(p => !liveFields || structureOnAir(p, liveFields)),
-        livePages(supplementLayouts, liveFields)),
-    path,
-    couplingValue,
-  );
+  const pages = shownProcessingPages(modelLayouts, layouts as LayoutPage[], supplementLayouts, liveFields, path, couplingValue);
   const selectedPage = pages.find((p) => p.title === tab) || pages[0];
   // Extracted pages take the original dialog's order (the 5700i's built-in
   // pages keep the Figma order); the page's switch then goes first.
   const page = selectedPage && { ...selectedPage, controls: pageControls(
     selectedPage.reference_dialog ? readingOrder(selectedPage.controls) : selectedPage.controls, liveFields,
     control => control.kind === 'radio' && binaryOnIndex(control.options) !== null) };
-  const processingGroups = groupProcessingPage(page);
+  const processingGroups = page ? groupProcessingPage(page) : [];
   const independentPaths = processingPathSelectorVisible(couplingValue);
   useEffect(() => {
     if (!independentPaths && path !== 'FM') setPath('FM');
@@ -493,7 +486,11 @@ function App() {
 
       {snapshot.connected && snapshot.sync_error && <div className="development" role="status">{snapshot.sync_error} <button disabled={busy} onClick={() => void action('refresh', {})}>Refresh</button></div>}
       {snapshot.connected && !snapshot.write_enabled && <div className="development">Read-only access: this connection does not allow changes.</div>}
-      {area === "Presets" ? <Presets key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} busy={busy} action={action} /> : area === "Outputs" ? <Outputs key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} definitions={definitions} busy={busy} action={action} /> : area === "Processing" ? (
+      {area === "Presets" ? <Presets key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} busy={busy} action={action} /> : area === "Outputs" ? <Outputs key={snapshot.session_id || snapshot.device_id || snapshot.host} snapshot={snapshot} definitions={definitions} busy={busy} action={action} /> : area === "Processing" ? (!page ? (
+        <section className="processing processing-unknown" role="status" aria-label="Processing">
+          {snapshot.connected ? "The processing appears once the processor's on-air settings have been read." : "Connect to a processor to see its processing."}
+        </section>
+      ) : (
         <>
           <nav
             className="tabs"
@@ -568,7 +565,7 @@ function App() {
             </div>
           </section>
         </>
-      ) : area === "Setup" ? (
+      )) : area === "Setup" ? (
         <Setup records={snapshot.system?.fields} definitions={definitions} connected={snapshot.connected}
           writeEnabled={allows(snapshot, 'setup')} busy={busy} identity={snapshot.device_id || snapshot.host}
           sessionId={snapshot.session_id} action={action} openOutputs={()=>setArea('Outputs')} />

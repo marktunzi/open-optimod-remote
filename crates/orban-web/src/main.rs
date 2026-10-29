@@ -401,6 +401,10 @@ struct Device {
     profile: Option<Arc<Profile>>,
     /// When the active input (`ACTUAL A OR D`) is read again; see `input_status`.
     input_status: Option<InputStatus>,
+    /// What the last synchronization could not read over the status port,
+    /// as shown to the user. Changes wait for a complete one: their
+    /// confirmation is read on that port.
+    sync_gap: Option<String>,
 }
 
 /// The next read of the active input, and whether it follows a change of the
@@ -1193,24 +1197,105 @@ fn is_definite_disconnect(message: &str) -> bool {
 }
 
 /// Reads the current settings and presets from the status (terminal) port.
-/// The first failure ends the attempt: the remaining reads use the same port.
+/// The system settings (AS) and the processing with the preset list (LP/AP)
+/// are separate reads: one failing does not skip the other. When the status
+/// port cannot give the processing, the on-air archive is read over the PC
+/// Remote session instead (opcode 239), without the preset list. A port that
+/// did not accept the connection is not tried a second time.
 async fn synchronize(app: &App, device: &mut Device) -> Result<(), String> {
     if device.session.adapter().wire.file_sync {
         return synchronize_files(app, device).await;
     }
     let capabilities = device.session.info.capabilities;
+    let mut unavailable = Vec::new();
+    let mut unreachable = None;
+    let mut from_archive = false;
     if capabilities.parameter_reads {
-        let system = live_snapshot(device, app, Scope::System).await?;
-        device.input_status = next_input_status(device, &system, false);
-        let mut state = app.state.write().await;
-        state.system = Some(system);
-        state.revision += 1;
+        match live_snapshot(device, app, Scope::System).await {
+            Ok(system) => {
+                device.input_status = next_input_status(device, &system, false);
+                let mut state = app.state.write().await;
+                state.system = Some(system);
+                state.revision += 1;
+            }
+            Err(error) if device.lost.is_some() => return Err(error),
+            Err(error) => {
+                if orban_protocol::terminal::is_unreachable(&error) {
+                    unreachable = Some(error.clone());
+                }
+                unavailable.push(("System settings", error));
+            }
+        }
     }
-    reload_processing(app, device).await?;
-    let mut state = app.state.write().await;
-    state.error = None;
-    state.sync_error = None;
-    Ok(())
+    let processing = match &unreachable {
+        Some(error) => Err(error.clone()),
+        None => reload_processing(app, device).await,
+    };
+    match processing {
+        Ok(()) => {}
+        Err(error) if device.lost.is_some() => return Err(error),
+        Err(error) => match read_on_air_archive(app, device).await {
+            Ok(document) => {
+                from_archive = true;
+                let mut state = app.state.write().await;
+                show_on_air(&mut state, device, document);
+                if capabilities.preset_catalog {
+                    // After an unreachable port, the system settings line already says why.
+                    let why = if unreachable.is_some() {
+                        String::new()
+                    } else {
+                        error
+                    };
+                    unavailable.push(("The preset list", why));
+                }
+            }
+            Err(_) if device.lost.is_some() => {
+                return Err(device.lost.clone().unwrap_or(error));
+            }
+            Err(archive) => {
+                let mut state = app.state.write().await;
+                state.processing = None;
+                state.modified_fields.clear();
+                state.revision += 1;
+                unavailable.push((
+                    "The processing",
+                    format!(
+                        "{error}. The on-air document could not be read over the PC Remote connection either: {archive}"
+                    ),
+                ));
+            }
+        },
+    }
+    if unavailable.is_empty() {
+        device.sync_gap = None;
+        let mut state = app.state.write().await;
+        state.error = None;
+        state.sync_error = None;
+        return Ok(());
+    }
+    let mut error = sync_gap(&unavailable);
+    if from_archive {
+        error.push_str(" The processing was read over the PC Remote connection.");
+    }
+    device.sync_gap = Some(sync_failure(device, &error));
+    Err(error)
+}
+
+/// What a partial synchronization left out, and why, in one sentence each.
+fn sync_gap(unavailable: &[(&str, String)]) -> String {
+    let mut text = String::new();
+    for (what, why) in unavailable {
+        if !text.is_empty() {
+            text.push(' ');
+        }
+        text.push_str(what);
+        if why.is_empty() {
+            text.push_str(" is unavailable for the same reason.");
+        } else {
+            text.push_str(&format!(" could not be read: {why}."));
+        }
+    }
+    text
 }
 
 /// Reads the on-air processing again (with the preset list where the model
@@ -1666,7 +1751,8 @@ fn show_on_air(state: &mut Snapshot, device: &mut Device, processing: Document) 
     state.processing = Some(processing);
     state.preset_base_name = base_name;
     state.modified_fields = modified_fields;
-    state.sync_error = None;
+    // What the status port could not give at the last synchronization stays shown.
+    state.sync_error = device.sync_gap.clone();
     state.revision += 1;
 }
 
@@ -1778,10 +1864,7 @@ fn sync_failure(device: &Device, error: &str) -> String {
             "Connected, but the current settings and presets could not be read over the PC Remote connection. Use Refresh to try again. {error}"
         );
     }
-    format!(
-        "Connected, but the status port (TCP {}) did not answer, so current settings and presets are unavailable. Use Refresh to try again. {error}",
-        device.terminal.port()
-    )
+    format!("Connected. {error} Use Refresh to try again.")
 }
 async fn drain(device: &mut Device, app: &App) -> Result<(), String> {
     let (boundary, answer) = device.session.adapter().wire.boundary;
@@ -1915,6 +1998,7 @@ async fn make_device(body: Connect, app: &App) -> Result<Device, String> {
         processing_baseline: None,
         profile,
         input_status: None,
+        sync_gap: None,
     };
     // The PC Remote login is the connection. Reading the current settings
     // over the status port is a separate step: when it fails, the session
@@ -3274,6 +3358,12 @@ async fn restore_setup(
 
 async fn change(device: &mut Device, app: &App, body: Change) -> Result<(), OperationError> {
     require_writes(device)?;
+    if device.sync_gap.is_some() {
+        return Err(OperationError::safe(format!(
+            "Changes wait until the status port (TCP {}) answers: the processor confirms them there. Use Refresh first",
+            device.terminal.port()
+        )));
+    }
     let before = {
         let state = app.state.read().await;
         ensure_session(&state, &body.expected_session).map_err(OperationError::safe)?;
@@ -4161,6 +4251,7 @@ mod tests {
             processing_baseline: None,
             profile: Some(reference_profile()),
             input_status: None,
+            sync_gap: None,
         };
 
         with_meter_polling(&mut device, &app, async {
@@ -4277,6 +4368,7 @@ mod tests {
             processing_baseline: Some(processing),
             profile: Some(reference_profile()),
             input_status: None,
+            sync_gap: None,
         };
 
         change(
@@ -4441,6 +4533,7 @@ mod tests {
             processing_baseline: Some(current),
             profile: Some(reference_profile()),
             input_status: None,
+            sync_gap: None,
         };
 
         recall(
@@ -4498,7 +4591,11 @@ mod tests {
             + BUSY_RETRY
             + SESSION_DEADLINE
             + SYSTEM_READ_DEADLINE
-            + CATALOG_READ_DEADLINE;
+            + CATALOG_READ_DEADLINE
+            // The on-air archive over the PC Remote session, then the
+            // normal close of each terminal session (500 ms at most).
+            + SESSION_DEADLINE
+            + Duration::from_secs(1);
         let recall = RECALL_DEADLINE + RECALL_CONFIRM_DEADLINE;
         let change = SESSION_DEADLINE + SYSTEM_READ_DEADLINE;
         for (file, budget) in [
@@ -4526,6 +4623,8 @@ mod tests {
         Stalled,
         /// Answers AS, AP and LP/AP with small valid documents.
         Answering,
+        /// Answers LP/AP and AP, but never finishes AS.
+        StallsSystem,
     }
 
     #[derive(Default)]
@@ -4751,11 +4850,13 @@ mod tests {
                             }
                             request.push(byte[0]);
                         }
-                        if mode == Terminal::Stalled {
+                        let request = String::from_utf8_lossy(&request);
+                        if mode == Terminal::Stalled
+                            || (mode == Terminal::StallsSystem && request.starts_with("AS "))
+                        {
                             sleep(Duration::from_secs(60)).await;
                             return;
                         }
-                        let request = String::from_utf8_lossy(&request);
                         let mut reply = String::new();
                         if request.starts_with("LP ") {
                             reply.push_str("TARGET factory\r\nCURRENT user\r\n");
@@ -5293,15 +5394,25 @@ mod tests {
         let (session, host) = {
             let state = app.state.read().await;
             assert!(state.connected);
-            assert!(state.processing.is_none() && state.system.is_none());
+            // The processing comes from the on-air archive; nothing else is guessed.
+            assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
+            assert!(state.system.is_none() && state.presets.is_empty());
             let sync = state.sync_error.as_deref().unwrap();
             assert!(sync.contains("status port"), "{sync}");
+            assert!(sync.contains("System settings could not be read"), "{sync}");
+            assert!(sync.contains("The preset list could not be read"), "{sync}");
+            assert!(
+                sync.contains("read over the PC Remote connection"),
+                "{sync}"
+            );
+            assert!(!sync.contains("applied"), "{sync}");
             (state.session_id.clone().unwrap(), state.host.clone())
         };
-        assert_eq!(unit.count(|c| &c.subscriptions), 1);
+        assert!(unit.count(|c| &c.subscriptions) >= 1);
         assert!(unit.count(|c| &c.polls) > 2, "meters keep running");
         assert_eq!(app.meters.borrow()["live"], true);
 
+        // Changes wait for the port their confirmation is read on.
         let refused = command(&app, |r| {
             Command::Change(
                 Change {
@@ -5321,7 +5432,7 @@ mod tests {
             )
         })
         .await;
-        assert!(refused.unwrap_err().contains("not available"));
+        assert!(refused.unwrap_err().contains("status port (TCP"));
         assert_eq!(unit.count(|c| &c.writes), 0);
 
         // A failed Refresh is not a lost session.
@@ -5345,14 +5456,132 @@ mod tests {
         command(&app, |r| Command::Connect(unit.connect(), r))
             .await
             .unwrap();
-        // The first silent read ends the attempt; the catalog read is skipped.
+        // Each read waits its own deadline; then the archive gives the processing.
         let took = started.elapsed();
         assert!(
-            took < SYSTEM_READ_DEADLINE + Duration::from_secs(1),
+            took < SYSTEM_READ_DEADLINE + CATALOG_READ_DEADLINE + Duration::from_secs(2),
             "{took:?}"
         );
         let state = app.state.read().await;
-        assert!(state.connected && state.sync_error.is_some());
+        assert!(state.connected && state.processing.is_some());
+        let sync = state.sync_error.as_deref().unwrap();
+        assert!(
+            sync.contains("did not finish its reply within 4 s"),
+            "{sync}"
+        );
+        assert!(
+            sync.contains("did not finish its reply within 6 s"),
+            "{sync}"
+        );
+        assert!(
+            sync.contains("nothing was changed") && !sync.contains("applied"),
+            "{sync}"
+        );
+    }
+
+    /// Issue #18: the physical 5700i's TCP 23 did not take the connection.
+    /// The catalog read does not try the port again, the processing comes from the on-air archive,
+    /// and the message says what happened instead of a possible write.
+    #[tokio::test]
+    async fn an_unreachable_status_port_is_tried_once_and_the_archive_gives_the_processing() {
+        let unit = FakeUnit::start(Terminal::Answering).await;
+        let (app, _storage) = running_owner().await;
+        let mut connect = unit.connect();
+        connect.terminal_port = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        command(&app, |r| Command::Connect(connect, r))
+            .await
+            .unwrap();
+        let state = app.state.read().await;
+        assert!(state.connected && state.reconnect.is_none());
+        assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
+        assert!(state.system.is_none() && state.presets.is_empty());
+        let sync = state.sync_error.as_deref().unwrap();
+        assert!(
+            sync.starts_with("Connected. System settings could not be read: The status port (TCP"),
+            "{sync}"
+        );
+        assert!(sync.contains("could not be reached"), "{sync}");
+        assert!(
+            sync.contains("The preset list is unavailable for the same reason."),
+            "{sync}"
+        );
+        assert!(
+            sync.contains("The processing was read over the PC Remote connection."),
+            "{sync}"
+        );
+        assert!(!sync.contains("applied"), "{sync}");
+    }
+
+    /// A late system read no longer skips the processing and preset reads.
+    #[tokio::test]
+    async fn a_late_system_read_does_not_skip_the_processing_and_presets() {
+        let unit = FakeUnit::start(Terminal::StallsSystem).await;
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let state = app.state.read().await;
+        assert_eq!(state.processing.as_ref().unwrap().name, "CURRENT");
+        assert_eq!(
+            state.presets.len(),
+            2,
+            "the preset list came from the status port"
+        );
+        assert!(state.system.is_none());
+        let sync = state.sync_error.as_deref().unwrap();
+        assert!(sync.contains("System settings could not be read"), "{sync}");
+        // The processing came from the status port, not from the archive fallback.
+        assert!(
+            !sync.contains("preset list") && !sync.contains("PC Remote connection"),
+            "{sync}"
+        );
+    }
+
+    /// Both processing structures reach the app from the on-air archive with
+    /// the field that tells them apart, and only that one.
+    #[tokio::test]
+    async fn the_archive_fallback_carries_the_structure_on_air() {
+        for (preset, present, absent) in [
+            ("LOUD 5B", "B1 ATTACK", "2B DRIVE"),
+            ("SOFT 2B", "2B DRIVE", "B1 ATTACK"),
+        ] {
+            let unit = FakeUnit::start(Terminal::Closed).await;
+            *unit.on_air.lock().unwrap() = preset;
+            let (app, _storage) = running_owner().await;
+            command(&app, |r| Command::Connect(unit.connect(), r))
+                .await
+                .unwrap();
+            let state = app.state.read().await;
+            let processing = state.processing.as_ref().unwrap();
+            assert_eq!(processing.name, preset);
+            assert!(processing.fields.contains_key(present), "{preset}");
+            assert!(!processing.fields.contains_key(absent), "{preset}");
+        }
+    }
+
+    /// Without the status port and without the archive, no processing is
+    /// shown at all, so no structure's pages can appear.
+    #[tokio::test]
+    async fn no_processing_is_shown_when_neither_read_succeeds() {
+        let unit = FakeUnit::start(Terminal::Closed).await;
+        unit.answers_archive.store(false, Ordering::SeqCst);
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(unit.connect(), r))
+            .await
+            .unwrap();
+        let state = app.state.read().await;
+        assert!(state.connected && state.processing.is_none() && state.system.is_none());
+        let sync = state.sync_error.as_deref().unwrap();
+        assert!(sync.contains("The processing could not be read"), "{sync}");
+        assert!(
+            sync.contains("over the PC Remote connection either"),
+            "{sync}"
+        );
     }
 
     #[tokio::test]
@@ -6817,6 +7046,7 @@ mod tests {
             processing_baseline: None,
             profile: Some(reference_profile()),
             input_status: None,
+            sync_gap: None,
         };
         assert_eq!(
             drain(&mut device, &app).await.unwrap_err(),
@@ -6854,6 +7084,7 @@ mod tests {
             processing_baseline: None,
             profile: None,
             input_status: None,
+            sync_gap: None,
         };
         assert!(session_lost(&device, "Receive timed out").is_none());
         assert!(session_lost(&device, "Invalid meter count").is_none());
@@ -6956,6 +7187,7 @@ mod tests {
                 processing_baseline: None,
                 profile: None,
                 input_status: None,
+                sync_gap: None,
             };
             assert_eq!(
                 drain(&mut device, &app).await.unwrap_err(),
@@ -7019,6 +7251,7 @@ mod tests {
             processing_baseline: None,
             profile: None,
             input_status: None,
+            sync_gap: None,
         };
         let started = std::time::Instant::now();
         assert_eq!(
@@ -7167,6 +7400,7 @@ mod tests {
             processing_baseline: Some(current),
             profile: Some(reference_profile()),
             input_status: None,
+            sync_gap: None,
         };
 
         recall(
@@ -7602,6 +7836,7 @@ mod tests {
             processing_baseline: Some(before),
             profile: Some(profile),
             input_status: None,
+            sync_gap: None,
         };
         let result = change(
             &mut device,
@@ -7912,6 +8147,7 @@ mod tests {
             processing_baseline: Some(current),
             profile: Some(reference_profile()),
             input_status: None,
+            sync_gap: None,
         };
         let result = manage_preset(
             &mut device,
@@ -8212,13 +8448,21 @@ mod tests {
             processing_baseline: None,
             profile: Some(reference_profile()),
             input_status: None,
+            sync_gap: None,
         };
         (app, device, writes)
     }
 
     /// The fake unit's on-air document: long enough that its push is cut.
+    /// A preset named `… 5B` or `… 2B` carries that processing structure's
+    /// field, as the 5700i's documents do (`B1 ATTACK` or `2B DRIVE`).
     fn on_air_text(name: &str) -> String {
         let mut fields = vec![("AGC DRIVE".to_owned(), "Int:10;D:20;".to_owned())];
+        if name.ends_with(" 5B") {
+            fields.push(("B1 ATTACK".to_owned(), "Int:30;D:30;".to_owned()));
+        } else if name.ends_with(" 2B") {
+            fields.push(("2B DRIVE".to_owned(), "Int:12;D:12;".to_owned()));
+        }
         fields.extend((0..200).map(|i| (format!("FIELD {i:03}"), format!("Int:{i};D:{i};"))));
         let fields: Vec<(&str, &str)> = fields
             .iter()

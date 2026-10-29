@@ -67,10 +67,11 @@ export function mergeSupplementPages(builtin: LayoutPage[], supplement: LayoutPa
  * Keeps only pages with at least one control in the processor's live
  * document. Statically derived pages cover options a unit may lack, such as
  * the MX structure, which is a paid upgrade on the 5700i, so they appear only
- * when the processor reports their fields. Without a document every page is kept.
+ * when the processor reports their fields. Without a live document no page
+ * is kept: which structure (2-band or 5-band) is on air is then unknown.
  */
 export function livePages(pages: LayoutPage[], fields: Record<string, unknown> | undefined): LayoutPage[] {
-  if (!fields) return pages.filter(page => !page.when && mxStructure(page) !== 'mx');
+  if (!fields) return [];
   const mx = mxOnAir(fields);
   const titles = new Set(pages.map(page => `${page.path}:${page.title}`));
   return pages.filter(page => page.controls.some(control => control.name in fields)
@@ -78,6 +79,24 @@ export function livePages(pages: LayoutPage[], fields: Record<string, unknown> |
     && structureOnAir(page, fields)
     && mxPageOnAir(page, mx, titles)
     && (!(page.title in PAGE_FIELD) || PAGE_FIELD[page.title] in fields));
+}
+
+/**
+ * The processing pages a device window shows: the model's own layouts, or
+ * the 5700i's built-in pages with its statically derived supplement, kept
+ * to the structure in the live on-air document. Without one the structure
+ * (2-band or 5-band) is unknown, so no page is shown.
+ */
+export function shownProcessingPages(modelLayouts: LayoutPage[] | null | undefined, builtin: LayoutPage[],
+  supplement: LayoutPage[], fields: Record<string, unknown> | undefined, path: 'FM' | 'HD', coupling: string | undefined): LayoutPage[] {
+  if (!fields) return [];
+  return processingPages(
+    modelLayouts
+      ? livePages(modelLayouts, fields)
+      : mergeSupplementPages(builtin.filter(page => structureOnAir(page, fields)), livePages(supplement, fields)),
+    path,
+    coupling,
+  );
 }
 
 /**

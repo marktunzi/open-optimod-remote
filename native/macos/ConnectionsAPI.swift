@@ -179,11 +179,12 @@ final class ConnectionsAPI {
 
     init() {
         let configuration = URLSessionConfiguration.ephemeral
-        // Connecting can take up to 14 s on the service (login, then the system
-        // document and the preset list); a shorter wait reports a failed
-        // connection that then succeeds. Checked by an orban-web test.
-        configuration.timeoutIntervalForRequest = 25
-        configuration.timeoutIntervalForResource = 30
+        // Connecting can take up to 24 s on the service (login, the system
+        // document, the preset list, then the on-air archive when the status
+        // port did not give it); a shorter wait reports a failed connection
+        // that then succeeds. Checked by an orban-web test.
+        configuration.timeoutIntervalForRequest = 30
+        configuration.timeoutIntervalForResource = 35
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         session = URLSession(configuration: configuration)
     }
