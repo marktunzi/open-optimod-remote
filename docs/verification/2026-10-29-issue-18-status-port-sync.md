@@ -31,3 +31,24 @@ Root causes in the app:
 - `packages/ui/tests/model-profiles.test.ts`: no pages without a document; 5-band and 2-band documents show only their own structure's pages.
 
 Not done: the fix has not been run against the physical unit (its TCP 23 still does not accept connections, and a soak session holds its PC Remote connection).
+
+## Follow-up, 29 October 2026 afternoon: no status port needed
+
+Review of 2954968: `sync_gap` guarded only parameter changes. And Mark: the 5700i must simply work without TCP 23.
+
+- **Every change waits for a complete sync** (`require_synchronized`, first in Recall, parameter change, Save/Save As/Rename/Delete, Apply file, Restore Setup, Open/Save Setup, Restore preset files, Automation and Security uploads). A terminal sync marks the gap before it starts. Test `an_incomplete_sync_sends_no_write_of_any_kind`: eleven kinds of change refused, no 227, no other non-read message, no terminal session; it fails without the guard.
+- **PC Remote only when the status port does not answer.** See [5700i session lifetime](../protocol/5700i.md#session-lifetime). Factory Recall uploads the installer's factory file (`profiles/5700i/3.0.1.20/factory-presets.json`, `scripts/extract_5700i_factory.py`).
+
+Evidence:
+
+| Check | Unit | Result |
+|---|---|---|
+| Read-only connect, TCP 23 dead | physical 5700i 3.0.1.20 (.115) | connected in 22 s, no sync error, 178 system fields, 46 factory + 29 user presets, `B1 ATTACK` → 5-band pages only (native window screenshot) |
+| First attempt with one 4 s deadline for the whole file read | physical | `Receive timed out` on the 29 preset files → the wait now restarts with each file |
+| Write AGC DRIVE 15→11, Refresh | virtual 5700i (.177), port 23 blocked by using 2323 | confirmed, on-air file holds 11 |
+| Save As `OOR P18 1`, Delete it | virtual | 1.5 s, listed, deleted |
+| Recall user `OOR SAVEAS 1`, `OOR UI 1` | virtual | 1.6 s / 2.7 s, same session, meters on |
+| Recall factory GREGG and CLASSICAL-2 BAND | virtual | on-air file byte-identical to a terminal `RP` and to the original client's Recall (capture) |
+| 8400 `one_meter_port_serves_every_8400_by_its_address` | — | PASS after the 8-hour soak was stopped |
+
+Not done on the physical unit: any write, Save or Recall (no changes to a physical processor). Physical write/Recall acceptance stays for the final hardware round.

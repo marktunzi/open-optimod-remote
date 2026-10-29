@@ -227,6 +227,11 @@ pub struct Wire {
     pub file_names: bool,
     /// A factory preset can be recalled with the terminal's `RP`.
     pub factory_recall: bool,
+    /// The factory preset files of the original PC Remote (JSON: name ->
+    /// `50us`/`75us` -> document), uploaded for a factory Recall when the
+    /// status port does not answer, as that client does. The system
+    /// setting `PRE-E` picks the file.
+    pub factory_files: Option<&'static str>,
     /// Presets are saved as an opcode-229 upload of the on-air file under a
     /// new name and deleted with this opcode and the file name, as the
     /// original PC Remote does. `None` where this was not captured.
@@ -270,6 +275,7 @@ pub struct ToolFiles {
 
 /// The PC Remote generation of the 5700i, where nothing else was captured.
 pub const WIRE_PC_REMOTE: Wire = Wire {
+    factory_files: None,
     boundary: (250, 251),
     on_air_request: 239,
     setup_request: None,
@@ -301,6 +307,9 @@ pub const WIRE_PC_REMOTE: Wire = Wire {
 /// Delete sends EDh with `NAME.orb57user` and a newline; the unit does not
 /// answer (captures, 28 October 2026).
 pub const WIRE_5700I: Wire = Wire {
+    factory_files: Some(include_str!(
+        "../../../profiles/5700i/3.0.1.20/factory-presets.json"
+    )),
     // Setup.orb57setup; equal to the terminal `AS` but for a stale
     // `ACTUAL A OR D` (docs/protocol/5700i.md). Read when the status port
     // does not answer, as the original PC Remote does.
@@ -335,6 +344,7 @@ pub const WIRE_5700I: Wire = Wire {
 /// sync asks for Diagnostics with CCh (0x464bf9). The file calls are static;
 /// they wait for confirmation on the 8700HD firmware.
 pub const WIRE_8700HD: Wire = Wire {
+    factory_files: None,
     boundary: (249, 250),
     on_air_request: 238,
     setup_request: Some((239, 232)),
@@ -419,6 +429,7 @@ pub const WIRE_5500: Wire = Wire {
 /// `NAME.orb55user` and a newline, as on the 5700i; the passcodes come with
 /// F4h and the automation file with F2h (captures, 28 October 2026).
 pub const WIRE_5500I: Wire = Wire {
+    factory_files: None,
     boundary: (250, 251),
     on_air_request: 239,
     setup_request: Some((240, 233)),
@@ -488,6 +499,7 @@ const FACTORY_5500I: [&str; 27] = [
 /// `OnAir.orb63onair`, EFh by `Setup.orb63setup` (E8h) and F2h by every
 /// `.orb63user` file (E7h).
 pub const WIRE_6300: Wire = Wire {
+    factory_files: None,
     boundary: (249, 250),
     on_air_request: 238,
     setup_request: Some((239, 232)),
@@ -602,6 +614,7 @@ const FACTORY_6300: [&str; 68] = [
 /// a factory preset can only be recalled by uploading a document that the
 /// original client converts from its installer's factory file.
 pub const WIRE_2300: Wire = Wire {
+    factory_files: None,
     boundary: (247, 248),
     on_air_request: 237,
     setup_request: Some((238, 232)),

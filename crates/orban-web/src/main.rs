@@ -1653,6 +1653,62 @@ async fn synchronize_files(app: &App, device: &mut Device) -> Result<(), String>
     Ok(())
 }
 
+/// Puts `text` on air as the original PC Remote does: an unnamed on-air
+/// file (229), sealed with the access code.
+async fn upload_on_air(device: &mut Device, text: &str) -> Result<(), OperationError> {
+    let iv = *uuid::Uuid::new_v4().as_bytes();
+    let sealed = orban_protocol::archive::encrypt(text.as_bytes(), &device.code, iv)
+        .map_err(OperationError::safe)?;
+    // The 2300's upload has no name line at all.
+    let mut body = if device.session.adapter().wire.file_names {
+        format!("0\n0\n\n{}\n", sealed.len())
+    } else {
+        format!("0\n0\n{}\n", sealed.len())
+    }
+    .into_bytes();
+    body.extend(sealed);
+    device
+        .session
+        .send(229, &body)
+        .await
+        .map_err(OperationError::uncertain)?;
+    if let Some(end) = device.session.adapter().wire.file_end {
+        device
+            .session
+            .send(end, b"")
+            .await
+            .map_err(OperationError::uncertain)?;
+        device.boundaries.sent();
+    } else if device.status_port_down {
+        // The 5700i answers the upload with a boundary answer of its own.
+        device.boundaries.sent();
+    }
+    Ok(())
+}
+
+/// The factory file of `name` the original PC Remote would upload: the one
+/// for the unit's pre-emphasis (system setting `PRE-E`, 50us or 75us).
+async fn factory_file(device: &Device, app: &App, name: &str) -> Result<String, OperationError> {
+    let files = device.session.adapter().wire.factory_files.unwrap_or("{}");
+    let emphasis = app
+        .state
+        .read()
+        .await
+        .system
+        .as_ref()
+        .and_then(|system| system.fields.get("PRE-E"))
+        .and_then(|field| match &field.value {
+            Value::Choice(text) | Value::Text(text) => Some(text.clone()),
+            _ => None,
+        })
+        .ok_or_else(|| OperationError::safe("The pre-emphasis setting is not available; use Refresh first"))?;
+    let files: JsonValue = serde_json::from_str(files).map_err(|e| OperationError::safe(e.to_string()))?;
+    files[name][emphasis.as_str()]
+        .as_str()
+        .map(str::to_owned)
+        .ok_or_else(|| OperationError::safe(format!("No factory file for {name} at {emphasis}")))
+}
+
 /// Recall on a file-sync model, as the original PC Remote does it: a user
 /// preset's document is sent back as an unnamed on-air file (229). A factory
 /// preset is recalled by the firmware itself (terminal `RP`): PC Remote
@@ -1670,37 +1726,27 @@ async fn recall_with_files(
             let plain = device
                 .user_presets
                 .get(name)
-                .ok_or_else(|| OperationError::safe("Refresh the preset list first"))?;
+                .ok_or_else(|| OperationError::safe("Refresh the preset list first"))?
+                .clone();
             // The original client sends the document with LF line ends.
-            let text = String::from_utf8_lossy(plain).replace("\r\n", "\n");
-            let iv = *uuid::Uuid::new_v4().as_bytes();
-            let sealed = orban_protocol::archive::encrypt(text.as_bytes(), &device.code, iv)
-                .map_err(OperationError::safe)?;
-            // The 2300's upload has no name line at all.
-            let mut body = if device.session.adapter().wire.file_names {
-                format!("0\n0\n\n{}\n", sealed.len())
-            } else {
-                format!("0\n0\n{}\n", sealed.len())
-            }
-            .into_bytes();
-            body.extend(sealed);
-            device
-                .session
-                .send(229, &body)
-                .await
-                .map_err(OperationError::uncertain)?;
-            if let Some(end) = device.session.adapter().wire.file_end {
-                device
-                    .session
-                    .send(end, b"")
-                    .await
-                    .map_err(OperationError::uncertain)?;
-                device.boundaries.sent();
-            } else if device.status_port_down {
-                // The 5700i answers the upload with a boundary answer of its own.
-                device.boundaries.sent();
-            }
-            Some(file_document(plain, device.session.info.model).map_err(OperationError::safe)?)
+            let text = String::from_utf8_lossy(&plain).replace("\r\n", "\n");
+            upload_on_air(device, &text).await?;
+            Some(file_document(&plain, device.session.info.model).map_err(OperationError::safe)?)
+        }
+        // Without its status port, the 5700i gets the factory file from its
+        // client's installation as that client sends it (capture, 29 October
+        // 2026); the firmware loads it as it loads its own on a front-panel
+        // Recall.
+        PresetKind::Factory
+            if device.status_port_down
+                && device.session.adapter().wire.factory_files.is_some() =>
+        {
+            let text = factory_file(device, app, name).await?;
+            upload_on_air(device, &text).await?;
+            Some(
+                file_document(text.as_bytes(), device.session.info.model)
+                    .map_err(OperationError::safe)?,
+            )
         }
         PresetKind::Factory if !device.session.adapter().wire.factory_recall => {
             return Err(OperationError::safe(format!(
@@ -6122,6 +6168,12 @@ mod tests {
                             "OptimodVersion=<{}>\r\nPreset Name=<SYSTEM PRESET> size=2\r\nC:<CONTRAST>Int:2;D:2;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nC:<PILOT SYNC>String:<REF IN>;D:0;\r\nEnd Preset<end>\r\n",
                             m.version
                         );
+                        if m.model == DeviceModel::Optimod5700i {
+                            setup = setup.replace(
+                                "End Preset",
+                                "C:<PRE-E>String:<75us>;D:1;\r\nEnd Preset",
+                            );
+                        }
                         loop {
                             let count = tokio::select! {
                                 read = reader.read(&mut buffer) => match read {
@@ -7133,6 +7185,43 @@ mod tests {
     #[tokio::test]
     async fn a_5700i_without_its_status_port_runs_over_pc_remote() {
         file_sync_round_trip(M5700I, 46).await;
+    }
+
+    /// Without the status port a factory Recall uploads the factory file of
+    /// the original client for the unit's pre-emphasis, as that client does.
+    #[tokio::test]
+    async fn a_5700i_without_its_status_port_recalls_a_factory_preset_by_upload() {
+        let unit = FakeFileUnit::start(M5700I).await;
+        let mut connect = unit.connect();
+        connect.terminal_port = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        let (app, _storage) = running_owner().await;
+        command(&app, |r| Command::Connect(connect, r))
+            .await
+            .unwrap();
+        let session = app.state.read().await.session_id.clone().unwrap();
+        let recall = Recall {
+            name: "GREGG".into(),
+            expected_name: "Test01".into(),
+            confirmed: true,
+            expected_host: "127.0.0.1".into(),
+            expected_session: session,
+        };
+        command(&app, |r| Command::Recall(recall, r)).await.unwrap();
+        assert_eq!(app.state.read().await.processing.as_ref().unwrap().name, "GREGG");
+        let uploads = unit.received(229);
+        assert_eq!(uploads.len(), 1);
+        let sealed = &uploads[0][uploads[0].iter().position(|b| *b == b'\n').unwrap() + 1..];
+        let plain = orban_protocol::archive::decrypt(sealed, FILE_UNIT_CODE).unwrap();
+        let text = String::from_utf8(plain).unwrap();
+        assert!(text.starts_with("OptimodVersion=<5700.50>\nPreset Name=<GREGG>"), "{text}");
+        assert!(text.contains("Preset File Name= <GREGG.orb57f75>"), "{text}");
+        assert!(!text.contains('\r'));
+        assert_eq!(unit.terminal_sessions.load(Ordering::SeqCst), 0);
     }
 
     #[tokio::test]
