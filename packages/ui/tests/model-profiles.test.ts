@@ -183,17 +183,34 @@ test('the 8400 meters use the unit\'s own bar heights and scales', () => {
   assert.equal(model.groups.find(g => g.name === 'Out')?.ticks?.[1]?.[1], '0');
 });
 
-test('the 8400 shows Less-More and the Advanced Modify pages of the structure on air', () => {
+test('the 8400 shows Less-More and the processing categories of the structure on air', () => {
   const layouts = profile('8400/3.0.5.7/layouts.json') as LayoutPage[];
   const field = (value: string) => ({ value: { type: 'Choice', value }, index: 0 });
-  const fields = (structure: string) => ({ 'LESS MORE': field('x'), 'SE AMOUNT': field('x'), 'AGC': field('On'), 'B1 COMP THRSH': field('x'), '2B DRIVE': field('x'), 'AGC XOVER': field('x'), 'B1 MIX': field('x'), 'BASS CLIP THR': field('x'), 'BASS GAIN': field('x'), 'MB DRIVE': field('x'), 'B1 ATTACK': field('x'), '2B/5B SWITCH': field(structure) });
-  const titles = (structure: string) => processingPages(livePages(layouts, fields(structure)), 'FM', undefined).map(page => page.title);
+  const shared = layouts.filter(page => page.path === 'Shared');
+  const everything = Object.fromEntries(shared.flatMap(page => page.controls.map(control => [control.name, field('x')])));
+  const fields = (structure: string) => ({ ...everything, '2B/5B SWITCH': field(structure) });
+  const pages = (structure: string) => processingPages(livePages(layouts, fields(structure)), 'FM', undefined);
+  assert.deepEqual(pages('5band').map(page => page.title),
+    ['Less More', 'Stereo Enhancer', 'AGC', 'Equalizer', 'Multiband', 'Dynamics', 'Band Mix', 'Coupling', 'Clipping']);
+  assert.deepEqual(pages('2band').map(page => page.title),
+    ['Less More', 'Stereo Enhancer', 'AGC', 'Equalizer', 'Two Band', 'Clipping']);
+  assert.ok(pages('2band').find(page => page.title === 'AGC')?.controls.some(control => control.name === 'AGC XOVER'));
+  assert.ok(!pages('2band').some(page => page.controls.some(control => control.name === 'B1 OUTPUT MIX')));
+  // Explicit sections, never the extracted x 0 coordinates: every control of the
+  // structure's client pages appears exactly once, in a named section.
+  const client = (structure: string) => new Set(shared
+    .filter(page => !page.when || page.when.value === structure)
+    .flatMap(page => page.controls.map(control => control.name)));
   for (const structure of ['5band', '2band']) {
-    const shown = titles(structure);
-    assert.equal(shown[0], 'Less More');
-    assert.ok(shown.slice(1).every(title => title.startsWith('Advanced Modify')), shown.join());
-    assert.equal(new Set(shown).size, shown.length, 'one variant per page');
+    const placed = pages(structure).flatMap(page => groupProcessingPage(page).flatMap(group => {
+      assert.ok(group.title && !/^Advanced Modify/.test(group.title), group.title);
+      return group.controls.map(control => control.name);
+    }));
+    assert.equal(placed.length, new Set(placed).size, `${structure}: a control appears twice`);
+    assert.deepEqual([...placed].sort(), [...client(structure)].sort());
   }
-  const two = processingPages(livePages(layouts, fields('2band')), 'FM', undefined);
-  assert.ok(two.find(page => page.title === 'Advanced Modify 2')?.controls.some(control => control.name === 'AGC XOVER'));
+  for (const page of shared.filter(page => page.title !== 'Less More')) {
+    assert.ok(page.sections?.length, `${page.title} has sections`);
+  }
+  assert.deepEqual(shared.filter(page => !page.when).map(page => page.title), ['Less More', 'Stereo Enhancer']);
 });

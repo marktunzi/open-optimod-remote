@@ -87,11 +87,14 @@ final class DeviceTabBar: NSView {
     }
 
     override func layout() {
-        super.layout()
         let width = Self.tabWidth(count: tabViews.count, width: bounds.width)
         let content = CGFloat(tabViews.count) * width + 2 * CGFloat(max(tabViews.count - 1, 0))
         let room = max(bounds.width - Self.leading - Self.addWidth, 0)
+        // Set before the constraints are solved: a constant changed after
+        // super.layout() waits for some later pass, and until then a tab added
+        // to a window that does not resize stays in a strip of zero width.
         scrollWidth.constant = min(content, room)
+        super.layout()
         let height = Self.height - 4
         strip.frame = NSRect(x: 0, y: 0, width: content, height: height)
         for (index, view) in tabViews.enumerated() {

@@ -20,6 +20,15 @@ export type LayoutGroup = {
   text: string;
 };
 
+/** An explicit section of a page (the 8400), in place of the client's group boxes. */
+export type LayoutSection = {
+  title: string;
+  /** Control names in display order. */
+  controls: string[];
+  /** 'band-mix' pairs each band's level with its on/mute switch. */
+  layout?: 'band-mix';
+};
+
 export type LayoutPage = {
   title: string;
   path: string;
@@ -30,6 +39,8 @@ export type LayoutPage = {
   groups: LayoutGroup[];
   /** Shown only while this processing field has this value (e.g. the 8400's 2B/5B SWITCH). */
   when?: { field: string; value: string };
+  /** Named sections that replace the coordinate grouping (pages without group boxes). */
+  sections?: LayoutSection[];
 };
 
 export type ProcessingGroup = {
@@ -87,6 +98,17 @@ function bandMixControls(controls: LayoutControl[]): LayoutControl[] {
 }
 
 export function groupProcessingPage(page: LayoutPage): ProcessingGroup[] {
+  if (page.sections?.length) {
+    // The page's controls may be filtered to the live document; a section keeps
+    // its own order and disappears when none of its controls is present.
+    const byName = new Map(page.controls.map(control => [control.name, control]));
+    return page.sections.map((section, order) => {
+      const controls = section.controls.flatMap(name => byName.get(name) ?? []);
+      return section.layout === 'band-mix'
+        ? { title: section.title, controls, className: 'band-mix-group', order }
+        : { title: section.title, controls, order };
+    }).filter(group => group.controls.length);
+  }
   if (page.title === 'Band Mix') {
     return [{ title: 'Band Mix', controls: bandMixControls(page.controls), className: 'band-mix-group', order: 0 }];
   }

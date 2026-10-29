@@ -774,9 +774,9 @@ main[data-skin="figma"] .tabs > button {
   box-shadow: none;
 }
 
-/* The Figma tab bar spreads its tabs over the width; a model with more pages scrolls it. */
+/* Tabs sit side by side from the left, 4 px apart; a model with more pages scrolls the bar. */
 main[data-skin="figma"] .tabs {
-  justify-content: space-between;
+  justify-content: flex-start;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -796,7 +796,7 @@ main[data-skin="figma"] .tabs > .processing-path-selector {
   align-self: stretch;
   display: flex;
   align-items: center;
-  margin: 0 0 0 8px;
+  margin: 0 0 0 auto;
   padding: 0 16px 0 8px;
   box-shadow: -12px 0 12px var(--fx-tabs);
   background: var(--fx-tabs);
@@ -894,6 +894,28 @@ main[data-skin="figma"] .processing-groups:not(.single-group-page) .processing-g
 main[data-skin="figma"] .processing-groups:not(.single-group-page) .control-well {
   padding: 10px 40px 4px;
   gap: 12px 30px;
+}
+
+/* A Band Mix section next to other sections (the 8400): level and on/mute per band side by side. */
+main[data-skin="figma"] .processing-groups.sectioned-page .band-mix-group {
+  grid-column: span 2;
+}
+main[data-skin="figma"] .processing-groups:not(.single-group-page) .band-mix-group .control-well {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Explicit sections (the 8400) keep column width: a page with one or two sections does not stretch them. */
+main[data-skin="figma"] .processing-groups.sectioned-page {
+  grid-template-columns: repeat(auto-fill, minmax(315px, 1fr));
+}
+
+/* Choice buttons (AGC Ratio, Bass Clip Mode…) share one row in equal widths. */
+main[data-skin="figma"] .processing .radio-control {
+  grid-template-columns: repeat(auto-fit, minmax(46px, 1fr));
+  gap: 6px;
+}
+main[data-skin="figma"] .processing .radio-control label {
+  padding: 7px 4px;
 }
 
 

@@ -467,6 +467,117 @@ TWO_BAND_ONLY = {"AGC XOVER", "2B XOVER", "2B DRIVE", "2B RELEASE", "2B BASS COU
                  "2B BASS ATTACK", "2B MASTR ATTACK", "2B LOOKAHEAD"}
 
 
+# --------------------------------------------------------------------------- app pages
+# The PC Remote's Advanced Modify pages are numbered PEG list screens without group
+# boxes (every row at x 0). The app shows them as processing categories with named
+# sections, after the V3.0 worksheet's Advanced Modify headings (Stereo Enhancer,
+# AGC, Equalizer, Multiband, MB Attack/Rel, Band Mix, Two Band, Clippers) and the
+# client's row order. Keyed by (client page title, structure); Advanced Modify 6
+# splits into Band Mix and Coupling. Every control of a client page must land in
+# exactly one section (checked below).
+APP_PAGES = {
+    ("Advanced Modify 1", None): [("Stereo Enhancer", [
+        ("Stereo Enhancer", ["SE IN OUT", "SE AMOUNT", "SE RATIO WIDTH", "SE DIFFUSION", "SE STYLE", "SE DEPTH"]),
+        ("Input Filters", ["30 HZ HPF", "PHASE ROTATOR"]),
+    ])],
+    ("Advanced Modify 2", "Five Band"): [("AGC", [
+        ("AGC", ["AGC", "AGC DRIVE", "AGC RELEASE", "GATE THRESH", "IDLE GR", "AGC RATIO"]),
+        ("Master", ["AGC MASTER ATTACK", "AGC MAST DELTA TH"]),
+        ("Bass", ["AGC BASS COUPLING", "AGC BASS TH", "AGC BASS ATTACK", "AGC BASS RELEASE", "AGC BASS DELTA TH"]),
+        ("Window & Matrix", ["AGC WINDOW THRESH", "AGC WINDOW RELEASE", "AGC DIFF GR", "AGC MATRIX"]),
+    ])],
+    ("Advanced Modify 2", "Two Band"): [("AGC", [
+        ("AGC", ["AGC", "AGC DRIVE", "AGC RELEASE", "GATE THRESH", "IDLE GR", "AGC RATIO"]),
+        ("Master", ["AGC MASTER ATTACK"]),
+        ("Bass", ["AGC BASS COUPLING", "AGC BASS TH", "AGC BASS ATTACK", "AGC BASS RELEASE"]),
+        ("Window & Matrix", ["AGC WINDOW THRESH", "AGC WINDOW RELEASE", "AGC DIFF GR", "AGC MATRIX", "AGC XOVER"]),
+    ])],
+    ("Advanced Modify 3", "Five Band"): [("Equalizer", [
+        ("Bass Shelf", ["LOW BASS GAIN", "LOW BASS FREQ", "LOW BASS Q"]),
+        ("Low Band", ["PEQ LOW GAIN", "PEQ LOW FREQ", "PEQ LOW WIDTH"]),
+        ("Mid Band", ["PEQ MID GAIN", "PEQ MID FREQ", "PEQ MID WIDTH"]),
+        ("High Band", ["PEQ HIGH GAIN", "PEQ HIGH FREQ", "PEQ HIGH WIDTH"]),
+        ("HF & Bass Enhancement", ["BRILLIANCE", "HF ENHANCER", "DJ BASS BOOST"]),
+        ("HD Equalizer", ["IBOC EQ GAIN", "IBOC EQ FREQ"]),
+    ])],
+    ("Advanced Modify 3", "Two Band"): [("Equalizer", [
+        ("Bass Shelf", ["LOW BASS GAIN", "LOW BASS FREQ", "LOW BASS Q"]),
+        ("Low Band", ["PEQ LOW GAIN", "PEQ LOW FREQ", "PEQ LOW WIDTH"]),
+        ("Mid Band", ["PEQ MID GAIN", "PEQ MID FREQ", "PEQ MID WIDTH"]),
+        ("High Band", ["PEQ HIGH GAIN", "PEQ HIGH FREQ", "PEQ HIGH WIDTH"]),
+        ("HF Enhancement", ["HF ENHANCER"]),
+        ("HD Equalizer", ["IBOC EQ GAIN", "IBOC EQ FREQ"]),
+    ])],
+    ("Advanced Modify 4", "Five Band"): [("Multiband", [
+        ("Multiband", ["MB DRIVE", "MB GATE THR", "B12 CROSSOVER"]),
+        ("Downward Expander", ["DWNWRD EXP", "DE STEREO COUPL"]),
+        ("Compression Thresholds", ["B1 COMP THRSH", "B2 COMP THRSH", "B3 COMP THRSH", "B4 COMP THRSH"]),
+        ("Limiting & Distortion", ["MULTIBAND CLIP", "B3 CLIP THRSH", "MAX DIST CONTRL", "SPEECH THR"]),
+        ("HF Control", ["B5 CLIP THRSH", "HF LIMITER", "HF DE ESS"]),
+    ])],
+    ("Advanced Modify 4", "Two Band"): [("Two Band", [
+        ("Compressor", ["2B DRIVE", "2B RELEASE", "MB GATE THR", "2B LOOKAHEAD", "2B XOVER"]),
+        ("Bass", ["2B BASS COUPLE", "2B BASS COMP THR", "2B BASS ATTACK"]),
+        ("Master", ["2B MASTER COMP THR", "2B MASTR ATTACK"]),
+        ("Limiting & Distortion", ["2B CLIPPING", "B3 CLIP THRSH", "MAX DIST CONTRL", "SPEECH THR"]),
+        ("HF Control", ["B5 CLIP THRSH"]),
+    ])],
+    ("Advanced Modify 5", "Five Band"): [("Dynamics", [
+        ("Release", ["MB RELEASE", "COMP LOOKAHEAD SW"]),
+        ("Compressor Attack", ["B1 ATTACK", "B2 ATTACK", "B3 ATTACK", "B4 ATTACK"]),
+        ("Limiter Attack", ["B1 LIMIT ATTACK", "B2 LIMIT ATTACK", "B3 LIMIT ATTACK", "B4 LIMIT ATTACK"]),
+        ("Delta Release", ["B1 DELTA REL", "B2 DELTA REL", "B3 DELTA REL", "B4/5 DELTA REL"]),
+    ])],
+    ("Advanced Modify 5", "Two Band"): [("Clipping", [
+        ("Bass Clipper", ["2B BASS CLIP", "2B BASS CLIP MODE", "SPEECH BC THR"]),
+        ("HF & Final Clipper", ["2B HF LIMITING", "HF CLIPPING", "FINAL CLIP DRV", "DRIVE W2"]),
+        ("Composite", ["COMP DRIVE", "PILOT PROTECT"]),
+        ("HD Limiter", ["IBOC LIM DR"]),
+    ])],
+    ("Advanced Modify 6", "Five Band"): [
+        ("Band Mix", [
+            ("Band Output", ["B1 OUTPUT MIX", "B1 ON/OFF", "B2 OUTPUT MIX", "B2 ON/OFF", "B3 OUTPUT MIX", "B3 ON/OFF",
+                             "B4 OUTPUT MIX", "B4 ON/OFF", "B5 OUTPUT MIX", "B5 ON/OFF"], "band-mix"),
+            ("Max Delta GR", ["B1 DIFF GR", "B2 DIFF GR", "B3 DIFF GR", "B4 DIFF GR", "B5 DIFF GR"]),
+        ]),
+        ("Coupling", [
+            ("Band Coupling", ["BASS COUPLING", "BAND 23 COUPL", "BAND 32 COUPL", "BAND 34 COUPL", "BAND 45 COUPL"]),
+        ]),
+    ],
+    ("Advanced Modify 7", "Five Band"): [("Clipping", [
+        ("Bass Clipper", ["BASS CLIP", "BASS CLIP MODE", "BASS CLIP SHAPE", "SPEECH BC THR"]),
+        ("HF & Final Clipper", ["HF CLIPPING", "FINAL CLIP DRV", "DRIVE W2"]),
+        ("Composite", ["COMP DRIVE", "PILOT PROTECT"]),
+        ("HD Limiter", ["IBOC LIM DR"]),
+    ])],
+}
+
+
+def app_pages(page, variant):
+    """The app pages of one client Advanced Modify page, with explicit sections."""
+    spec = APP_PAGES.get((page["_title"], variant))
+    if spec is None:
+        raise SystemExit("no app pages for %s (%s)" % (page["_title"], variant))
+    by_name = {c["name"]: c for c in page["controls"]}
+    placed = [n for _, sections in spec for s in sections for n in s[1]]
+    missing = sorted(set(by_name) - set(placed))
+    unknown = sorted(set(placed) - set(by_name))
+    twice = sorted(n for n, k in collections.Counter(placed).items() if k > 1)
+    if missing or unknown or twice:
+        raise SystemExit("%s (%s): missing %s, not on the page %s, twice %s" % (page["_title"], variant, missing, unknown, twice))
+    pages = []
+    for title, sections in spec:
+        controls = [by_name[n] for s in sections for n in s[1]]
+        q = dict(title=title, path=page["path"], width=page["width"], height=page["height"],
+                 reference_dialog=page["reference_dialog"], controls=controls, groups=[],
+                 sections=[dict(title=s[0], controls=list(s[1]), **({"layout": s[2]} if len(s) > 2 else {}))
+                           for s in sections])
+        if "when" in page:
+            q["when"] = page["when"]
+        pages.append(q)
+    return pages
+
+
 def preset_pairs(root: Path):
     """Which records differ between the 50 us and 75 us copies, and between X and X LL."""
     def rd(p):
@@ -787,16 +898,21 @@ def main():
     inferred = [q["title"] for q in layout if q.get("_inferred")]
     # The app shows the Advanced Modify pages only (they hold every processing control
     # but LESS MORE), with Less-More as its own first page as on the other models. A
-    # Two Band or Five Band page is shown only while that structure is on air.
+    # Two Band or Five Band page is shown only while that structure is on air, also
+    # when the other structure has no page of that number (Advanced Modify 6 and 7
+    # hold Band Mix and HardClipShape, which the worksheet marks 5 Band only).
     structure = {"Five Band": "5band", "Two Band": "2band"}
     shown = []
     for q in layout:
         if q["path"] == "Shared" and not q["_title"].startswith("Advanced"):
             continue
-        if q["path"] == "Shared" and q["_variant"] in structure and q["title"] != q["_title"]:
+        if q["path"] == "Shared" and q["_variant"] in structure:
             q["title"] = q["_title"]
             q["when"] = {"field": "2B/5B SWITCH", "value": structure[q["_variant"]]}
-        shown.append(q)
+        if q["path"] == "Shared":
+            shown.extend(app_pages(q, q["_variant"]))
+        else:
+            shown.append(q)
     less_more = next(f for f in fields if f["name"] == "LESS MORE" and f["scope"] == "Processing")
     shown.insert(0, dict(title="Less More", path="Shared", width=320, height=240, reference_dialog=0,
                          controls=[dict(kind="slider", name="LESS MORE", label="Less-More", x=0, y=0, w=60, id=0,
@@ -869,6 +985,9 @@ def main():
             "System pages (Input/Output, System Setup) have path 'System'; the UI's processing view only shows 'Shared'.",
             "Order: Basic, Intermediate, Advanced Modify, Input/Output, System Setup, by page number; Five Band before Two Band.",
             "Structure of these pages inferred as the counterpart of a Five/Two Band page with the same title: %s" % ", ".join(inferred),
+            "The app shows each Advanced Modify page as a processing category with explicit sections (APP_PAGES: "
+            "the worksheet's Advanced Modify headings, the client's row order); Advanced Modify 6 is split into "
+            "Band Mix and Coupling. Every control of a client page is in exactly one section.",
         ],
         units_note=("Units from the 8400 V3.0 Setup/Parameters Worksheet by row label. Corrected against the tables: "
                     "PEQ HIGH FREQ worksheet 'Hz' -> kHz (values 1.00..15.00); PEQ LOW/MID/HIGH WIDTH worksheet 'dB' -> oct; "

@@ -21,23 +21,12 @@
     "groups": []
   },
   {
-    "title": "Advanced Modify 1",
+    "title": "Stereo Enhancer",
     "path": "Shared",
     "width": 320,
     "height": 240,
     "reference_dialog": 4236208,
     "controls": [
-      {
-        "kind": "slider",
-        "name": "SE AMOUNT",
-        "label": "Amount",
-        "x": 0,
-        "y": 0,
-        "w": 60,
-        "id": 4236274,
-        "reference_id": 101,
-        "options": []
-      },
       {
         "kind": "radio",
         "name": "SE IN OUT",
@@ -51,6 +40,17 @@
           "Out",
           "In"
         ]
+      },
+      {
+        "kind": "slider",
+        "name": "SE AMOUNT",
+        "label": "Amount",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "id": 4236274,
+        "reference_id": 101,
+        "options": []
       },
       {
         "kind": "slider",
@@ -128,10 +128,30 @@
         ]
       }
     ],
-    "groups": []
+    "groups": [],
+    "sections": [
+      {
+        "title": "Stereo Enhancer",
+        "controls": [
+          "SE IN OUT",
+          "SE AMOUNT",
+          "SE RATIO WIDTH",
+          "SE DIFFUSION",
+          "SE STYLE",
+          "SE DEPTH"
+        ]
+      },
+      {
+        "title": "Input Filters",
+        "controls": [
+          "30 HZ HPF",
+          "PHASE ROTATOR"
+        ]
+      }
+    ]
   },
   {
-    "title": "Advanced Modify 2",
+    "title": "AGC",
     "path": "Shared",
     "width": 320,
     "height": 240,
@@ -186,61 +206,14 @@
       },
       {
         "kind": "slider",
-        "name": "AGC BASS COUPLING",
-        "label": "Bass Coupl",
+        "name": "IDLE GR",
+        "label": "Idle Gain",
         "x": 0,
-        "y": 80,
+        "y": 280,
         "w": 60,
-        "id": 4236817,
-        "reference_id": 59,
+        "id": 4237063,
+        "reference_id": 4,
         "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "AGC DIFF GR",
-        "label": "MaxDeltaGR",
-        "x": 0,
-        "y": 100,
-        "w": 60,
-        "id": 4236841,
-        "reference_id": 90,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "AGC WINDOW THRESH",
-        "label": "WindowSize",
-        "x": 0,
-        "y": 120,
-        "w": 60,
-        "id": 4236866,
-        "reference_id": 97,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "AGC WINDOW RELEASE",
-        "label": "Window Rel",
-        "x": 0,
-        "y": 140,
-        "w": 60,
-        "id": 4236891,
-        "reference_id": 98,
-        "options": []
-      },
-      {
-        "kind": "radio",
-        "name": "AGC MATRIX",
-        "label": "AGC Matrix",
-        "x": 0,
-        "y": 160,
-        "w": 60,
-        "id": 4236915,
-        "reference_id": 99,
-        "options": [
-          "L/R",
-          "sum/dif"
-        ]
       },
       {
         "kind": "radio",
@@ -257,6 +230,39 @@
           "3:1",
           "2:1"
         ]
+      },
+      {
+        "kind": "slider",
+        "name": "AGC MASTER ATTACK",
+        "label": "Mast. Attack",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4237039,
+        "reference_id": 12,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC MAST DELTA TH",
+        "label": "MstrDeltaThr",
+        "x": 0,
+        "y": 300,
+        "w": 60,
+        "id": 4237088,
+        "reference_id": 7,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS COUPLING",
+        "label": "Bass Coupl",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4236817,
+        "reference_id": 59,
+        "options": []
       },
       {
         "kind": "slider",
@@ -293,39 +299,6 @@
       },
       {
         "kind": "slider",
-        "name": "AGC MASTER ATTACK",
-        "label": "Mast. Attack",
-        "x": 0,
-        "y": 260,
-        "w": 60,
-        "id": 4237039,
-        "reference_id": 12,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "IDLE GR",
-        "label": "Idle Gain",
-        "x": 0,
-        "y": 280,
-        "w": 60,
-        "id": 4237063,
-        "reference_id": 4,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "AGC MAST DELTA TH",
-        "label": "MstrDeltaThr",
-        "x": 0,
-        "y": 300,
-        "w": 60,
-        "id": 4237088,
-        "reference_id": 7,
-        "options": []
-      },
-      {
-        "kind": "slider",
         "name": "AGC BASS DELTA TH",
         "label": "BassDeltaThr",
         "x": 0,
@@ -334,16 +307,102 @@
         "id": 4237113,
         "reference_id": 9,
         "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC WINDOW THRESH",
+        "label": "WindowSize",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4236866,
+        "reference_id": 97,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC WINDOW RELEASE",
+        "label": "Window Rel",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4236891,
+        "reference_id": 98,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC DIFF GR",
+        "label": "MaxDeltaGR",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4236841,
+        "reference_id": 90,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AGC MATRIX",
+        "label": "AGC Matrix",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4236915,
+        "reference_id": 99,
+        "options": [
+          "L/R",
+          "sum/dif"
+        ]
       }
     ],
     "groups": [],
+    "sections": [
+      {
+        "title": "AGC",
+        "controls": [
+          "AGC",
+          "AGC DRIVE",
+          "AGC RELEASE",
+          "GATE THRESH",
+          "IDLE GR",
+          "AGC RATIO"
+        ]
+      },
+      {
+        "title": "Master",
+        "controls": [
+          "AGC MASTER ATTACK",
+          "AGC MAST DELTA TH"
+        ]
+      },
+      {
+        "title": "Bass",
+        "controls": [
+          "AGC BASS COUPLING",
+          "AGC BASS TH",
+          "AGC BASS ATTACK",
+          "AGC BASS RELEASE",
+          "AGC BASS DELTA TH"
+        ]
+      },
+      {
+        "title": "Window & Matrix",
+        "controls": [
+          "AGC WINDOW THRESH",
+          "AGC WINDOW RELEASE",
+          "AGC DIFF GR",
+          "AGC MATRIX"
+        ]
+      }
+    ],
     "when": {
       "field": "2B/5B SWITCH",
       "value": "5band"
     }
   },
   {
-    "title": "Advanced Modify 2",
+    "title": "AGC",
     "path": "Shared",
     "width": 320,
     "height": 240,
@@ -398,61 +457,14 @@
       },
       {
         "kind": "slider",
-        "name": "AGC BASS COUPLING",
-        "label": "Bass Coupl",
+        "name": "IDLE GR",
+        "label": "Idle Gain",
         "x": 0,
-        "y": 80,
+        "y": 280,
         "w": 60,
-        "id": 4241032,
-        "reference_id": 59,
+        "id": 4241278,
+        "reference_id": 4,
         "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "AGC DIFF GR",
-        "label": "MaxDeltaGR",
-        "x": 0,
-        "y": 100,
-        "w": 60,
-        "id": 4241056,
-        "reference_id": 90,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "AGC WINDOW THRESH",
-        "label": "WindowSize",
-        "x": 0,
-        "y": 120,
-        "w": 60,
-        "id": 4241081,
-        "reference_id": 97,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "AGC WINDOW RELEASE",
-        "label": "Window Rel",
-        "x": 0,
-        "y": 140,
-        "w": 60,
-        "id": 4241106,
-        "reference_id": 98,
-        "options": []
-      },
-      {
-        "kind": "radio",
-        "name": "AGC MATRIX",
-        "label": "AGC Matrix",
-        "x": 0,
-        "y": 160,
-        "w": 60,
-        "id": 4241130,
-        "reference_id": 99,
-        "options": [
-          "L/R",
-          "sum/dif"
-        ]
       },
       {
         "kind": "radio",
@@ -469,6 +481,28 @@
           "3:1",
           "2:1"
         ]
+      },
+      {
+        "kind": "slider",
+        "name": "AGC MASTER ATTACK",
+        "label": "Mast. Attack",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4241254,
+        "reference_id": 12,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC BASS COUPLING",
+        "label": "Bass Coupl",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4241032,
+        "reference_id": 59,
+        "options": []
       },
       {
         "kind": "slider",
@@ -505,25 +539,50 @@
       },
       {
         "kind": "slider",
-        "name": "AGC MASTER ATTACK",
-        "label": "Mast. Attack",
+        "name": "AGC WINDOW THRESH",
+        "label": "WindowSize",
         "x": 0,
-        "y": 260,
+        "y": 120,
         "w": 60,
-        "id": 4241254,
-        "reference_id": 12,
+        "id": 4241081,
+        "reference_id": 97,
         "options": []
       },
       {
         "kind": "slider",
-        "name": "IDLE GR",
-        "label": "Idle Gain",
+        "name": "AGC WINDOW RELEASE",
+        "label": "Window Rel",
         "x": 0,
-        "y": 280,
+        "y": 140,
         "w": 60,
-        "id": 4241278,
-        "reference_id": 4,
+        "id": 4241106,
+        "reference_id": 98,
         "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "AGC DIFF GR",
+        "label": "MaxDeltaGR",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4241056,
+        "reference_id": 90,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "AGC MATRIX",
+        "label": "AGC Matrix",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4241130,
+        "reference_id": 99,
+        "options": [
+          "L/R",
+          "sum/dif"
+        ]
       },
       {
         "kind": "radio",
@@ -542,13 +601,51 @@
       }
     ],
     "groups": [],
+    "sections": [
+      {
+        "title": "AGC",
+        "controls": [
+          "AGC",
+          "AGC DRIVE",
+          "AGC RELEASE",
+          "GATE THRESH",
+          "IDLE GR",
+          "AGC RATIO"
+        ]
+      },
+      {
+        "title": "Master",
+        "controls": [
+          "AGC MASTER ATTACK"
+        ]
+      },
+      {
+        "title": "Bass",
+        "controls": [
+          "AGC BASS COUPLING",
+          "AGC BASS TH",
+          "AGC BASS ATTACK",
+          "AGC BASS RELEASE"
+        ]
+      },
+      {
+        "title": "Window & Matrix",
+        "controls": [
+          "AGC WINDOW THRESH",
+          "AGC WINDOW RELEASE",
+          "AGC DIFF GR",
+          "AGC MATRIX",
+          "AGC XOVER"
+        ]
+      }
+    ],
     "when": {
       "field": "2B/5B SWITCH",
       "value": "2band"
     }
   },
   {
-    "title": "Advanced Modify 3",
+    "title": "Equalizer",
     "path": "Shared",
     "width": 320,
     "height": 240,
@@ -699,17 +796,6 @@
       },
       {
         "kind": "slider",
-        "name": "DJ BASS BOOST",
-        "label": "DJ Bass",
-        "x": 0,
-        "y": 260,
-        "w": 60,
-        "id": 4237693,
-        "reference_id": 39,
-        "options": []
-      },
-      {
-        "kind": "slider",
         "name": "HF ENHANCER",
         "label": "HF Enhance",
         "x": 0,
@@ -717,6 +803,17 @@
         "w": 60,
         "id": 4237717,
         "reference_id": 77,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "DJ BASS BOOST",
+        "label": "DJ Bass",
+        "x": 0,
+        "y": 260,
+        "w": 60,
+        "id": 4237693,
+        "reference_id": 39,
         "options": []
       },
       {
@@ -743,13 +840,62 @@
       }
     ],
     "groups": [],
+    "sections": [
+      {
+        "title": "Bass Shelf",
+        "controls": [
+          "LOW BASS GAIN",
+          "LOW BASS FREQ",
+          "LOW BASS Q"
+        ]
+      },
+      {
+        "title": "Low Band",
+        "controls": [
+          "PEQ LOW GAIN",
+          "PEQ LOW FREQ",
+          "PEQ LOW WIDTH"
+        ]
+      },
+      {
+        "title": "Mid Band",
+        "controls": [
+          "PEQ MID GAIN",
+          "PEQ MID FREQ",
+          "PEQ MID WIDTH"
+        ]
+      },
+      {
+        "title": "High Band",
+        "controls": [
+          "PEQ HIGH GAIN",
+          "PEQ HIGH FREQ",
+          "PEQ HIGH WIDTH"
+        ]
+      },
+      {
+        "title": "HF & Bass Enhancement",
+        "controls": [
+          "BRILLIANCE",
+          "HF ENHANCER",
+          "DJ BASS BOOST"
+        ]
+      },
+      {
+        "title": "HD Equalizer",
+        "controls": [
+          "IBOC EQ GAIN",
+          "IBOC EQ FREQ"
+        ]
+      }
+    ],
     "when": {
       "field": "2B/5B SWITCH",
       "value": "5band"
     }
   },
   {
-    "title": "Advanced Modify 3",
+    "title": "Equalizer",
     "path": "Shared",
     "width": 320,
     "height": 240,
@@ -922,13 +1068,60 @@
       }
     ],
     "groups": [],
+    "sections": [
+      {
+        "title": "Bass Shelf",
+        "controls": [
+          "LOW BASS GAIN",
+          "LOW BASS FREQ",
+          "LOW BASS Q"
+        ]
+      },
+      {
+        "title": "Low Band",
+        "controls": [
+          "PEQ LOW GAIN",
+          "PEQ LOW FREQ",
+          "PEQ LOW WIDTH"
+        ]
+      },
+      {
+        "title": "Mid Band",
+        "controls": [
+          "PEQ MID GAIN",
+          "PEQ MID FREQ",
+          "PEQ MID WIDTH"
+        ]
+      },
+      {
+        "title": "High Band",
+        "controls": [
+          "PEQ HIGH GAIN",
+          "PEQ HIGH FREQ",
+          "PEQ HIGH WIDTH"
+        ]
+      },
+      {
+        "title": "HF Enhancement",
+        "controls": [
+          "HF ENHANCER"
+        ]
+      },
+      {
+        "title": "HD Equalizer",
+        "controls": [
+          "IBOC EQ GAIN",
+          "IBOC EQ FREQ"
+        ]
+      }
+    ],
     "when": {
       "field": "2B/5B SWITCH",
       "value": "2band"
     }
   },
   {
-    "title": "Advanced Modify 4",
+    "title": "Multiband",
     "path": "Shared",
     "width": 320,
     "height": 240,
@@ -947,6 +1140,31 @@
       },
       {
         "kind": "slider",
+        "name": "MB GATE THR",
+        "label": "Gate Thres",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4238080,
+        "reference_id": 15,
+        "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "B12 CROSSOVER",
+        "label": "B1/B2 Xover",
+        "x": 0,
+        "y": 300,
+        "w": 60,
+        "id": 4238410,
+        "reference_id": 127,
+        "options": [
+          "100Hz",
+          "200Hz"
+        ]
+      },
+      {
+        "kind": "slider",
         "name": "DWNWRD EXP",
         "label": "Down Expand",
         "x": 0,
@@ -957,15 +1175,18 @@
         "options": []
       },
       {
-        "kind": "slider",
-        "name": "MB GATE THR",
-        "label": "Gate Thres",
+        "kind": "radio",
+        "name": "DE STEREO COUPL",
+        "label": "DwnExpStCpl",
         "x": 0,
-        "y": 40,
+        "y": 280,
         "w": 60,
-        "id": 4238080,
-        "reference_id": 15,
-        "options": []
+        "id": 4238385,
+        "reference_id": 96,
+        "options": [
+          "On",
+          "Off"
+        ]
       },
       {
         "kind": "slider",
@@ -1087,44 +1308,59 @@
         "id": 4238361,
         "reference_id": 58,
         "options": []
-      },
-      {
-        "kind": "radio",
-        "name": "DE STEREO COUPL",
-        "label": "DwnExpStCpl",
-        "x": 0,
-        "y": 280,
-        "w": 60,
-        "id": 4238385,
-        "reference_id": 96,
-        "options": [
-          "On",
-          "Off"
-        ]
-      },
-      {
-        "kind": "radio",
-        "name": "B12 CROSSOVER",
-        "label": "B1/B2 Xover",
-        "x": 0,
-        "y": 300,
-        "w": 60,
-        "id": 4238410,
-        "reference_id": 127,
-        "options": [
-          "100Hz",
-          "200Hz"
-        ]
       }
     ],
     "groups": [],
+    "sections": [
+      {
+        "title": "Multiband",
+        "controls": [
+          "MB DRIVE",
+          "MB GATE THR",
+          "B12 CROSSOVER"
+        ]
+      },
+      {
+        "title": "Downward Expander",
+        "controls": [
+          "DWNWRD EXP",
+          "DE STEREO COUPL"
+        ]
+      },
+      {
+        "title": "Compression Thresholds",
+        "controls": [
+          "B1 COMP THRSH",
+          "B2 COMP THRSH",
+          "B3 COMP THRSH",
+          "B4 COMP THRSH"
+        ]
+      },
+      {
+        "title": "Limiting & Distortion",
+        "controls": [
+          "MULTIBAND CLIP",
+          "B3 CLIP THRSH",
+          "MAX DIST CONTRL",
+          "SPEECH THR"
+        ]
+      },
+      {
+        "title": "HF Control",
+        "controls": [
+          "B5 CLIP THRSH",
+          "HF LIMITER",
+          "HF DE ESS"
+        ]
+      }
+    ],
     "when": {
       "field": "2B/5B SWITCH",
       "value": "5band"
     }
   },
   {
-    "title": "Advanced Modify 4",
+    "title": "Two Band",
     "path": "Shared",
     "width": 320,
     "height": 240,
@@ -1165,17 +1401,6 @@
       },
       {
         "kind": "slider",
-        "name": "2B BASS COUPLE",
-        "label": "Bass Coupl",
-        "x": 0,
-        "y": 60,
-        "w": 60,
-        "id": 4242319,
-        "reference_id": 114,
-        "options": []
-      },
-      {
-        "kind": "slider",
         "name": "2B LOOKAHEAD",
         "label": "Lookahead",
         "x": 0,
@@ -1183,61 +1408,6 @@
         "w": 60,
         "id": 4242344,
         "reference_id": 123,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "2B BASS COMP THR",
-        "label": "BassCmp Thr",
-        "x": 0,
-        "y": 100,
-        "w": 60,
-        "id": 4242368,
-        "reference_id": 115,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "2B MASTER COMP THR",
-        "label": "MastCmp Thr",
-        "x": 0,
-        "y": 120,
-        "w": 60,
-        "id": 4242393,
-        "reference_id": 116,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "2B CLIPPING",
-        "label": "2B Clipping",
-        "x": 0,
-        "y": 140,
-        "w": 60,
-        "id": 4242418,
-        "reference_id": 120,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "2B BASS ATTACK",
-        "label": "Bass Attack",
-        "x": 0,
-        "y": 160,
-        "w": 60,
-        "id": 4242442,
-        "reference_id": 121,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "2B MASTR ATTACK",
-        "label": "Mastr Attack",
-        "x": 0,
-        "y": 180,
-        "w": 60,
-        "id": 4242467,
-        "reference_id": 122,
         "options": []
       },
       {
@@ -1253,6 +1423,72 @@
           "Linear",
           "No Dly"
         ]
+      },
+      {
+        "kind": "slider",
+        "name": "2B BASS COUPLE",
+        "label": "Bass Coupl",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4242319,
+        "reference_id": 114,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B BASS COMP THR",
+        "label": "BassCmp Thr",
+        "x": 0,
+        "y": 100,
+        "w": 60,
+        "id": 4242368,
+        "reference_id": 115,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B BASS ATTACK",
+        "label": "Bass Attack",
+        "x": 0,
+        "y": 160,
+        "w": 60,
+        "id": 4242442,
+        "reference_id": 121,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B MASTER COMP THR",
+        "label": "MastCmp Thr",
+        "x": 0,
+        "y": 120,
+        "w": 60,
+        "id": 4242393,
+        "reference_id": 116,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B MASTR ATTACK",
+        "label": "Mastr Attack",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4242467,
+        "reference_id": 122,
+        "options": []
+      },
+      {
+        "kind": "slider",
+        "name": "2B CLIPPING",
+        "label": "2B Clipping",
+        "x": 0,
+        "y": 140,
+        "w": 60,
+        "id": 4242418,
+        "reference_id": 120,
+        "options": []
       },
       {
         "kind": "slider",
@@ -1300,13 +1536,55 @@
       }
     ],
     "groups": [],
+    "sections": [
+      {
+        "title": "Compressor",
+        "controls": [
+          "2B DRIVE",
+          "2B RELEASE",
+          "MB GATE THR",
+          "2B LOOKAHEAD",
+          "2B XOVER"
+        ]
+      },
+      {
+        "title": "Bass",
+        "controls": [
+          "2B BASS COUPLE",
+          "2B BASS COMP THR",
+          "2B BASS ATTACK"
+        ]
+      },
+      {
+        "title": "Master",
+        "controls": [
+          "2B MASTER COMP THR",
+          "2B MASTR ATTACK"
+        ]
+      },
+      {
+        "title": "Limiting & Distortion",
+        "controls": [
+          "2B CLIPPING",
+          "B3 CLIP THRSH",
+          "MAX DIST CONTRL",
+          "SPEECH THR"
+        ]
+      },
+      {
+        "title": "HF Control",
+        "controls": [
+          "B5 CLIP THRSH"
+        ]
+      }
+    ],
     "when": {
       "field": "2B/5B SWITCH",
       "value": "2band"
     }
   },
   {
-    "title": "Advanced Modify 5",
+    "title": "Dynamics",
     "path": "Shared",
     "width": 320,
     "height": 240,
@@ -1322,6 +1600,21 @@
         "id": 4238668,
         "reference_id": 20,
         "options": []
+      },
+      {
+        "kind": "radio",
+        "name": "COMP LOOKAHEAD SW",
+        "label": "Lookahead",
+        "x": 0,
+        "y": 180,
+        "w": 60,
+        "id": 4238890,
+        "reference_id": 71,
+        "options": [
+          "In",
+          "Out",
+          "Auto"
+        ]
       },
       {
         "kind": "slider",
@@ -1412,21 +1705,6 @@
         "options": []
       },
       {
-        "kind": "radio",
-        "name": "COMP LOOKAHEAD SW",
-        "label": "Lookahead",
-        "x": 0,
-        "y": 180,
-        "w": 60,
-        "id": 4238890,
-        "reference_id": 71,
-        "options": [
-          "In",
-          "Out",
-          "Auto"
-        ]
-      },
-      {
         "kind": "slider",
         "name": "B1 DELTA REL",
         "label": "Delta Rel 1",
@@ -1472,13 +1750,49 @@
       }
     ],
     "groups": [],
+    "sections": [
+      {
+        "title": "Release",
+        "controls": [
+          "MB RELEASE",
+          "COMP LOOKAHEAD SW"
+        ]
+      },
+      {
+        "title": "Compressor Attack",
+        "controls": [
+          "B1 ATTACK",
+          "B2 ATTACK",
+          "B3 ATTACK",
+          "B4 ATTACK"
+        ]
+      },
+      {
+        "title": "Limiter Attack",
+        "controls": [
+          "B1 LIMIT ATTACK",
+          "B2 LIMIT ATTACK",
+          "B3 LIMIT ATTACK",
+          "B4 LIMIT ATTACK"
+        ]
+      },
+      {
+        "title": "Delta Release",
+        "controls": [
+          "B1 DELTA REL",
+          "B2 DELTA REL",
+          "B3 DELTA REL",
+          "B4/5 DELTA REL"
+        ]
+      }
+    ],
     "when": {
       "field": "2B/5B SWITCH",
       "value": "5band"
     }
   },
   {
-    "title": "Advanced Modify 5",
+    "title": "Clipping",
     "path": "Shared",
     "width": 320,
     "height": 240,
@@ -1604,13 +1918,45 @@
       }
     ],
     "groups": [],
+    "sections": [
+      {
+        "title": "Bass Clipper",
+        "controls": [
+          "2B BASS CLIP",
+          "2B BASS CLIP MODE",
+          "SPEECH BC THR"
+        ]
+      },
+      {
+        "title": "HF & Final Clipper",
+        "controls": [
+          "2B HF LIMITING",
+          "HF CLIPPING",
+          "FINAL CLIP DRV",
+          "DRIVE W2"
+        ]
+      },
+      {
+        "title": "Composite",
+        "controls": [
+          "COMP DRIVE",
+          "PILOT PROTECT"
+        ]
+      },
+      {
+        "title": "HD Limiter",
+        "controls": [
+          "IBOC LIM DR"
+        ]
+      }
+    ],
     "when": {
       "field": "2B/5B SWITCH",
       "value": "2band"
     }
   },
   {
-    "title": "Advanced Modify 6",
+    "title": "Band Mix",
     "path": "Shared",
     "width": 320,
     "height": 240,
@@ -1628,50 +1974,6 @@
         "options": []
       },
       {
-        "kind": "slider",
-        "name": "B2 OUTPUT MIX",
-        "label": "B2 Out Mix",
-        "x": 0,
-        "y": 20,
-        "w": 60,
-        "id": 4239272,
-        "reference_id": 33,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "B3 OUTPUT MIX",
-        "label": "B3 Out Mix",
-        "x": 0,
-        "y": 40,
-        "w": 60,
-        "id": 4239297,
-        "reference_id": 34,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "B4 OUTPUT MIX",
-        "label": "B4 Out Mix",
-        "x": 0,
-        "y": 60,
-        "w": 60,
-        "id": 4239321,
-        "reference_id": 35,
-        "options": []
-      },
-      {
-        "kind": "slider",
-        "name": "B5 OUTPUT MIX",
-        "label": "B5 Out Mix",
-        "x": 0,
-        "y": 80,
-        "w": 60,
-        "id": 4239346,
-        "reference_id": 36,
-        "options": []
-      },
-      {
         "kind": "radio",
         "name": "B1 ON/OFF",
         "label": "B1 On/Mute",
@@ -1684,6 +1986,17 @@
           "On",
           "Mute"
         ]
+      },
+      {
+        "kind": "slider",
+        "name": "B2 OUTPUT MIX",
+        "label": "B2 Out Mix",
+        "x": 0,
+        "y": 20,
+        "w": 60,
+        "id": 4239272,
+        "reference_id": 33,
+        "options": []
       },
       {
         "kind": "radio",
@@ -1700,6 +2013,17 @@
         ]
       },
       {
+        "kind": "slider",
+        "name": "B3 OUTPUT MIX",
+        "label": "B3 Out Mix",
+        "x": 0,
+        "y": 40,
+        "w": 60,
+        "id": 4239297,
+        "reference_id": 34,
+        "options": []
+      },
+      {
         "kind": "radio",
         "name": "B3 ON/OFF",
         "label": "B3 On/Mute",
@@ -1714,6 +2038,17 @@
         ]
       },
       {
+        "kind": "slider",
+        "name": "B4 OUTPUT MIX",
+        "label": "B4 Out Mix",
+        "x": 0,
+        "y": 60,
+        "w": 60,
+        "id": 4239321,
+        "reference_id": 35,
+        "options": []
+      },
+      {
         "kind": "radio",
         "name": "B4 ON/OFF",
         "label": "B4 On/Mute",
@@ -1726,6 +2061,17 @@
           "On",
           "Mute"
         ]
+      },
+      {
+        "kind": "slider",
+        "name": "B5 OUTPUT MIX",
+        "label": "B5 Out Mix",
+        "x": 0,
+        "y": 80,
+        "w": 60,
+        "id": 4239346,
+        "reference_id": 36,
+        "options": []
       },
       {
         "kind": "radio",
@@ -1795,7 +2141,49 @@
         "id": 4239593,
         "reference_id": 95,
         "options": []
+      }
+    ],
+    "groups": [],
+    "sections": [
+      {
+        "title": "Band Output",
+        "controls": [
+          "B1 OUTPUT MIX",
+          "B1 ON/OFF",
+          "B2 OUTPUT MIX",
+          "B2 ON/OFF",
+          "B3 OUTPUT MIX",
+          "B3 ON/OFF",
+          "B4 OUTPUT MIX",
+          "B4 ON/OFF",
+          "B5 OUTPUT MIX",
+          "B5 ON/OFF"
+        ],
+        "layout": "band-mix"
       },
+      {
+        "title": "Max Delta GR",
+        "controls": [
+          "B1 DIFF GR",
+          "B2 DIFF GR",
+          "B3 DIFF GR",
+          "B4 DIFF GR",
+          "B5 DIFF GR"
+        ]
+      }
+    ],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "5band"
+    }
+  },
+  {
+    "title": "Coupling",
+    "path": "Shared",
+    "width": 320,
+    "height": 240,
+    "reference_dialog": 4239182,
+    "controls": [
       {
         "kind": "slider",
         "name": "BASS COUPLING",
@@ -1852,10 +2240,26 @@
         "options": []
       }
     ],
-    "groups": []
+    "groups": [],
+    "sections": [
+      {
+        "title": "Band Coupling",
+        "controls": [
+          "BASS COUPLING",
+          "BAND 23 COUPL",
+          "BAND 32 COUPL",
+          "BAND 34 COUPL",
+          "BAND 45 COUPL"
+        ]
+      }
+    ],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "5band"
+    }
   },
   {
-    "title": "Advanced Modify 7",
+    "title": "Clipping",
     "path": "Shared",
     "width": 320,
     "height": 240,
@@ -1980,7 +2384,43 @@
         "options": []
       }
     ],
-    "groups": []
+    "groups": [],
+    "sections": [
+      {
+        "title": "Bass Clipper",
+        "controls": [
+          "BASS CLIP",
+          "BASS CLIP MODE",
+          "BASS CLIP SHAPE",
+          "SPEECH BC THR"
+        ]
+      },
+      {
+        "title": "HF & Final Clipper",
+        "controls": [
+          "HF CLIPPING",
+          "FINAL CLIP DRV",
+          "DRIVE W2"
+        ]
+      },
+      {
+        "title": "Composite",
+        "controls": [
+          "COMP DRIVE",
+          "PILOT PROTECT"
+        ]
+      },
+      {
+        "title": "HD Limiter",
+        "controls": [
+          "IBOC LIM DR"
+        ]
+      }
+    ],
+    "when": {
+      "field": "2B/5B SWITCH",
+      "value": "5band"
+    }
   },
   {
     "title": "Input/Output 1",

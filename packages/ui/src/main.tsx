@@ -527,7 +527,7 @@ function App() {
             </div>}
           </nav>
           <section className="processing" aria-label={page.title}>
-            <div className={`processing-groups ${processingGroups.length === 1 ? 'single-group-page' : ''} ${page.title === 'Band Mix' ? 'band-mix-page' : ''}`}>
+            <div className={`processing-groups ${processingGroups.length === 1 && !page.sections ? 'single-group-page' : ''} ${page.title === 'Band Mix' && !page.sections ? 'band-mix-page' : ''} ${page.sections ? 'sectioned-page' : ''}`}>
               {processingGroups.map(group => <section className={`processing-group ${group.className || ''}`} key={group.title}>
                 <h3>{group.title}</h3>
                 <div className={`control-well ${group.controls.length > 10 ? 'dense' : ''}`}>
