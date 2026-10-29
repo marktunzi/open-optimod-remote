@@ -1,6 +1,7 @@
-//! The automation file (`Automation.orb57autom`, `Automation.orb55autom`) as
-//! the original PC Remote writes it: one block per event (5700i 3.0.1.20 and
-//! 5500i 3.1.0.2, captured 28 October 2026; `5500PC.exe` 1.2.8.24 offers the
+//! The automation file (`Automation.orb57autom`, `Automation.orb55autom`, …)
+//! as the original PC Remote writes it: one block per event (5700i 3.0.1.20
+//! and 5500i 3.1.0.2, captured 28 October 2026; 6300 4.1.1.19 and 8700i
+//! 1.5.1.11, captured 29 October 2026; `5500PC.exe` 1.2.8.24 offers the
 //! 5500i's functions in the same order and writes the same 5500.50 file).
 use orban_protocol::adapter::DeviceModel;
 use serde::{Deserialize, Serialize};
@@ -48,9 +49,11 @@ pub const FUNCTIONS_5500I: [&str; 18] = [
     "Exit Mod. Reduction",
 ];
 
-/// Whether the model's client function list is known: the 6300's and
-/// 8700i's clients build theirs from tables that could not be read
-/// statically, so their Automation is not offered yet.
+/// The functions the 6300 client 4.1.1.19 offers after the presets (read
+/// from its Automation dialog, 29 October 2026).
+pub const FUNCTIONS_6300: [&str; 4] = ["Stereo", "Dual-Mono", "Bypass", "Exit Test"];
+
+/// Whether the model's client function list is known.
 pub fn available(model: DeviceModel) -> bool {
     matches!(
         model,
@@ -58,6 +61,8 @@ pub fn available(model: DeviceModel) -> bool {
             | DeviceModel::Optimod5500i
             | DeviceModel::Optimod5500
             | DeviceModel::Optimod8700Hd
+            | DeviceModel::Optimod6300
+            | DeviceModel::Optimod8700i
     )
 }
 
@@ -70,6 +75,10 @@ pub fn flavour(model: DeviceModel) -> (&'static [&'static str], &'static str, &'
         // `8700PC.exe` 1.0.2.161 fills its list with the 5700i's 18 functions
         // in the same order (0x4ad720).
         DeviceModel::Optimod8700Hd => (&FUNCTIONS, "8700.51", "orb86autom"),
+        DeviceModel::Optimod6300 => (&FUNCTIONS_6300, "6300.50", "orb63autom"),
+        // `8700iPC.exe` 1.5.1.11 offers the 5700i's 18 functions in the same
+        // order (its Automation dialog, 29 October 2026).
+        DeviceModel::Optimod8700i => (&FUNCTIONS, "8700.52", "orb87autom"),
         _ => (&FUNCTIONS, "5700.51", "orb57autom"),
     }
 }
@@ -258,6 +267,31 @@ mod tests {
         assert_eq!(
             super::render(&events, super::DeviceModel::Optimod5500i).unwrap(),
             CAPTURED_5500I
+        );
+    }
+
+    /// The new event the 6300 and 8700i clients saved (29 October 2026):
+    /// the same blocks with their own version and extension.
+    #[test]
+    fn renders_the_6300_and_8700i_clients_new_event() {
+        for (model, version, extension) in [
+            (super::DeviceModel::Optimod6300, "6300.50", "orb63autom"),
+            (super::DeviceModel::Optimod8700i, "8700.52", "orb87autom"),
+        ] {
+            let captured = format!(
+                "OptimodVersion=<{version}>\nPreset Name=<auto_event_00> size=17\nFactory Preset Name=<Automation Preset>\nPreset Type= <AUTOMATION PRESET>\nPreset File Name= <auto_event_00.{extension}>\nC:<AUTO SET MINUTE>String:<00:>;D:0;\nC:<AUTO SET HOUR>String:<00:>;D:0;\nC:<AUTO SET SECOND>String:<00>;D:0;\nC:<AUTO SET DAY>String:<29>;D:28;\nC:<AUTO SET MONTH>String:<OCT>;D:9;\nC:<AUTO SET YEAR>Int:2026;D:2026;\nC:<SUNDAY>String:<S>;D:1;\nC:<MONDAY>String:<M>;D:1;\nC:<TUESDAY>String:<T>;D:1;\nC:<WEDNESDAY>String:<W>;D:1;\nC:<THURSDAY>String:<T>;D:1;\nC:<FRIDAY>String:<F>;D:1;\nC:<SATURDAY>String:<S>;D:1;\nC:<SET BY DAY/WEEK>UserString:<DAY>;D:0;\nC:<AUTOMATION EVENT>UserString:<no function>;D:0;\nEnd Preset<end>\n"
+            );
+            let events = super::parse(&captured).unwrap();
+            assert_eq!(super::render(&events, model).unwrap(), captured);
+            assert!(super::available(model));
+        }
+        assert_eq!(
+            super::flavour(super::DeviceModel::Optimod6300).0,
+            super::FUNCTIONS_6300
+        );
+        assert_eq!(
+            super::flavour(super::DeviceModel::Optimod8700i).0,
+            super::FUNCTIONS
         );
     }
 }

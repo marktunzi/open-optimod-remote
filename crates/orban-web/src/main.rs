@@ -6926,16 +6926,36 @@ mod tests {
         };
         write(230, passcodes).await.unwrap();
         assert_eq!(unit.received(230).len(), 1);
-        // Automation is not offered: nothing is read or sent for it.
+        // Automation as the client writes it (captured 29 October 2026):
+        // its own version, extension and functions, uploaded with its name.
+        let (functions, version, extension) = crate::automation::flavour(m.model);
+        let event = crate::automation::Event {
+            hour: 6,
+            minute: 30,
+            second: 0,
+            day: 29,
+            month: 10,
+            year: 2026,
+            weekdays: [true; 7],
+            daily: true,
+            action: functions[functions.len() - 1].into(),
+        };
+        let document = crate::automation::render(std::slice::from_ref(&event), m.model).unwrap();
+        assert!(document.starts_with(&format!("OptimodVersion=<{version}>")));
+        assert!(document.contains(&format!("auto_event_00.{extension}>")));
         let uploads = unit.received(automation.1).len();
-        assert!(write(235, String::new()).await.is_err());
+        write(235, document.clone()).await.unwrap();
+        let sent = unit.received(automation.1);
+        assert_eq!(sent.len(), uploads + 1);
+        let upload = sent.last().unwrap();
+        assert!(upload.starts_with(format!("{}\n", automation.0).as_bytes()));
         let (reply, answer) = oneshot::channel();
         app.commands
             .send(Command::ReadUnitFile(235, reply))
             .await
             .unwrap();
-        assert!(answer.await.unwrap().is_err());
-        assert_eq!(unit.received(automation.1).len(), uploads);
+        let read = answer.await.unwrap().unwrap().unwrap();
+        assert_eq!(crate::automation::parse(&read).unwrap(), vec![event]);
     }
 
     #[tokio::test]
