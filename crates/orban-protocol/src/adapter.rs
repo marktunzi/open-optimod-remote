@@ -259,7 +259,7 @@ pub struct Wire {
     /// of 231, by file name.
     pub restore_files: &'static [(&'static str, u16)],
     /// The unit answers each named preset-file upload (231) with a boundary
-    /// answer of its own (assumed for the 5500i, not measured; the 5700i and 5500 do not: #51 traces, 10 November 2026); the 6300, 8700i and 8700HD
+    /// answer of its own - none of the firmware traced does (5700i, 5500, 5500i: #51, 10 November 2026); the 6300, 8700i and 8700HD
     /// firmware do not (virtual 6300 4.1.1.19, 8700i 1.5.1.11 and 8700HD
     /// 1.0.2.161, 29 October 2026).
     pub restore_answered: bool,
@@ -534,7 +534,10 @@ pub const WIRE_5500I: Wire = Wire {
     // The client's Restore sends these with their own opcodes, everything
     // else as 231 (0x44b978).
     restore_files: &[("Automation.orb55autom", 235), ("Network.orb55net", 234)],
-    restore_answered: true,
+    // No answer to a named preset-file upload (231) either: traced on the original firmware (#51, 10 November 2026: only its clock
+    // for 40 s, then one answer to the boundary request); its original client's Restore (5500iPC.exe 0x44b700, like 5500PC.exe
+    // 0x443130 and 5700iPC.exe 0x4554c0) sends nothing but 222 after its uploads and waits for no answer.
+    restore_answered: false,
 };
 
 /// Preset names of the factory `.orb55f50` files of PC Remote 3.1.0.2.
