@@ -75,6 +75,9 @@ impl Document {
             | crate::adapter::DeviceModel::Optimod8600Si => "OptimodVersion=<8600.",
             // (the 8500S 1.0.3 writes 8500S.50 documents, its own family)
             crate::adapter::DeviceModel::Optimod8500SFm | crate::adapter::DeviceModel::Optimod8500SHd => "OptimodVersion=<8500S.",
+            crate::adapter::DeviceModel::Optimod5518 => "OptimodVersion=<5518.",
+            // (the 5300 1.1.3.88 client's factory files are 8300.10 documents, as the 8300's)
+            crate::adapter::DeviceModel::Optimod5300 | crate::adapter::DeviceModel::Optimod8300 => "OptimodVersion=<8300.",
             crate::adapter::DeviceModel::Optimod8700i
             | crate::adapter::DeviceModel::Optimod8700Hd => "OptimodVersion=<8700.",
             crate::adapter::DeviceModel::Optimod9300 => "OptimodVersion=<9300.",

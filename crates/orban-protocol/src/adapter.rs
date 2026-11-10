@@ -57,6 +57,12 @@ pub enum DeviceModel {
     Optimod8600SHd,
     #[serde(rename = "optimod-8600si")]
     Optimod8600Si,
+    #[serde(rename = "optimod-5518")]
+    Optimod5518,
+    #[serde(rename = "optimod-5300")]
+    Optimod5300,
+    #[serde(rename = "optimod-8300")]
+    Optimod8300,
 }
 
 impl DeviceModel {
@@ -96,6 +102,9 @@ impl DeviceModel {
             Self::Optimod8600SFm => "OPTIMOD 8600S FM",
             Self::Optimod8600SHd => "OPTIMOD 8600S HD",
             Self::Optimod8600Si => "OPTIMOD 8600Si",
+            Self::Optimod5518 => "OPTIMOD 5518",
+            Self::Optimod5300 => "OPTIMOD 5300",
+            Self::Optimod8300 => "OPTIMOD 8300",
             Self::Optimod8700i => "OPTIMOD 8700i",
             Self::Optimod8700Hd => "OPTIMOD-FM 8700HD",
             Self::Optimod9300 => "OPTIMOD 9300",
@@ -280,6 +289,10 @@ pub struct Wire {
     /// firmware do not (virtual 6300 4.1.1.19, 8700i 1.5.1.11 and 8700HD
     /// 1.0.2.161, 29 October 2026).
     pub restore_answered: bool,
+    /// The firmware converts every preset it loads into its own document (same version line, fields dropped, added and
+    /// normalised), so an uploaded file never reads back field for field: a Recall is then confirmed by its name, and only from a
+    /// different preset (8500S 1.0.3: its own factory files read back with 20 fields changed, #49, 10 November 2026).
+    pub loads_convert: bool,
 }
 
 /// Requests for the files behind the client's Automation and Security
@@ -322,6 +335,7 @@ pub const WIRE_PC_REMOTE: Wire = Wire {
     network_request: None,
     restore_files: &[],
     restore_answered: false,
+    loads_convert: false,
 };
 
 /// 5700i 3.0.1.20 (reference unit and virtual 5700i).
@@ -399,6 +413,7 @@ pub const WIRE_5700FM: Wire = Wire {
     network_request: None,
     restore_files: &[],
     restore_answered: false,
+    loads_convert: false,
 };
 
 /// 5700HD 1.1.1.2 (#49, virtual 5700HD with its original firmware, 10 November 2026), checked on its own: `5700HDPC.exe` 1.1.1.2
@@ -441,6 +456,7 @@ pub const WIRE_8600: Wire = Wire {
     network_request: None,
     restore_files: &[],
     restore_answered: false,
+    loads_convert: false,
 };
 
 const FACTORY_8600: [&str; 64] = [
@@ -515,6 +531,7 @@ pub const WIRE_8500S_FM: Wire = Wire {
     factory_files: Some(include_str!("../../../profiles/8500sfm/1.0.3.146/factory-presets.json")),
     user_extension: ".orb85suser",
     factory_presets: &FACTORY_8500S,
+    loads_convert: true,
     ..WIRE_5700FM
 };
 /// 8500S-HD 1.0.3.145 (#49) Recall and preset transfer only. Its OWN client (installer of the same version) has the 5700FM client's send sites and sync (F9h, F2h, EFh, F3h, F0h, F1h, EEh; Recall uploads 229 then FAh; 231; Delete ECh), and its firmware answered its own isolated read-only session exactly as the 5700FM's (login with a session number, F9h -> FAh, EEh -> its OnAir file 229, F2h -> its preset files 231, EFh -> its Setup file E8h, F3h -> its passcodes E6h; research/m21.7/evidence/rc<model>/probe-*.json, 10 November 2026). Its own file names and its own installer's factory files.
@@ -522,6 +539,7 @@ pub const WIRE_8500S_HD: Wire = Wire {
     factory_files: Some(include_str!("../../../profiles/8500shd/1.0.3.145/factory-presets.json")),
     user_extension: ".orb85suser",
     factory_presets: &FACTORY_8500S,
+    loads_convert: true,
     ..WIRE_5700FM
 };
 /// 8600S-FM 2.1.1.28 (#49) Recall and preset transfer only. Its OWN client (installer of the same version) has the 5700FM client's send sites and sync (F9h, F2h, EFh, F3h, F0h, F1h, EEh; Recall uploads 229 then FAh; 231; Delete ECh), and its firmware answered its own isolated read-only session exactly as the 5700FM's (login with a session number, F9h -> FAh, EEh -> its OnAir file 229, F2h -> its preset files 231, EFh -> its Setup file E8h, F3h -> its passcodes E6h; research/m21.7/evidence/rc<model>/probe-*.json, 10 November 2026). Its own file names and its own installer's factory files.
@@ -637,6 +655,7 @@ pub const WIRE_8700HD: Wire = Wire {
     setup_presets: None,
     network_request: None,
     restore_answered: false,
+    loads_convert: false,
 };
 
 /// 5500 1.2.8.24: the 8700HD generation. `5500PC.exe` 1.2.8.24 sends the same
@@ -732,6 +751,7 @@ pub const WIRE_5500I: Wire = Wire {
     // for 40 s, then one answer to the boundary request); its original client's Restore (5500iPC.exe 0x44b700, like 5500PC.exe
     // 0x443130 and 5700iPC.exe 0x4554c0) sends nothing but 222 after its uploads and waits for no answer.
     restore_answered: false,
+    loads_convert: false,
 };
 
 /// Preset names of the factory `.orb55f50` files of PC Remote 3.1.0.2.
@@ -804,6 +824,7 @@ pub const WIRE_6300: Wire = Wire {
     network_request: None,
     restore_files: &[("Automation.orb63autom", 234)],
     restore_answered: false,
+    loads_convert: false,
 };
 
 /// Preset names of the factory `.orb63f` files of PC Remote 4.1.1.19.
@@ -924,6 +945,7 @@ pub const WIRE_2300: Wire = Wire {
     network_request: None,
     restore_files: &[],
     restore_answered: false,
+    loads_convert: false,
 };
 
 /// Preset names of the factory `.orb23f75` files of PC Remote 2.0.3.85.

@@ -303,6 +303,11 @@ pub async fn recall(
     crate::presets::validate_name(name).map_err(RecallError::Refused)?;
     let route = route(link.session, kind, terminal.is_some()).map_err(RecallError::Refused)?;
     let model = link.session.info.model;
+    // a firmware that converts what it loads can confirm a Recall only by a new name on air: never the preset already on air
+    let converts = link.session.adapter().wire.loads_convert;
+    if converts && link.on_air().await.map_err(RecallError::Refused)?.name == name {
+        return Err(RecallError::Refused(format!("{name} is already on air: nothing is sent")));
+    }
     let expected = match route {
         Route::UploadUser => {
             let users = link.user_presets().await.map_err(RecallError::Refused)?;
@@ -331,6 +336,7 @@ pub async fn recall(
         }
     };
     let on_air_name = expected.as_ref().map_or(name, |d| d.name.as_str()).to_owned();
+    let expected = if converts { None } else { expected };
     let confirmed = link
         .read_back(|d| confirms(&on_air_name, expected.as_ref(), d), FILE_READBACK_LIMIT)
         .await

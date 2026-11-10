@@ -284,6 +284,11 @@ fn recall_only_adapters_never_write_parameters_and_need_their_exact_banner() {
         assert!(a.capabilities.preset_recall && !a.capabilities.parameter_writes, "{banner}");
         assert_eq!((a.wire.boundary, a.wire.on_air_request, a.wire.user_extension), ((249, 250), 238, ext), "{banner}");
     }
+    // only the 8500S firmware converts what it loads (its own factory files read back with 20 fields changed)
+    for (banner, converts) in [("8500S-FM V 1.0.3.146", true), ("8500S-HD V 1.0.3.145", true), ("8600S-FM V 2.1.1.28", false),
+                               ("5700FM V 1.1.1.1", false), ("8600 V 4.5.5.2", false), ("5700i V 3.0.1.20", false)] {
+        assert_eq!(AdapterRegistry::identify_banner(banner).unwrap().wire.loads_convert, converts, "{banner}");
+    }
     for banner in ["5700FM V 1.1.1.2", "5700FM V 1.1.1", "5700HD V 1.1.1.1", "5700HD V 1.1.1.3", "8600 V 4.5.5.1"] {
         assert!(!AdapterRegistry::identify_banner(banner).unwrap().capabilities.preset_recall, "{banner}");
     }
