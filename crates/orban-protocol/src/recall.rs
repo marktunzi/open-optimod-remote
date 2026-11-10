@@ -116,6 +116,8 @@ pub enum Route {
 /// network. `status_port`: the unit's status (terminal) port answers.
 pub fn route(session: &Session, kind: &PresetKind, status_port: bool) -> Result<Route, String> {
     let wire = session.adapter().wire;
+    // A status port counts only on a model that has one (the 2300 has none, whatever answers there)
+    let status_port = status_port && wire.factory_recall;
     if !session.info.capabilities.preset_recall {
         return Err(format!("Preset recall is not enabled for {}", session.info.model.label()));
     }
@@ -311,7 +313,8 @@ pub async fn recall(
         }
         Route::StatusPort => {
             let code = link.code.clone();
-            crate::terminal::send_recall_for_model(terminal.expect("status port route"), &code, name, RECALL_DEADLINE, model)
+            let terminal = terminal.ok_or_else(|| RecallError::Refused("no status port".into()))?;
+            crate::terminal::send_recall_for_model(terminal, &code, name, RECALL_DEADLINE, model)
                 .await
                 .map_err(|e| RecallError::Uncertain(format!("The recall of {name} could not be sent completely: {e}")))?;
             None

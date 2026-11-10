@@ -103,3 +103,22 @@ fn an_older_document_version_is_confirmed_by_name_only() {
     assert!(!recall::confirms("B", Some(&same_version), &read));
     assert!(!recall::confirms("A", None, &read));
 }
+
+/// The 2300 has no status port: a port given for it does not make the
+/// firmware's own RP the route; its factory file goes up instead.
+#[tokio::test]
+async fn a_model_without_a_status_port_ignores_a_given_terminal_address() {
+    let server = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = server.local_addr().unwrap();
+    tokio::spawn(async move {
+        let (mut s, _) = server.accept().await.unwrap();
+        let mut login = [0; 14];
+        s.read_exact(&mut login).await.unwrap();
+        s.write_all(b"connect ok\n0\n2300 V 2.0.3.85\n").await.unwrap();
+        let mut buf = [0; 64];
+        while s.read(&mut buf).await.map(|n| n > 0).unwrap_or(false) {}
+    });
+    let session = Session::connect(addr, CODE, Duration::from_secs(3)).await.unwrap();
+    assert_eq!(recall::route(&session, &PresetKind::Factory, true), Ok(recall::Route::UploadFactory));
+    assert_eq!(recall::route(&session, &PresetKind::Factory, false), Ok(recall::Route::UploadFactory));
+}
