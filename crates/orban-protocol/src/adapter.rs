@@ -606,6 +606,110 @@ const FACTORY_8500S: [&str; 46] = [
     "URBAN-LIGHT",
 ];
 
+/// 5300 1.1.3.88 (#49): Recall and transfer only. Its own client 5300PC.exe 1.1.3.88 has the 2300 2.0.3.85 client's send sites
+/// and sync (F7h, F0h, F1h, EFh, EDh, EEh, F7h; Recall then F8h; uploads 229-232, 235); a session of it against its firmware
+/// (M21 run net_5300) and its own read-only session: no session number in the login, F7h -> F8h, F1h -> passcodes (E6h), EDh ->
+/// on-air (E5h), EEh -> setup (E8h), file messages without a name line, its clock F4h. Its own installer's factory files
+/// (8300.10 documents, as its client writes them). Its own read-only session, 10 November 2026: evidence/rc5300/probe-*.json.
+pub const WIRE_5300: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/5300/1.1.3.88/factory-presets.json")),
+    user_extension: ".orb53user",
+    factory_presets: &FACTORY_5300,
+    tool_files: None,
+    backup_requests: &[],
+    backup_kept: &[],
+    save_deletes_working_copies: false,
+    ..WIRE_2300
+};
+
+/// 8300 2.1.3.87 (#49): Recall and transfer only. Its own client 8300PC.exe 2.1.3.87 has the 2300 client's send sites and sync
+/// (as the 5300's); its own read-only session on its firmware (no capture of its client): login without a session number,
+/// F7h -> F8h, EDh -> on-air (E5h), EEh -> setup (E8h), F1h -> passcodes (E6h), no file name lines (evidence/rc8300/probe-*.json). Its own installer's factory files.
+pub const WIRE_8300: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/8300/2.1.3.87/factory-presets.json")),
+    user_extension: ".orb83user",
+    factory_presets: &FACTORY_8300,
+    tool_files: None,
+    backup_requests: &[],
+    backup_kept: &[],
+    save_deletes_working_copies: false,
+    ..WIRE_2300
+};
+
+const FACTORY_5300: [&str; 26] = [
+    "BASS-PUNCH",
+    "CLASSICAL-2 BAND",
+    "CLASSICAL-2B+AGC",
+    "CLASSICAL-5 BAND",
+    "CLASSICAL-5B+AGC",
+    "COUNTRY UL",
+    "COUNTRY-LIGHT",
+    "COUNTRY-MEDIUM",
+    "EXTREME",
+    "JAZZ",
+    "NEWS-TALK",
+    "OLDIES",
+    "PROTECT-0DB",
+    "ROCK-GEN UL",
+    "ROCK-GENERAL",
+    "ROCK-LIGHT",
+    "ROCK-LOUD",
+    "ROCK-MEDIUM",
+    "ROCK-OPEN",
+    "ROCK-OPEN UL",
+    "ROCK-SMOOTH",
+    "ROCK-SOFT",
+    "SPORTS",
+    "URBAN",
+    "URBAN UL",
+    "URBAN-LOUD",
+];
+const FACTORY_8300: [&str; 43] = [
+    "BASS-PUNCH",
+    "BASS-PUNCH MX",
+    "CLASSICAL-2 BAND",
+    "CLASSICAL-2B+AGC",
+    "CLASSICAL-5 BAND",
+    "CLASSICAL-5B+AGC",
+    "COUNTRY UL",
+    "COUNTRY-LIGHT",
+    "COUNTRY-LIGHT MX",
+    "COUNTRY-MED MX",
+    "COUNTRY-MEDIUM",
+    "EXTREME",
+    "EXTREME MX",
+    "JAZZ",
+    "JAZZ MX",
+    "NEWS-TALK",
+    "NEWS-TALK MX",
+    "OLDIES",
+    "OLDIES MX",
+    "PROTECT-0DB",
+    "ROCK-GEN UL",
+    "ROCK-GENERAL",
+    "ROCK-GENERAL MX",
+    "ROCK-LIGHT",
+    "ROCK-LIGHT MX",
+    "ROCK-LOUD",
+    "ROCK-LOUD MX",
+    "ROCK-MEDIUM",
+    "ROCK-MEDIUM MX",
+    "ROCK-OPEN",
+    "ROCK-OPEN MX",
+    "ROCK-OPEN UL",
+    "ROCK-SMOOTH",
+    "ROCK-SMOOTH MX",
+    "ROCK-SOFT",
+    "ROCK-SOFT MX",
+    "SPORTS",
+    "SPORTS MX",
+    "URBAN",
+    "URBAN MX",
+    "URBAN UL",
+    "URBAN-LOUD",
+    "URBAN-LOUD MX",
+];
+
 /// 8700HD 1.0.2.161: captured from the original PC Remote 1.0.2.161 and the
 /// original firmware (virtual 8700, 20-21 October 2026). F9h is answered by
 /// FAh, EEh by `OnAir.orb86onair`, EFh by `Setup.orb86setup` (E8h) and F2h by
@@ -1256,7 +1360,7 @@ const RECALL_ONLY: Capabilities = Capabilities { preset_recall: true, ..READ_ONL
 
 /// Exact banners whose Recall and transfer wire was derived from their own client and read on their firmware, without a
 /// parameter profile (so never `exact()`: no parameter writes).
-const RECALL_EXACT: [(&str, AdapterDescriptor); 7] = [(
+const RECALL_EXACT: [(&str, AdapterDescriptor); 9] = [(
     "5700FM V 1.1.1.1",
     AdapterDescriptor {
         id: "pc-remote-5700fm-1.1.1.1",
@@ -1380,6 +1484,42 @@ const RECALL_EXACT: [(&str, AdapterDescriptor); 7] = [(
         frame_cut: None,
         on_air_archive: true,
         wire: WIRE_8600S_HD,
+        evidence: Evidence::Static,
+    },
+), (
+    "5300 V 1.1.3.88",
+    AdapterDescriptor {
+        id: "pc-remote-5300-1.1.3.88",
+        model: DeviceModel::Optimod5300,
+        skin: SkinId::Optimod2300,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "5300",
+        firmware_prefix: "5300 V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_5300,
+        evidence: Evidence::Static,
+    },
+), (
+    "8300 V 2.1.3.87",
+    AdapterDescriptor {
+        id: "pc-remote-8300-2.1.3.87",
+        model: DeviceModel::Optimod8300,
+        skin: SkinId::Optimod2300,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8300",
+        firmware_prefix: "8300 V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_8300,
         evidence: Evidence::Static,
     },
 )];

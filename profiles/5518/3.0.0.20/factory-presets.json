@@ -1,0 +1,6 @@
+{
+ "ST ENC NO LIM": {
+  "50us": "OptimodVersion=<5518.10>\nPreset Name=<ST ENC NO LIM> size=6\nFactory Preset Name=<ST ENC NO LIM>\nPreset Type= <STEREO ENCODER PRESET>\nPreset File Name= <ST ENC NO LIM.orb5518f50>\nC:<INPUT EMPH STATUS>String:<Flat>;D:0;\nC:<LIMITER BYPASS>String:<Out>;D:0;\nC:<COMP DRIVE>String:<Off>;D:0;\nC:<COMPOSITE MODE>String:<HalfCos>;D:0;\nC:<INPUT LPF>String:<Out>;D:3;\nC:<LESS MORE>Cent:100;D:0;\nEnd Preset<end>\n",
+  "75us": "OptimodVersion=<5518.10>\nPreset Name=<ST ENC NO LIM> size=6\nFactory Preset Name=<ST ENC NO LIM>\nPreset Type= <STEREO ENCODER PRESET>\nPreset File Name= <ST ENC NO LIM.orb5518f75>\nC:<INPUT EMPH STATUS>String:<Flat>;D:0;\nC:<LIMITER BYPASS>String:<Out>;D:0;\nC:<COMP DRIVE>String:<Off>;D:0;\nC:<COMPOSITE MODE>String:<HalfCos>;D:0;\nC:<INPUT LPF>String:<Out>;D:3;\nC:<LESS MORE>Cent:100;D:0;\nEnd Preset<end>\n"
+ }
+}
