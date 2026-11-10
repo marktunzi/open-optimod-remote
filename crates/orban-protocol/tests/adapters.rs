@@ -255,3 +255,23 @@ fn each_model_uses_only_its_own_file_names() {
         }
     }
 }
+
+#[test]
+fn recall_only_adapters_never_write_parameters_and_need_their_exact_banner() {
+    let fm = AdapterRegistry::identify_banner("5700FM V 1.1.1.1").unwrap();
+    assert_eq!(fm.id, "pc-remote-5700fm-1.1.1.1");
+    assert!(fm.capabilities.preset_recall);
+    assert!(!fm.capabilities.parameter_writes && !fm.capabilities.live_meters);
+    assert!(!fm.capabilities.preset_store && !fm.capabilities.preset_delete);
+    assert_eq!(fm.wire.boundary, (249, 250));
+    assert_eq!(fm.wire.on_air_request, 238);
+    assert!(Profile::for_adapter(fm.id).unwrap().is_none());
+    for (banner, adapter) in AdapterRegistry::recall_exact() {
+        assert!(!adapter.capabilities.parameter_writes, "{banner}");
+        assert!(adapter.wire.factory_files.is_some() || adapter.wire.factory_recall, "{banner}");
+    }
+    // a neighbouring firmware stays on the read-only family adapter
+    for banner in ["5700FM V 1.1.1.2", "5700FM V 1.1.1", "5700HD V 1.1.1.2"] {
+        assert!(!AdapterRegistry::identify_banner(banner).unwrap().capabilities.preset_recall, "{banner}");
+    }
+}

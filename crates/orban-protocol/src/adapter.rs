@@ -339,6 +339,48 @@ pub const WIRE_5700I: Wire = Wire {
     ..WIRE_PC_REMOTE
 };
 
+/// 5700FM 1.1.1.1 (#49, virtual 5700FM with its original firmware, 10 November 2026): Recall and preset transfer only - no
+/// parameter profile, no parameter writes, no meters. Built from its OWN client, never from the 5700i's:
+///
+/// Requests, statically from `5700fmPC.exe` 1.1.1.1 (sha256 46636ebe...): the sync ("Updating local files", 0x45efc0) sends
+/// F9h (boundary), F2h (preset files), EFh (setup), F3h, F0h, F1h and EEh (on-air); Recall (0x468d70) uploads the on-air file
+/// through 0x46c4d0 (229, flag set) and then sends FAh; the same routine sends a named preset file as 231 and the setup as E8h;
+/// Delete sends ECh (0x46ca30). Its factory Recall converts its own `presets` copy (`orb57f50`/`orb57f75`, chosen by PRE-E),
+/// as `factory_files` here; its terminal `RP` is not used (not proven on this firmware).
+///
+/// Answers, read on the firmware in an isolated read-only session (research/m21.7/evidence/rc5700fm/probe-*.json): login
+/// `connect ok`, level, `5700FM V 1.1.1.1` and a session number; F9h -> FAh; EEh -> `OnAir.orb57onair` (229, named); EFh ->
+/// `Setup.orb57setup` (E8h); F2h -> the preset files (231, `SETUP.ORB57SETUP` when no user preset exists); F3h ->
+/// `Password.orb57pas` (230); F0h and F1h unanswered; FAh alone unanswered.
+pub const WIRE_5700FM: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/5700fm/1.1.1.1/factory-presets.json")),
+    save_deletes_working_copies: false,
+    boundary: (249, 250),
+    on_air_request: 238,
+    setup_request: Some((239, 232)),
+    user_presets_request: Some((242, 231)),
+    user_extension: ".orb57user",
+    file_sync: true,
+    // the 46 names of its own installer's presets folder (the same names, and byte for byte the same files, as the 5700HD
+    // 1.1.1.2 and 5700i 3.0.1.20 installers': compared 10 November 2026)
+    factory_presets: &FACTORY_5700I,
+    // its client follows the Recall upload with FAh (0x46a44d), its boundary answer
+    file_end: Some(250),
+    login_seed: LoginSeed::Always,
+    file_names: true,
+    factory_recall: false,
+    // static (0x46ca30); never sent by Recall or transfer
+    preset_file_delete: Some(236),
+    tool_files: None,
+    backup_requests: &[],
+    backup_kept: &[],
+    restore_extensions: &[],
+    setup_presets: None,
+    network_request: None,
+    restore_files: &[],
+    restore_answered: false,
+};
+
 /// 8700HD 1.0.2.161: captured from the original PC Remote 1.0.2.161 and the
 /// original firmware (virtual 8700, 20-21 October 2026). F9h is answered by
 /// FAh, EEh by `OnAir.orb86onair`, EFh by `Setup.orb86setup` (E8h) and F2h by
@@ -974,6 +1016,31 @@ const STATIC_METERS: MeterProfile = MeterProfile {
 };
 
 /// Exact banners with a parameter profile. Only these can write.
+/// Recall and preset transfer on an exact firmware whose own client and session were read (#49), nothing else is written.
+const RECALL_ONLY: Capabilities = Capabilities { preset_recall: true, ..READ_ONLY };
+
+/// Exact banners whose Recall and transfer wire was derived from their own client and read on their firmware, without a
+/// parameter profile (so never `exact()`: no parameter writes).
+const RECALL_EXACT: [(&str, AdapterDescriptor); 1] = [(
+    "5700FM V 1.1.1.1",
+    AdapterDescriptor {
+        id: "pc-remote-5700fm-1.1.1.1",
+        model: DeviceModel::Optimod5700Fm,
+        skin: SkinId::Optimod5700Fm,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "5700 FM",
+        firmware_prefix: "5700FM V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_5700FM,
+        evidence: Evidence::Static,
+    },
+)];
+
 const EXACT: [(&str, AdapterDescriptor); 8] = [
     ("5700i V 3.0.1.20", VERIFIED_5700I),
     (
@@ -1357,7 +1424,7 @@ pub struct AdapterRegistry;
 
 impl AdapterRegistry {
     pub fn identify_banner(banner: &str) -> Result<&'static AdapterDescriptor, String> {
-        if let Some((_, adapter)) = EXACT.iter().find(|(exact, _)| *exact == banner) {
+        if let Some((_, adapter)) = EXACT.iter().chain(RECALL_EXACT.iter()).find(|(exact, _)| *exact == banner) {
             return Ok(adapter);
         }
         ADAPTERS
@@ -1401,6 +1468,11 @@ impl AdapterRegistry {
 
     pub fn all() -> &'static [AdapterDescriptor] {
         &ADAPTERS
+    }
+
+    /// Exact adapters for Recall and preset transfer only (no parameter profile), keyed by their exact banner.
+    pub fn recall_exact() -> impl Iterator<Item = (&'static str, &'static AdapterDescriptor)> {
+        RECALL_EXACT.iter().map(|(banner, adapter)| (*banner, adapter))
     }
 
     /// Adapters that carry a parameter profile, keyed by their exact banner.
