@@ -63,6 +63,8 @@ pub enum DeviceModel {
     Optimod5300,
     #[serde(rename = "optimod-8300")]
     Optimod8300,
+    #[serde(rename = "optimod-8600-fm")]
+    Optimod8600Fm,
 }
 
 impl DeviceModel {
@@ -105,6 +107,7 @@ impl DeviceModel {
             Self::Optimod5518 => "OPTIMOD 5518",
             Self::Optimod5300 => "OPTIMOD 5300",
             Self::Optimod8300 => "OPTIMOD 8300",
+            Self::Optimod8600Fm => "OPTIMOD 8600 FM",
             Self::Optimod8700i => "OPTIMOD 8700i",
             Self::Optimod8700Hd => "OPTIMOD-FM 8700HD",
             Self::Optimod9300 => "OPTIMOD 9300",
@@ -734,6 +737,15 @@ pub const WIRE_5518: Wire = Wire {
 const FACTORY_5518: [&str; 1] = [
     "ST ENC NO LIM",
 ];
+
+/// 8600FM 4.3.1.26 (#49): Recall and transfer only. Its own client 8600fmPC.exe 4.3.1.26 has the 8600 4.5.5.2 client's send
+/// sites and sync; a session of it against its firmware (M21 run net_8600FM, NAS archive): `connect ok`, `8600fm V 4.3.1.26` and a
+/// session number, FAh -> FBh, F3h -> its preset files, F0h -> Setup.orb86setup, OnAir.orb86onair; its own read-only session
+/// before any write. Its own installer's factory files.
+pub const WIRE_8600FM: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/8600fm/4.3.1.26/factory-presets.json")),
+    ..WIRE_8600
+};
 
 /// 8700HD 1.0.2.161: captured from the original PC Remote 1.0.2.161 and the
 /// original firmware (virtual 8700, 20-21 October 2026). F9h is answered by
@@ -1385,7 +1397,7 @@ const RECALL_ONLY: Capabilities = Capabilities { preset_recall: true, ..READ_ONL
 
 /// Exact banners whose Recall and transfer wire was derived from their own client and read on their firmware, without a
 /// parameter profile (so never `exact()`: no parameter writes).
-const RECALL_EXACT: [(&str, AdapterDescriptor); 11] = [(
+const RECALL_EXACT: [(&str, AdapterDescriptor); 12] = [(
     "5700FM V 1.1.1.1",
     AdapterDescriptor {
         id: "pc-remote-5700fm-1.1.1.1",
@@ -1581,6 +1593,24 @@ const RECALL_EXACT: [(&str, AdapterDescriptor); 11] = [(
         frame_cut: None,
         on_air_archive: true,
         wire: WIRE_5518,
+        evidence: Evidence::Static,
+    },
+), (
+    "8600fm V 4.3.1.26",
+    AdapterDescriptor {
+        id: "pc-remote-8600fm-4.3.1.26",
+        model: DeviceModel::Optimod8600Fm,
+        skin: SkinId::Optimod8600,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8600fm",
+        firmware_prefix: "8600fm V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_8600FM,
         evidence: Evidence::Static,
     },
 )];
