@@ -151,6 +151,16 @@ impl<'a> FileLink<'a> {
         Self { session, code: Zeroizing::new(code.to_owned()), outstanding: 0 }
     }
 
+    /// The access code the session was opened with (files are sealed with it).
+    pub fn code(&self) -> &str {
+        &self.code
+    }
+
+    /// A message was sent that the unit answers with a boundary answer of its own (an upload on the 5700i / 5500i).
+    pub fn expect_boundary(&mut self) {
+        self.outstanding += 1;
+    }
+
     /// Sends the boundary and reads until every boundary is answered:
     /// files of opcode `wanted` are collected, the on-air archive kept when
     /// `archive` is asked for.

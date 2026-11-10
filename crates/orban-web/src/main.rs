@@ -3010,34 +3010,23 @@ async fn restore_preset_files(
         names.push(document.name);
     }
     for file in &body.files {
-        // FILETIME: 100 ns since 1601.
         let millis = file.modified.unwrap_or_else(|| {
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|d| d.as_millis() as u64)
                 .unwrap_or_default()
         });
-        let filetime = millis
-            .saturating_mul(10_000)
-            .saturating_add(116_444_736_000_000_000);
         let iv = *uuid::Uuid::new_v4().as_bytes();
-        let sealed = orban_protocol::archive::encrypt(file.document.as_bytes(), &device.code, iv)
-            .map_err(OperationError::safe)?;
-        // The 2300's file messages have no name line (capture, 29 October 2026).
-        let named = device.session.adapter().wire.file_names;
-        let name_line = if named {
-            format!("{}\n", file.name)
-        } else {
-            String::new()
-        };
-        let mut message = format!(
-            "{}\n{}\n{name_line}{}\n",
-            filetime & 0xffff_ffff,
-            filetime >> 32,
-            sealed.len()
+        // (orban_protocol::transfer::upload_message: FILETIME, the name line where the model's files carry one, sealed document)
+        let message = orban_protocol::transfer::upload_message(
+            &file.name,
+            &file.document,
+            &device.code,
+            millis,
+            device.session.adapter().wire.file_names,
+            iv,
         )
-        .into_bytes();
-        message.extend(sealed);
+        .map_err(OperationError::safe)?;
         // The client sends some files with an opcode of their own (the
         // automation file as EBh on the 5500i, EAh on the 5500).
         let opcode = device
