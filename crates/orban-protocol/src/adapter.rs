@@ -394,6 +394,105 @@ pub const WIRE_5700HD: Wire = Wire {
     ..WIRE_5700FM
 };
 
+/// 8600 4.5.5.2 (#49): Recall and preset transfer only, from its OWN client and a capture of it. The original PC Remote 4.5.5.2
+/// against the virtual 8600 with its original firmware (23 October 2026, netlog of run m20 86rem, decoded 10 November 2026):
+/// login with a session number; FAh -> FBh; F3h -> its preset files (E7h, `SETUP.ORB86SETUP` without user presets); F0h ->
+/// `Setup.orb86setup` (E9h); F4h, F1h, F2h, EFh -> `Password.orb86pas` (E6h) and `OnAir.orb86onair` (E5h, named); its clock F7h
+/// every second; an unnamed on-air upload (E5h) followed by the client's FBh, which the unit answers with FBh. `8600PC.exe`
+/// 4.5.5.2 statically: the 5700i client's send sites (Recall 0x46fa00 uploads, then FBh; uploads 229/231/233/234 at 0x473530;
+/// Delete EDh 0x473c60). Factory Recall as its client does it: its own installer's factory files (PRE-E); no terminal RP.
+pub const WIRE_8600: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/8600/4.5.5.2/factory-presets.json")),
+    save_deletes_working_copies: false,
+    boundary: (250, 251),
+    on_air_request: 239,
+    setup_request: Some((240, 233)),
+    user_presets_request: Some((243, 231)),
+    user_extension: ".orb86user",
+    file_sync: true,
+    factory_presets: &FACTORY_8600,
+    file_end: Some(251),
+    login_seed: LoginSeed::Always,
+    file_names: true,
+    factory_recall: false,
+    preset_file_delete: Some(237),
+    tool_files: None,
+    backup_requests: &[],
+    backup_kept: &[],
+    restore_extensions: &[],
+    setup_presets: None,
+    network_request: None,
+    restore_files: &[],
+    restore_answered: false,
+};
+
+const FACTORY_8600: [&str; 64] = [
+    "CLASSICAL-2 BAND",
+    "CLASSICAL-2B MX",
+    "CLASSICAL-2B+AGC",
+    "CLASSICAL-2B+AGC MX",
+    "CLASSICAL-5 BAND",
+    "CLASSICAL-5B MX",
+    "CLASSICAL-5B+AGC",
+    "CLASSICAL-5B+AGC MX",
+    "COUNTRY UL",
+    "COUNTRY-LIGHT",
+    "COUNTRY-MEDIUM",
+    "CRISP",
+    "CRISP+LOWBASS MX",
+    "CRISP+MIDBASS MX",
+    "DANCE ENERGY",
+    "EDGE",
+    "EDGE MX",
+    "FOLK-TRADITIONAL",
+    "GOLD",
+    "GOLD HEAVY BASS MX",
+    "GOLD HEAVY MX",
+    "GOLD OPEN MX",
+    "GREGG",
+    "GREGG LL",
+    "GREGG MX",
+    "GREGG OPEN",
+    "GREGG OPEN MX",
+    "IMPACT",
+    "IMPACT LL",
+    "IMPACT MX",
+    "INSTRUMENTAL",
+    "JAZZ",
+    "LOUD+SLAM",
+    "LOUD-BIG",
+    "LOUD-COMPRESSED",
+    "LOUD-FAT",
+    "LOUD-HOT",
+    "LOUD-HOT LL",
+    "LOUD-HOT+BASS",
+    "LOUD-HOT+BASS LL",
+    "LOUD-PUNCHY",
+    "LOUD-WIDE",
+    "MELLOW JAZZ MX",
+    "NEWS-TALK",
+    "PROTECT-0DB",
+    "ROCK-DENSE",
+    "ROCK-GEN UL",
+    "ROCK-LIGHT",
+    "ROCK-MEDIUM",
+    "ROCK-MEDIUM MX",
+    "ROCK-MEDIUM+LOWBASS",
+    "ROCK-MEDIUM+MIDBASS",
+    "ROCK-OPEN",
+    "ROCK-OPEN UL",
+    "ROCK-SMOOTH",
+    "ROCK-SMOOTH MX",
+    "ROCK-SOFT",
+    "ROCK-SOFT MX",
+    "SMOOTH JAZZ",
+    "SMOOTH JAZZ MX",
+    "SPORTS",
+    "URBAN UL",
+    "URBAN-HEAVY",
+    "URBAN-LIGHT",
+];
+
 /// 8700HD 1.0.2.161: captured from the original PC Remote 1.0.2.161 and the
 /// original firmware (virtual 8700, 20-21 October 2026). F9h is answered by
 /// FAh, EEh by `OnAir.orb86onair`, EFh by `Setup.orb86setup` (E8h) and F2h by
@@ -1040,7 +1139,7 @@ const RECALL_ONLY: Capabilities = Capabilities { preset_recall: true, ..READ_ONL
 
 /// Exact banners whose Recall and transfer wire was derived from their own client and read on their firmware, without a
 /// parameter profile (so never `exact()`: no parameter writes).
-const RECALL_EXACT: [(&str, AdapterDescriptor); 2] = [(
+const RECALL_EXACT: [(&str, AdapterDescriptor); 3] = [(
     "5700FM V 1.1.1.1",
     AdapterDescriptor {
         id: "pc-remote-5700fm-1.1.1.1",
@@ -1074,6 +1173,24 @@ const RECALL_EXACT: [(&str, AdapterDescriptor); 2] = [(
         frame_cut: None,
         on_air_archive: true,
         wire: WIRE_5700HD,
+        evidence: Evidence::Static,
+    },
+), (
+    "8600 V 4.5.5.2",
+    AdapterDescriptor {
+        id: "pc-remote-8600-4.5.5.2",
+        model: DeviceModel::Optimod8600,
+        skin: SkinId::Optimod8600,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8600",
+        firmware_prefix: "8600 V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_8600,
         evidence: Evidence::Static,
     },
 )];
