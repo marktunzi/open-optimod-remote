@@ -284,6 +284,11 @@ fn recall_only_adapters_never_write_parameters_and_need_their_exact_banner() {
         assert!(a.capabilities.preset_recall && !a.capabilities.parameter_writes, "{banner}");
         assert_eq!((a.wire.boundary, a.wire.on_air_request, a.wire.user_extension), ((249, 250), 238, ext), "{banner}");
     }
+    for (banner, ext) in [("8600Si V 3.1.0.3", ".orb86user"), ("5518 V 3.0.0.20", ".orb5518user")] {
+        let a = AdapterRegistry::identify_banner(banner).unwrap();
+        assert!(a.capabilities.preset_recall && !a.capabilities.parameter_writes, "{banner}");
+        assert_eq!((a.wire.boundary, a.wire.on_air_request, a.wire.user_extension, a.wire.file_end), ((250, 251), 239, ext, Some(251)), "{banner}");
+    }
     for banner in ["5300 V 1.1.3.88", "8300 V 2.1.3.87"] {
         let a = AdapterRegistry::identify_banner(banner).unwrap();
         assert!(a.capabilities.preset_recall && !a.capabilities.parameter_writes, "{banner}");

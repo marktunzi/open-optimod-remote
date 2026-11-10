@@ -710,6 +710,31 @@ const FACTORY_8300: [&str; 43] = [
     "URBAN-LOUD MX",
 ];
 
+/// 8600Si 3.1.0.3 (#49): Recall and transfer only. Its own client 8600SiPC.exe 3.1.0.3 has the 8600 4.5.5.2 client's send sites
+/// and sync; a session of that client against its firmware (M21 run net_8600Si, NAS archive) and its own read-only session read
+/// FAh -> FBh, F3h -> its preset files (E7h), F0h -> Setup.orb86setup (E9h), F4h/F1h/F2h/EFh -> Password.orb86pas (E6h) and
+/// OnAir.orb86onair (E5h); its own installer's factory files.
+pub const WIRE_8600SI: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/8600si/3.1.0.3/factory-presets.json")),
+    ..WIRE_8600
+};
+
+/// 5518 3.0.0.20 (#49): Recall and transfer only. Its own client 5518PC.exe 3.0.0.20 has the 8600 client's send sites and
+/// sync; a session of it against its firmware (M21 run net_5518) and its own read-only session: FAh -> FBh, F3h -> its preset
+/// files (E7h: `DEFAULT.ORB5518SETUP` setup presets and their `MODIF` copies), F0h -> `Setup.orbsetup` (E9h), F4h/F1h/F2h/EFh
+/// -> Password.orb5518pas (E6h), Network.orb5518net (EAh), OnAir.orb5518onair (E5h). User presets `.orb5518user`; its own
+/// installer's factory file(s).
+pub const WIRE_5518: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/5518/3.0.0.20/factory-presets.json")),
+    user_extension: ".orb5518user",
+    factory_presets: &FACTORY_5518,
+    ..WIRE_8600
+};
+
+const FACTORY_5518: [&str; 1] = [
+    "ST ENC NO LIM",
+];
+
 /// 8700HD 1.0.2.161: captured from the original PC Remote 1.0.2.161 and the
 /// original firmware (virtual 8700, 20-21 October 2026). F9h is answered by
 /// FAh, EEh by `OnAir.orb86onair`, EFh by `Setup.orb86setup` (E8h) and F2h by
@@ -1360,7 +1385,7 @@ const RECALL_ONLY: Capabilities = Capabilities { preset_recall: true, ..READ_ONL
 
 /// Exact banners whose Recall and transfer wire was derived from their own client and read on their firmware, without a
 /// parameter profile (so never `exact()`: no parameter writes).
-const RECALL_EXACT: [(&str, AdapterDescriptor); 9] = [(
+const RECALL_EXACT: [(&str, AdapterDescriptor); 11] = [(
     "5700FM V 1.1.1.1",
     AdapterDescriptor {
         id: "pc-remote-5700fm-1.1.1.1",
@@ -1520,6 +1545,42 @@ const RECALL_EXACT: [(&str, AdapterDescriptor); 9] = [(
         frame_cut: None,
         on_air_archive: true,
         wire: WIRE_8300,
+        evidence: Evidence::Static,
+    },
+), (
+    "8600Si V 3.1.0.3",
+    AdapterDescriptor {
+        id: "pc-remote-8600si-3.1.0.3",
+        model: DeviceModel::Optimod8600Si,
+        skin: SkinId::Optimod8600,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8600Si",
+        firmware_prefix: "8600Si V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_8600SI,
+        evidence: Evidence::Static,
+    },
+), (
+    "5518 V 3.0.0.20",
+    AdapterDescriptor {
+        id: "pc-remote-5518-3.0.0.20",
+        model: DeviceModel::Optimod5518,
+        skin: SkinId::Optimod5500,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "5518",
+        firmware_prefix: "5518 V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_5518,
         evidence: Evidence::Static,
     },
 )];
