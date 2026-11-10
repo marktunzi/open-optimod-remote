@@ -66,3 +66,54 @@ pub async fn transfer(link: &mut FileLink<'_>, preset: &str, document: &str, mod
         }
     }
 }
+
+/// The OPTIMOD-FM 8400: its original client's Copy (PC -> 8400) on the Memory screen (capture, 29 October 2026; moved from
+/// `orban-web`'s `restore_preset_files`): the document with Unix line ends as `<Preset Name>.orb` in the user folder through the
+/// file calls, then the "preset added" event (16391, 18, name). Confirmed by the processor's own list. Never over a listed name,
+/// a factory name or one of the unit's own files; never sent twice.
+pub mod o8400 {
+    use crate::{adapter::DeviceModel, document::Document, o8400::{self as o84, Session}, recall::RecallError};
+    use std::time::Duration;
+
+    const ADDED_EVENT: u16 = 16391;
+    const STATE_FILES: [&str; 6] = ["NEXT", "ONAIR", "SYSTEM", "TEST", "TIME", "PASSWORD"];
+
+    pub async fn transfer(session: &mut Session, preset: &str, document: &str, limit: Duration) -> Result<(), RecallError> {
+        let refuse = |e: String| RecallError::Refused(e);
+        if session.login.access_level != 0 {
+            return Err(refuse("Preset changes are not enabled for this access level".into()));
+        }
+        crate::presets::validate_name(preset).map_err(refuse)?;
+        if preset.len() > crate::presets::max_store_name_length(DeviceModel::Optimod8400) || preset.trim() != preset
+            || preset.contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.'])
+            || preset.to_ascii_lowercase().starts_with("modif ")
+            || STATE_FILES.iter().any(|s| s.eq_ignore_ascii_case(preset)) {
+            return Err(refuse(format!("{preset} cannot be a user preset file of the OPTIMOD-FM 8400")));
+        }
+        let text = document.replace("\r\n", "\n");
+        let doc = Document::parse_for_model(text.as_bytes(), DeviceModel::Optimod8400).map_err(|e| refuse(format!("not an OPTIMOD-FM 8400 preset: {e}")))?;
+        if doc.name != preset {
+            return Err(refuse(format!("the document names itself {}, not {preset}", doc.name)));
+        }
+        if text.len() + 64 > 4096 {
+            return Err(refuse(format!("{preset} is too long for the processor")));
+        }
+        let (factory, user) = crate::recall::o8400::presets(session).await.map_err(refuse)?;
+        if factory.iter().chain(user.iter()).any(|p| p.eq_ignore_ascii_case(preset)) {
+            return Err(refuse(format!("The processor already has a preset {preset}: nothing is overwritten")));
+        }
+        session.write(o84::USER_DIR, &format!("{preset}.orb"), text.as_bytes()).await
+            .map_err(|e| RecallError::Uncertain(format!("{preset} was sent, its outcome is unknown: {e}")))?;
+        session.event(ADDED_EVENT, 18, preset).await
+            .map_err(|e| RecallError::Uncertain(format!("{preset} was written, the added event's outcome is unknown: {e}")))?;
+        let end = tokio::time::Instant::now() + limit;
+        loop {
+            match crate::recall::o8400::presets(session).await {
+                Ok((_, u)) if u.iter().any(|p| p.eq_ignore_ascii_case(preset)) => return Ok(()),
+                _ if tokio::time::Instant::now() < end => tokio::time::sleep(Duration::from_secs(1)).await,
+                Ok(_) => return Err(RecallError::Uncertain(format!("The processor's preset list does not show {preset}"))),
+                Err(e) => return Err(RecallError::Uncertain(format!("{preset} could not be confirmed: {e}"))),
+            }
+        }
+    }
+}
