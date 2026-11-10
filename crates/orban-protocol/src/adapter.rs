@@ -381,6 +381,16 @@ pub const WIRE_5700FM: Wire = Wire {
     restore_answered: false,
 };
 
+/// 5700HD 1.1.1.2 (#49, virtual 5700HD with its original firmware, 10 November 2026), checked on its own: `5700HDPC.exe` 1.1.1.2
+/// (sha256 85578990...) has the 5700FM client's send sites with the same opcodes (sync 0x45efc0-equivalent, Recall upload + FAh,
+/// 231, E8h, ECh), and its firmware answered its own read-only session exactly as the 5700FM's did (login with a session number,
+/// F9h -> FAh, EEh -> OnAir.orb57onair 229, EFh -> Setup.orb57setup E8h, F2h -> preset files 231, F3h -> Password.orb57pas 230;
+/// research/m21.7/evidence/rc5700hd/probe-*.json). Factory files from its own installer.
+pub const WIRE_5700HD: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/5700hd/1.1.1.2/factory-presets.json")),
+    ..WIRE_5700FM
+};
+
 /// 8700HD 1.0.2.161: captured from the original PC Remote 1.0.2.161 and the
 /// original firmware (virtual 8700, 20-21 October 2026). F9h is answered by
 /// FAh, EEh by `OnAir.orb86onair`, EFh by `Setup.orb86setup` (E8h) and F2h by
@@ -1021,7 +1031,7 @@ const RECALL_ONLY: Capabilities = Capabilities { preset_recall: true, ..READ_ONL
 
 /// Exact banners whose Recall and transfer wire was derived from their own client and read on their firmware, without a
 /// parameter profile (so never `exact()`: no parameter writes).
-const RECALL_EXACT: [(&str, AdapterDescriptor); 1] = [(
+const RECALL_EXACT: [(&str, AdapterDescriptor); 2] = [(
     "5700FM V 1.1.1.1",
     AdapterDescriptor {
         id: "pc-remote-5700fm-1.1.1.1",
@@ -1037,6 +1047,24 @@ const RECALL_EXACT: [(&str, AdapterDescriptor); 1] = [(
         frame_cut: None,
         on_air_archive: true,
         wire: WIRE_5700FM,
+        evidence: Evidence::Static,
+    },
+), (
+    "5700HD V 1.1.1.2",
+    AdapterDescriptor {
+        id: "pc-remote-5700hd-1.1.1.2",
+        model: DeviceModel::Optimod5700Hd,
+        skin: SkinId::Optimod5700Hd,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "5700 HD",
+        firmware_prefix: "5700HD V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_5700HD,
         evidence: Evidence::Static,
     },
 )];

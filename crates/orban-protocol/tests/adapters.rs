@@ -271,7 +271,10 @@ fn recall_only_adapters_never_write_parameters_and_need_their_exact_banner() {
         assert!(adapter.wire.factory_files.is_some() || adapter.wire.factory_recall, "{banner}");
     }
     // a neighbouring firmware stays on the read-only family adapter
-    for banner in ["5700FM V 1.1.1.2", "5700FM V 1.1.1", "5700HD V 1.1.1.2"] {
+    let hd = AdapterRegistry::identify_banner("5700HD V 1.1.1.2").unwrap();
+    assert_eq!(hd.id, "pc-remote-5700hd-1.1.1.2");
+    assert!(hd.capabilities.preset_recall && !hd.capabilities.parameter_writes);
+    for banner in ["5700FM V 1.1.1.2", "5700FM V 1.1.1", "5700HD V 1.1.1.1", "5700HD V 1.1.1.3"] {
         assert!(!AdapterRegistry::identify_banner(banner).unwrap().capabilities.preset_recall, "{banner}");
     }
 }
