@@ -278,6 +278,12 @@ fn recall_only_adapters_never_write_parameters_and_need_their_exact_banner() {
     assert_eq!(s86.id, "pc-remote-8600-4.5.5.2");
     assert!(s86.capabilities.preset_recall && !s86.capabilities.parameter_writes);
     assert_eq!((s86.wire.boundary, s86.wire.on_air_request, s86.wire.file_end), ((250, 251), 239, Some(251)));
+    for (banner, ext) in [("8500S-FM V 1.0.3.146", ".orb85suser"), ("8500S-HD V 1.0.3.145", ".orb85suser"),
+                          ("8600S-FM V 2.1.1.28", ".orb86user"), ("8600S-HD V 2.1.1.29", ".orb86user")] {
+        let a = AdapterRegistry::identify_banner(banner).unwrap();
+        assert!(a.capabilities.preset_recall && !a.capabilities.parameter_writes, "{banner}");
+        assert_eq!((a.wire.boundary, a.wire.on_air_request, a.wire.user_extension), ((249, 250), 238, ext), "{banner}");
+    }
     for banner in ["5700FM V 1.1.1.2", "5700FM V 1.1.1", "5700HD V 1.1.1.1", "5700HD V 1.1.1.3", "8600 V 4.5.5.1"] {
         assert!(!AdapterRegistry::identify_banner(banner).unwrap().capabilities.preset_recall, "{banner}");
     }

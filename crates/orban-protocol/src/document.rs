@@ -69,7 +69,12 @@ impl Document {
             crate::adapter::DeviceModel::Optimod2300 => "OptimodVersion=<2300.",
             // The 8400 3.0.5 writes 00.08 documents that end `End Preset`.
             crate::adapter::DeviceModel::Optimod8400 => "OptimodVersion=<00.08>",
-            crate::adapter::DeviceModel::Optimod8600 => "OptimodVersion=<8600.",
+            crate::adapter::DeviceModel::Optimod8600
+            | crate::adapter::DeviceModel::Optimod8600SFm
+            | crate::adapter::DeviceModel::Optimod8600SHd
+            | crate::adapter::DeviceModel::Optimod8600Si => "OptimodVersion=<8600.",
+            // (the 8500S 1.0.3 writes 8500S.50 documents, its own family)
+            crate::adapter::DeviceModel::Optimod8500SFm | crate::adapter::DeviceModel::Optimod8500SHd => "OptimodVersion=<8500S.",
             crate::adapter::DeviceModel::Optimod8700i
             | crate::adapter::DeviceModel::Optimod8700Hd => "OptimodVersion=<8700.",
             crate::adapter::DeviceModel::Optimod9300 => "OptimodVersion=<9300.",

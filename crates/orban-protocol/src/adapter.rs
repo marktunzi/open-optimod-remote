@@ -45,6 +45,18 @@ pub enum DeviceModel {
     Optimod9300,
     #[serde(rename = "optimod-9400")]
     Optimod9400,
+    // #49: models known to the protocol library only (Recall and transfer of the Optimod emulator), not offered in the app's
+    // model choice (SELECTABLE): no pages, meters or skin of their own yet.
+    #[serde(rename = "optimod-8500s-fm")]
+    Optimod8500SFm,
+    #[serde(rename = "optimod-8500s-hd")]
+    Optimod8500SHd,
+    #[serde(rename = "optimod-8600s-fm")]
+    Optimod8600SFm,
+    #[serde(rename = "optimod-8600s-hd")]
+    Optimod8600SHd,
+    #[serde(rename = "optimod-8600si")]
+    Optimod8600Si,
 }
 
 impl DeviceModel {
@@ -79,6 +91,11 @@ impl DeviceModel {
             Self::Optimod6300 => "OPTIMOD 6300",
             Self::Optimod8400 => "OPTIMOD-FM 8400",
             Self::Optimod8600 => "OPTIMOD 8600",
+            Self::Optimod8500SFm => "OPTIMOD 8500S FM",
+            Self::Optimod8500SHd => "OPTIMOD 8500S HD",
+            Self::Optimod8600SFm => "OPTIMOD 8600S FM",
+            Self::Optimod8600SHd => "OPTIMOD 8600S HD",
+            Self::Optimod8600Si => "OPTIMOD 8600Si",
             Self::Optimod8700i => "OPTIMOD 8700i",
             Self::Optimod8700Hd => "OPTIMOD-FM 8700HD",
             Self::Optimod9300 => "OPTIMOD 9300",
@@ -487,6 +504,84 @@ const FACTORY_8600: [&str; 64] = [
     "ROCK-SOFT MX",
     "SMOOTH JAZZ",
     "SMOOTH JAZZ MX",
+    "SPORTS",
+    "URBAN UL",
+    "URBAN-HEAVY",
+    "URBAN-LIGHT",
+];
+
+/// 8500S-FM 1.0.3.146 (#49) Recall and preset transfer only. Its OWN client (installer of the same version) has the 5700FM client's send sites and sync (F9h, F2h, EFh, F3h, F0h, F1h, EEh; Recall uploads 229 then FAh; 231; Delete ECh), and its firmware answered its own isolated read-only session exactly as the 5700FM's (login with a session number, F9h -> FAh, EEh -> its OnAir file 229, F2h -> its preset files 231, EFh -> its Setup file E8h, F3h -> its passcodes E6h; research/m21.7/evidence/rc<model>/probe-*.json, 10 November 2026). Its own file names and its own installer's factory files.
+pub const WIRE_8500S_FM: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/8500sfm/1.0.3.146/factory-presets.json")),
+    user_extension: ".orb85suser",
+    factory_presets: &FACTORY_8500S,
+    ..WIRE_5700FM
+};
+/// 8500S-HD 1.0.3.145 (#49) Recall and preset transfer only. Its OWN client (installer of the same version) has the 5700FM client's send sites and sync (F9h, F2h, EFh, F3h, F0h, F1h, EEh; Recall uploads 229 then FAh; 231; Delete ECh), and its firmware answered its own isolated read-only session exactly as the 5700FM's (login with a session number, F9h -> FAh, EEh -> its OnAir file 229, F2h -> its preset files 231, EFh -> its Setup file E8h, F3h -> its passcodes E6h; research/m21.7/evidence/rc<model>/probe-*.json, 10 November 2026). Its own file names and its own installer's factory files.
+pub const WIRE_8500S_HD: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/8500shd/1.0.3.145/factory-presets.json")),
+    user_extension: ".orb85suser",
+    factory_presets: &FACTORY_8500S,
+    ..WIRE_5700FM
+};
+/// 8600S-FM 2.1.1.28 (#49) Recall and preset transfer only. Its OWN client (installer of the same version) has the 5700FM client's send sites and sync (F9h, F2h, EFh, F3h, F0h, F1h, EEh; Recall uploads 229 then FAh; 231; Delete ECh), and its firmware answered its own isolated read-only session exactly as the 5700FM's (login with a session number, F9h -> FAh, EEh -> its OnAir file 229, F2h -> its preset files 231, EFh -> its Setup file E8h, F3h -> its passcodes E6h; research/m21.7/evidence/rc<model>/probe-*.json, 10 November 2026). Its own file names and its own installer's factory files.
+pub const WIRE_8600S_FM: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/8600sfm/2.1.1.28/factory-presets.json")),
+    user_extension: ".orb86user",
+    factory_presets: &FACTORY_8600,
+    ..WIRE_5700FM
+};
+/// 8600S-HD 2.1.1.29 (#49) Recall and preset transfer only. Its OWN client (installer of the same version) has the 5700FM client's send sites and sync (F9h, F2h, EFh, F3h, F0h, F1h, EEh; Recall uploads 229 then FAh; 231; Delete ECh), and its firmware answered its own isolated read-only session exactly as the 5700FM's (login with a session number, F9h -> FAh, EEh -> its OnAir file 229, F2h -> its preset files 231, EFh -> its Setup file E8h, F3h -> its passcodes E6h; research/m21.7/evidence/rc<model>/probe-*.json, 10 November 2026). Its own file names and its own installer's factory files.
+pub const WIRE_8600S_HD: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/8600shd/2.1.1.29/factory-presets.json")),
+    user_extension: ".orb86user",
+    factory_presets: &FACTORY_8600,
+    ..WIRE_5700FM
+};
+
+const FACTORY_8500S: [&str; 46] = [
+    "CLASSICAL-2 BAND",
+    "CLASSICAL-2B+AGC",
+    "CLASSICAL-5 BAND",
+    "CLASSICAL-5B+AGC",
+    "COUNTRY UL",
+    "COUNTRY-LIGHT",
+    "COUNTRY-MEDIUM",
+    "CRISP",
+    "DANCE ENERGY",
+    "EDGE",
+    "FOLK-TRADITIONAL",
+    "GOLD",
+    "GREGG",
+    "GREGG LL",
+    "GREGG OPEN",
+    "IMPACT",
+    "IMPACT LL",
+    "INSTRUMENTAL",
+    "JAZZ",
+    "LOUD+SLAM",
+    "LOUD-BIG",
+    "LOUD-COMPRESSED",
+    "LOUD-FAT",
+    "LOUD-HOT",
+    "LOUD-HOT LL",
+    "LOUD-HOT+BASS",
+    "LOUD-HOT+BASS LL",
+    "LOUD-PUNCHY",
+    "LOUD-WIDE",
+    "NEWS-TALK",
+    "PROTECT-0DB",
+    "ROCK-DENSE",
+    "ROCK-GEN UL",
+    "ROCK-LIGHT",
+    "ROCK-MEDIUM",
+    "ROCK-MEDIUM+LOWBASS",
+    "ROCK-MEDIUM+MIDBASS",
+    "ROCK-OPEN",
+    "ROCK-OPEN UL",
+    "ROCK-SMOOTH",
+    "ROCK-SOFT",
+    "SMOOTH JAZZ",
     "SPORTS",
     "URBAN UL",
     "URBAN-HEAVY",
@@ -1139,7 +1234,7 @@ const RECALL_ONLY: Capabilities = Capabilities { preset_recall: true, ..READ_ONL
 
 /// Exact banners whose Recall and transfer wire was derived from their own client and read on their firmware, without a
 /// parameter profile (so never `exact()`: no parameter writes).
-const RECALL_EXACT: [(&str, AdapterDescriptor); 3] = [(
+const RECALL_EXACT: [(&str, AdapterDescriptor); 7] = [(
     "5700FM V 1.1.1.1",
     AdapterDescriptor {
         id: "pc-remote-5700fm-1.1.1.1",
@@ -1191,6 +1286,78 @@ const RECALL_EXACT: [(&str, AdapterDescriptor); 3] = [(
         frame_cut: None,
         on_air_archive: true,
         wire: WIRE_8600,
+        evidence: Evidence::Static,
+    },
+), (
+    "8500S-FM V 1.0.3.146",
+    AdapterDescriptor {
+        id: "pc-remote-8500s-fm-1.0.3.146",
+        model: DeviceModel::Optimod8500SFm,
+        skin: SkinId::Optimod8500,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8500S-FM",
+        firmware_prefix: "8500S-FM V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_8500S_FM,
+        evidence: Evidence::Static,
+    },
+), (
+    "8500S-HD V 1.0.3.145",
+    AdapterDescriptor {
+        id: "pc-remote-8500s-hd-1.0.3.145",
+        model: DeviceModel::Optimod8500SHd,
+        skin: SkinId::Optimod8500,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8500S-HD",
+        firmware_prefix: "8500S-HD V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_8500S_HD,
+        evidence: Evidence::Static,
+    },
+), (
+    "8600S-FM V 2.1.1.28",
+    AdapterDescriptor {
+        id: "pc-remote-8600s-fm-2.1.1.28",
+        model: DeviceModel::Optimod8600SFm,
+        skin: SkinId::Optimod8600,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8600S-FM",
+        firmware_prefix: "8600S-FM V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_8600S_FM,
+        evidence: Evidence::Static,
+    },
+), (
+    "8600S-HD V 2.1.1.29",
+    AdapterDescriptor {
+        id: "pc-remote-8600s-hd-2.1.1.29",
+        model: DeviceModel::Optimod8600SHd,
+        skin: SkinId::Optimod8600,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8600S-HD",
+        firmware_prefix: "8600S-HD V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_8600S_HD,
         evidence: Evidence::Static,
     },
 )];
