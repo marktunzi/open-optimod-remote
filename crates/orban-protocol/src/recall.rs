@@ -330,3 +330,75 @@ pub async fn recall(
     }
     Ok(confirmed)
 }
+
+/// The 8400 (its own PC Remote session, `crate::o8400`): a Recall is the
+/// client's PEG message 0x400B with the preset's name; the unit writes the
+/// recalled preset into its on-air file within a few seconds.
+pub mod o8400 {
+    use super::RecallError;
+    use crate::{adapter::DeviceModel, document::Document, o8400::{self, Session}};
+    use std::time::Duration;
+
+    pub const RECALL_EVENT: u16 = 0x400B;
+    pub const RECALL_LIMIT: Duration = Duration::from_secs(15);
+
+    /// A file of the unit's user folder as a document.
+    pub fn document(file: &[u8]) -> Result<Document, String> {
+        Document::parse_for_model(o8400::document_text(file)?, DeviceModel::Optimod8400)
+    }
+
+    pub async fn on_air(session: &mut Session) -> Result<Document, String> {
+        document(&session.read(o8400::USER_DIR, "onair.orb").await?)
+    }
+
+    /// The factory folder for the unit's pre-emphasis (system control PRE-E), as the original client chooses it.
+    pub fn factory_folder(system: &Document) -> &'static str {
+        match system.fields.get("PRE-E").map(|f| &f.value) {
+            Some(crate::document::Value::Choice(v)) if v == "50us" => "c:\\8400\\presets\\50us presets\\",
+            _ => "c:\\8400\\presets\\75us presets\\",
+        }
+    }
+
+    /// Factory and user preset names as the unit lists its files.
+    pub async fn presets(session: &mut Session) -> Result<(Vec<String>, Vec<String>), String> {
+        let system = document(&session.read(o8400::USER_DIR, "system.orb").await?)?;
+        let strip = |f: &str| f.strip_suffix(".ORB").or_else(|| f.strip_suffix(".orb")).map(str::to_owned);
+        let factory = session.list(factory_folder(&system), "*.orb").await?.iter().filter_map(|f| strip(f)).collect();
+        const STATE: [&str; 5] = ["NEXT.ORB", "ONAIR.ORB", "SYSTEM.ORB", "TEST.ORB", "TIME.ORB"];
+        let user = session.list(o8400::USER_DIR, "*.orb").await?.iter()
+            .filter(|f| !STATE.contains(&f.to_ascii_uppercase().as_str())).filter_map(|f| strip(f)).collect();
+        Ok((factory, user))
+    }
+
+    /// Reads the on-air file until it names `name` or the limit passes; the last one read is returned.
+    pub async fn read_back(session: &mut Session, name: &str, limit: Duration) -> Result<Document, String> {
+        let end = tokio::time::Instant::now() + limit;
+        loop {
+            let d = on_air(session).await?;
+            if d.name == name || tokio::time::Instant::now() >= end {
+                return Ok(d);
+            }
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
+    }
+
+    /// One Recall, confirmed by the on-air file. Sent once.
+    pub async fn recall(session: &mut Session, name: &str) -> Result<Document, RecallError> {
+        crate::presets::validate_name(name).map_err(RecallError::Refused)?;
+        if session.login.access_level != 0 {
+            return Err(RecallError::Refused("Preset recall is not enabled for this access level".into()));
+        }
+        let (factory, user) = presets(session).await.map_err(RecallError::Refused)?;
+        if !factory.iter().chain(user.iter()).any(|p| p == name) {
+            return Err(RecallError::Refused(format!("The processor lists no preset {name}")));
+        }
+        session.event(RECALL_EVENT, 0, name).await
+            .map_err(|e| RecallError::Uncertain(format!("The recall of {name} was sent, its outcome is unknown: {e}")))?;
+        let d = read_back(session, name, RECALL_LIMIT).await
+            .map_err(|e| RecallError::Uncertain(format!("The recall of {name} could not be confirmed: {e}")))?;
+        if d.name != name {
+            return Err(RecallError::Uncertain(format!("The processor did not confirm the recall of {name}; it reports {} on air", d.name)));
+        }
+        Ok(d)
+    }
+}

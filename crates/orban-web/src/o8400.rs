@@ -13,7 +13,7 @@ use crate::{
 use orban_protocol::{
     adapter::{AdapterRegistry, Capabilities, DeviceModel},
     control::Scope,
-    document::{Document, Field, Value},
+    document::{Document, Field},
     o8400::{self, Session},
     presets::{Preset, PresetKind},
     profile::Profile,
@@ -51,7 +51,7 @@ const STATE_FILES: [&str; 5] = [
     "TIME.ORB",
 ];
 /// PEG messages the original client forwards (type 47).
-const RECALL_EVENT: u16 = 0x400B;
+const RECALL_EVENT: u16 = orban_protocol::recall::o8400::RECALL_EVENT;
 const METERS_ON_EVENT: u16 = 0x40DC;
 
 pub struct Unit {
@@ -261,7 +261,7 @@ async fn receive_meters(socket: UdpSocket, state: Arc<std::sync::Mutex<Listening
 }
 
 fn document(file: &[u8]) -> Result<Document, String> {
-    Document::parse_for_model(o8400::document_text(file)?, DeviceModel::Optimod8400)
+    orban_protocol::recall::o8400::document(file)
 }
 
 async fn read_document(unit: &mut Unit, name: &str) -> Result<Document, String> {
@@ -273,10 +273,7 @@ async fn read_document(unit: &mut Unit, name: &str) -> Result<Document, String> 
 /// The factory presets folder for the unit's pre-emphasis, as the original
 /// client chooses it (system control PRE-E).
 fn factory_folder(system: &Document) -> &'static str {
-    match system.fields.get("PRE-E").map(|f| &f.value) {
-        Some(Value::Choice(value)) if value == "50us" => "c:\\8400\\presets\\50us presets\\",
-        _ => "c:\\8400\\presets\\75us presets\\",
-    }
+    orban_protocol::recall::o8400::factory_folder(system)
 }
 
 async fn read_presets(unit: &mut Unit, system: &Document) -> Result<Vec<Preset>, String> {
