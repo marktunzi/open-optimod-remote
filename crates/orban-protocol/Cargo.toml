@@ -13,3 +13,4 @@ thiserror.workspace = true
 zeroize.workspace = true
 rpassword.workspace = true
 aes = "0.8.4"
+uuid = { version = "1", features = ["v4"] }

@@ -394,6 +394,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "uuid",
  "zeroize",
 ]
 

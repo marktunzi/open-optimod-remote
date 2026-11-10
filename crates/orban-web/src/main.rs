@@ -1399,19 +1399,9 @@ async fn read_on_air_file(app: &App, device: &mut Device) -> Result<Zeroizing<Ve
     Ok(Zeroizing::new(device.session.decrypt_file(&data)?))
 }
 
-/// A file of a file-sync model as a document. The 8700HD saves a preset
-/// that a Recall sent with the LF line ends of that upload (the original
-/// PC Remote's too); its own files end lines with CR LF.
+/// A file of a file-sync model as a document (`orban_protocol::recall`).
 fn file_document(plain: &[u8], model: DeviceModel) -> Result<Document, String> {
-    if plain.windows(2).any(|w| w == b"\r\n") {
-        return Document::parse_for_model(plain, model);
-    }
-    let text = Zeroizing::new(
-        std::str::from_utf8(plain)
-            .map_err(|_| "Unsupported document encoding")?
-            .replace('\n', "\r\n"),
-    );
-    Document::parse_for_model(text.as_bytes(), model)
+    orban_protocol::recall::file_document(plain, model)
 }
 
 /// The files the unit sends in answer to `request` (opcode `reply`), read
@@ -1660,16 +1650,13 @@ async fn synchronize_files(app: &App, device: &mut Device) -> Result<(), String>
 /// file (229), sealed with the access code.
 async fn upload_on_air(device: &mut Device, text: &str) -> Result<(), OperationError> {
     let iv = *uuid::Uuid::new_v4().as_bytes();
-    let sealed = orban_protocol::archive::encrypt(text.as_bytes(), &device.code, iv)
-        .map_err(OperationError::safe)?;
-    // The 2300's upload has no name line at all.
-    let mut body = if device.session.adapter().wire.file_names {
-        format!("0\n0\n\n{}\n", sealed.len())
-    } else {
-        format!("0\n0\n{}\n", sealed.len())
-    }
-    .into_bytes();
-    body.extend(sealed);
+    let body = orban_protocol::recall::upload_body(
+        text,
+        &device.code,
+        device.session.adapter().wire.file_names,
+        iv,
+    )
+    .map_err(OperationError::safe)?;
     device
         .session
         .send(229, &body)
@@ -1707,12 +1694,7 @@ async fn factory_file(device: &Device, app: &App, name: &str) -> Result<String, 
         .ok_or_else(|| {
             OperationError::safe("The pre-emphasis setting is not available; use Refresh first")
         })?;
-    let files: JsonValue =
-        serde_json::from_str(files).map_err(|e| OperationError::safe(e.to_string()))?;
-    files[name][emphasis.as_str()]
-        .as_str()
-        .map(str::to_owned)
-        .ok_or_else(|| OperationError::safe(format!("No factory file for {name} at {emphasis}")))
+    orban_protocol::recall::factory_text(files, name, &emphasis).map_err(OperationError::safe)
 }
 
 /// Recall on a file-sync model, as the original PC Remote does it: a user
@@ -1782,30 +1764,18 @@ async fn recall_with_files(
     let on_air_name = expected
         .as_ref()
         .map_or(name, |expected| expected.name.as_str());
-    let version = |document: &Document| document.raw.lines().next().map(str::to_owned);
-    // A document of an older version is converted by the firmware when it
-    // loads it (2300: user presets saved as 2300.10, run as 2300.20); then
-    // only the name can confirm the Recall.
-    let same_fields = |expected: &Document, document: &Document| {
-        version(expected) != version(document) || expected.fields == document.fields
-    };
-    let confirmed = read_back(app, device, Scope::Processing, |document| {
-        document.name == on_air_name
-            && expected
-                .as_ref()
-                .is_none_or(|expected| same_fields(expected, document))
-    })
+    // (orban_protocol::recall::confirms: the name, and an uploaded document's
+    // fields unless the firmware converted its version)
+    let confirms =
+        |document: &Document| orban_protocol::recall::confirms(on_air_name, expected.as_ref(), document);
+    let confirmed = read_back(app, device, Scope::Processing, |document| confirms(document))
     .await
     .map_err(|e| {
         OperationError::uncertain(format!(
             "The recall of {name} could not be confirmed; the connection remains active. {e}"
         ))
     })?;
-    if confirmed.name != on_air_name
-        || expected
-            .as_ref()
-            .is_some_and(|expected| !same_fields(expected, &confirmed))
-    {
+    if !confirms(&confirmed) {
         return Err(OperationError::uncertain(format!(
             "The processor did not confirm the recall of {name}; it reports {} on air",
             confirmed.name
