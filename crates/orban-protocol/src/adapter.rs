@@ -259,7 +259,7 @@ pub struct Wire {
     /// of 231, by file name.
     pub restore_files: &'static [(&'static str, u16)],
     /// The unit answers each named preset-file upload (231) with a boundary
-    /// answer of its own (5700i, 5500i firmware); the 6300, 8700i and 8700HD
+    /// answer of its own (assumed for the 5500i, not measured; the 5700i and 5500 do not: #51 traces, 10 November 2026); the 6300, 8700i and 8700HD
     /// firmware do not (virtual 6300 4.1.1.19, 8700i 1.5.1.11 and 8700HD
     /// 1.0.2.161, 29 October 2026).
     pub restore_answered: bool,
@@ -335,7 +335,10 @@ pub const WIRE_5700I: Wire = Wire {
         automation_name: "Automation.orb57autom",
         automation_file: 235,
     }),
-    restore_answered: true,
+    // No answer of its own to a named preset-file upload (231): read on the original firmware (#51, virtual unit, 10 November
+    // 2026: after the upload only its clock message every ~1.2 s, for 45 s; a boundary request then gets exactly one answer), and
+    // the original client's Restore (5700iPC.exe 0x455370 -> 0x4752d0) sends the next file without waiting for one.
+    restore_answered: false,
     ..WIRE_PC_REMOTE
 };
 
@@ -482,7 +485,10 @@ pub const WIRE_5500: Wire = Wire {
     // The client has no Open Setup or Save Setup As.
     setup_presets: None,
     network_request: None,
-    restore_answered: true,
+    // No answer of its own to a named preset-file upload (231): read on the original firmware (#51, virtual unit, 10 November
+    // 2026: after the upload only its clock message every ~1.2 s, for 45 s; a boundary request then gets exactly one answer), and
+    // the original client's Restore (5700iPC.exe 0x455370 -> 0x4752d0) sends the next file without waiting for one.
+    restore_answered: false,
     ..WIRE_8700HD
 };
 
