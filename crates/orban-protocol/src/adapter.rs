@@ -65,6 +65,8 @@ pub enum DeviceModel {
     Optimod8300,
     #[serde(rename = "optimod-8600-fm")]
     Optimod8600Fm,
+    #[serde(rename = "optimod-8500-fm")]
+    Optimod8500Fm,
 }
 
 impl DeviceModel {
@@ -108,6 +110,7 @@ impl DeviceModel {
             Self::Optimod5300 => "OPTIMOD 5300",
             Self::Optimod8300 => "OPTIMOD 8300",
             Self::Optimod8600Fm => "OPTIMOD 8600 FM",
+            Self::Optimod8500Fm => "OPTIMOD 8500 FM",
             Self::Optimod8700i => "OPTIMOD 8700i",
             Self::Optimod8700Hd => "OPTIMOD-FM 8700HD",
             Self::Optimod9300 => "OPTIMOD 9300",
@@ -746,6 +749,74 @@ pub const WIRE_8600FM: Wire = Wire {
     factory_files: Some(include_str!("../../../profiles/8600fm/4.3.1.26/factory-presets.json")),
     ..WIRE_8600
 };
+
+/// 8500 3.0.2.97 / 8500FM 3.0.2.101 (#75): Recall and transfer only. Sessions of their OWN clients against their original firmware
+/// (M21 runs net_8500 / net_8500FM, NAS archive, research/m21.7/MISSING-MODELS.md) and their own read-only session on a scratch
+/// unit (20 November 2026, emulator research/m21.7/evidence/rc8500/probe-*.json): `connect ok`, `8500 V 3.0.2.97` and a session
+/// number; F9h -> FAh, EEh -> its on-air file (E5h), EFh -> its Setup file (E8h), F3h -> its passcodes (E6h), F2h -> its user
+/// presets; file messages WITHOUT a name line (as the 2300's). The 5700FM client's numbering; the user extension, `orb85user`, and
+/// the factory files are their own clients' (the two installers' 46 factory files are byte for byte the same). Delete: not used.
+pub const WIRE_8500: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/8500/3.0.2.97/factory-presets.json")),
+    user_extension: ".orb85user",
+    factory_presets: &FACTORY_8500,
+    file_names: false,
+    preset_file_delete: None,
+    ..WIRE_5700FM
+};
+pub const WIRE_8500FM: Wire = Wire {
+    factory_files: Some(include_str!("../../../profiles/8500fm/3.0.2.101/factory-presets.json")),
+    ..WIRE_8500
+};
+
+const FACTORY_8500: [&str; 46] = [
+    "CLASSICAL-2 BAND",
+    "CLASSICAL-2B+AGC",
+    "CLASSICAL-5 BAND",
+    "CLASSICAL-5B+AGC",
+    "COUNTRY UL",
+    "COUNTRY-LIGHT",
+    "COUNTRY-MEDIUM",
+    "CRISP",
+    "DANCE ENERGY",
+    "EDGE",
+    "FOLK-TRADITIONAL",
+    "GOLD",
+    "GREGG LL",
+    "GREGG OPEN",
+    "GREGG",
+    "IMPACT LL",
+    "IMPACT",
+    "INSTRUMENTAL",
+    "JAZZ",
+    "LOUD+SLAM",
+    "LOUD-BIG",
+    "LOUD-COMPRESSED",
+    "LOUD-FAT",
+    "LOUD-HOT LL",
+    "LOUD-HOT+BASS LL",
+    "LOUD-HOT+BASS",
+    "LOUD-HOT",
+    "LOUD-PUNCHY",
+    "LOUD-WIDE",
+    "NEWS-TALK",
+    "PROTECT-0DB",
+    "ROCK-DENSE",
+    "ROCK-GEN UL",
+    "ROCK-LIGHT",
+    "ROCK-MEDIUM+LOWBASS",
+    "ROCK-MEDIUM+MIDBASS",
+    "ROCK-MEDIUM",
+    "ROCK-OPEN UL",
+    "ROCK-OPEN",
+    "ROCK-SMOOTH",
+    "ROCK-SOFT",
+    "SMOOTH JAZZ",
+    "SPORTS",
+    "URBAN UL",
+    "URBAN-HEAVY",
+    "URBAN-LIGHT",
+];
 
 /// 8700HD 1.0.2.161: captured from the original PC Remote 1.0.2.161 and the
 /// original firmware (virtual 8700, 20-21 October 2026). F9h is answered by
@@ -1397,7 +1468,7 @@ const RECALL_ONLY: Capabilities = Capabilities { preset_recall: true, ..READ_ONL
 
 /// Exact banners whose Recall and transfer wire was derived from their own client and read on their firmware, without a
 /// parameter profile (so never `exact()`: no parameter writes).
-const RECALL_EXACT: [(&str, AdapterDescriptor); 12] = [(
+const RECALL_EXACT: [(&str, AdapterDescriptor); 14] = [(
     "5700FM V 1.1.1.1",
     AdapterDescriptor {
         id: "pc-remote-5700fm-1.1.1.1",
@@ -1611,6 +1682,42 @@ const RECALL_EXACT: [(&str, AdapterDescriptor); 12] = [(
         frame_cut: None,
         on_air_archive: true,
         wire: WIRE_8600FM,
+        evidence: Evidence::Static,
+    },
+), (
+    "8500 V 3.0.2.97",
+    AdapterDescriptor {
+        id: "pc-remote-8500-3.0.2.97",
+        model: DeviceModel::Optimod8500,
+        skin: SkinId::Optimod8500,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8500 FM+HD",
+        firmware_prefix: "8500 V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_8500,
+        evidence: Evidence::Static,
+    },
+), (
+    "8500fm V 3.0.2.101",
+    AdapterDescriptor {
+        id: "pc-remote-8500fm-3.0.2.101",
+        model: DeviceModel::Optimod8500Fm,
+        skin: SkinId::Optimod8500,
+        transport: TransportKind::PcRemoteTcp,
+        default_port: 6201,
+        default_terminal_port: 23,
+        product_mark: "8500fm",
+        firmware_prefix: "8500fm V ",
+        capabilities: RECALL_ONLY,
+        meter_profile: None,
+        frame_cut: None,
+        on_air_archive: true,
+        wire: WIRE_8500FM,
         evidence: Evidence::Static,
     },
 )];

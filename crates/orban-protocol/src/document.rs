@@ -64,7 +64,7 @@ impl Document {
             // The 5500i 3.1.0.2 and 5500 1.2.8.24 firmware write 5500.50 documents.
             crate::adapter::DeviceModel::Optimod5500i
             | crate::adapter::DeviceModel::Optimod5500 => "OptimodVersion=<5500.",
-            crate::adapter::DeviceModel::Optimod8500 => "OptimodVersion=<8500.",
+            crate::adapter::DeviceModel::Optimod8500 | crate::adapter::DeviceModel::Optimod8500Fm => "OptimodVersion=<8500.",
             crate::adapter::DeviceModel::Optimod6300 => "OptimodVersion=<6300.",
             crate::adapter::DeviceModel::Optimod2300 => "OptimodVersion=<2300.",
             // The 8400 3.0.5 writes 00.08 documents that end `End Preset`.
