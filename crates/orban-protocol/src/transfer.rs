@@ -31,7 +31,8 @@ pub fn file_name(link: &FileLink<'_>, preset: &str) -> Result<String, String> {
 pub async fn transfer(link: &mut FileLink<'_>, preset: &str, document: &str, modified_ms: u64, limit: Duration) -> Result<(), RecallError> {
     let refuse = |e: String| RecallError::Refused(e);
     let wire = link.session.adapter().wire;
-    if wire.preset_file_delete.is_none() || wire.user_presets_request.is_none() {
+    // (a transfer never deletes: only the model's own preset list, to confirm by, is needed - 8500/8500FM, whose Delete is not known)
+    if wire.user_presets_request.is_none() {
         return Err(refuse(format!("Preset files cannot be sent to the {} over PC Remote", link.session.info.model.label())));
     }
     if !link.session.info.access().memory {
